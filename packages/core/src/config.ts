@@ -113,9 +113,18 @@ function requireEnum<T extends string>(
 
 // ─────────────────────────────── adapters-Sektion ────────────────────────────
 
-const ADAPTER_KNOWN_KEYS = new Set(['name', 'project', 'deriveFrom', 'command']);
+const ADAPTER_KNOWN_KEYS = new Set(['name', 'project', 'deriveFrom', 'command', 'extra']);
 
-/** Baut einen AdapterConfigEntry aus name + Options-Map; unbekannte Keys ⇒ extra. */
+/**
+ * Baut einen AdapterConfigEntry aus name + Options-Map; unbekannte Keys ⇒ extra.
+ *
+ * Ein literaler `extra:`-Block wird dabei **abgeflacht**: seine Schlüssel
+ * landen direkt in `entry.extra` und damit top-level in der temporären
+ * `--config`-JSON des Adapters (DD §N, z. B. `extra: { fromBuilder: true }`
+ * ⇒ `{"fromBuilder": true}`) — sonst entstünde eine doppelte Verschachtelung
+ * `{"extra": {...}}`, die Adapter stillschweigend ignorieren würden.
+ * Unbekannte flache Schlüssel gewinnen bei Gleichheit über den Block.
+ */
 function buildAdapterEntry(
   name: string,
   options: Record<string, unknown>,
@@ -126,6 +135,13 @@ function buildAdapterEntry(
   const command = optionalString(options['command'], `${path}.command`);
 
   const extra: Record<string, unknown> = {};
+  const extraBlock = options['extra'];
+  if (extraBlock !== undefined && extraBlock !== null) {
+    if (!isRecord(extraBlock)) {
+      throw new ConfigError(`"${path}.extra" muss eine Map mit Adapter-Optionen sein.`);
+    }
+    Object.assign(extra, extraBlock);
+  }
   for (const key of Object.keys(options)) {
     if (!ADAPTER_KNOWN_KEYS.has(key)) extra[key] = options[key];
   }

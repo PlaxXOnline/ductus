@@ -2,27 +2,38 @@ name: ductus
 description: >-
   Journey annotations and adapter CLI for Ductus — derive end-user
   documentation from your app's user journey, versioned with your code.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/PlaxXOnline/ductus
 issue_tracker: https://github.com/PlaxXOnline/ductus/issues
 
 environment:
   sdk: ^3.5.0
 
-# Die Annotationen selbst sind abhängigkeitsfrei; analyzer & Co. braucht nur
-# das Adapter-CLI (bin/adapter.dart).
+# Die Annotationen selbst sind abhängigkeitsfrei; analyzer & Co. brauchen nur
+# das Adapter-CLI (bin/adapter.dart) und der build_runner-Builder (Weg D).
 dependencies:
-  # Bereich statt ^14: analyzer 13 ist die höchste Serie, deren
-  # meta-Constraint (^1.18.0) mit dem von Flutter gepinnten meta harmoniert —
-  # so bleibt `ductus` als dev_dependency in Flutter-Projekten auflösbar
-  # (NFR8). Es werden nur stabile parse-only-APIs benutzt (DD §B.5);
-  # beide Serien (13, 14) sind getestet.
-  analyzer: '>=13.0.0 <15.0.0'
+  # Auf Serie 13 eingeengt (NFR8-Abwägung, DD): build (<14 ab 4.0.6) und
+  # source_gen (<14 ab 4.2.3) unterstützen analyzer 14 noch nicht — mit
+  # Serie 13 bleiben beide UND das von Flutter stable gepinnte meta
+  # (analyzer 13 verlangt meta ^1.18.0) auflösbar. Sobald source_gen/build
+  # analyzer 14 freigeben, kann der Bereich wieder auf `<15.0.0` wachsen.
+  analyzer: '>=13.0.0 <14.0.0'
   args: ^2.7.0
+  # Reguläre (keine dev-)Abhängigkeiten: lib/builder.dart wird vom generierten
+  # build_runner-Skript der Konsumenten importiert (auto_apply: dependents).
+  build: ^4.0.6
   glob: ^2.1.3
   path: ^1.9.1
+  source_gen: ^4.2.3
 
 dev_dependencies:
+  build_runner: ^2.15.0
+  build_test: ^3.5.11
+  # Expliziter Floor: test/test_core erlauben frontend_server_client ab 3.2.0,
+  # das auf aktuellen Dart-SDKs nicht mehr lauffähig ist (ruft das entfernte
+  # frontend_server.dart.snapshot auf) — ohne diesen Floor wäre
+  # `dart pub downgrade` + `dart test` rot.
+  frontend_server_client: ^4.0.0
   lints: ^6.0.0
   test: ^1.31.2
 

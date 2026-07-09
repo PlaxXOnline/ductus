@@ -13,9 +13,15 @@ class AdapterConfig {
   /// Glob-Muster relativ zum Projektverzeichnis; Default: `lib/**`.
   final List<String> include;
 
+  /// Weg D: statt selbst zu scannen das build_runner-Artefakt
+  /// `ductus_builder.g.json` durchreichen (äquivalent zum CLI-Flag
+  /// `--from-builder`; das Flag gewinnt).
+  final bool fromBuilder;
+
   const AdapterConfig({
     this.deriveFrom = const ['go_router', 'auto_route'],
     this.include = const ['lib/**'],
+    this.fromBuilder = false,
   });
 
   bool get deriveGoRouter => deriveFrom.contains('go_router');
@@ -40,6 +46,7 @@ class AdapterConfig {
       deriveFrom: _stringList(raw, 'deriveFrom', configPath) ??
           const ['go_router', 'auto_route'],
       include: _stringList(raw, 'include', configPath) ?? const ['lib/**'],
+      fromBuilder: _boolValue(raw, 'fromBuilder', configPath) ?? false,
     );
   }
 
@@ -51,5 +58,14 @@ class AdapterConfig {
       throw AdapterException(['$path: "$key" muss eine Liste von Strings sein.']);
     }
     return value.cast<String>();
+  }
+
+  static bool? _boolValue(Map<String, Object?> map, String key, String path) {
+    final value = map[key];
+    if (value == null) return null;
+    if (value is! bool) {
+      throw AdapterException(['$path: "$key" muss true oder false sein.']);
+    }
+    return value;
   }
 }

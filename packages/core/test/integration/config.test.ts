@@ -127,6 +127,58 @@ describe('loadConfig', () => {
     ]);
   });
 
+  it('flacht einen literalen extra:-Block ab (Weg D: fromBuilder landet top-level)', () => {
+    const { config } = loadConfig(
+      writeConfig(
+        [
+          'app:',
+          '  name: MyApp',
+          'adapters:',
+          '  - dart:',
+          '      project: .',
+          '      extra: { fromBuilder: true }',
+          '',
+        ].join('\n'),
+      ),
+    );
+
+    // Keine doppelte Verschachtelung { extra: { fromBuilder } } — der Adapter
+    // liest den Schlüssel top-level aus der --config-JSON (DD §N).
+    expect(config.adapters).toEqual([
+      { name: 'dart', project: '.', extra: { fromBuilder: true } },
+    ]);
+  });
+
+  it('extra:-Block und flache unbekannte Schlüssel mischen; flach gewinnt', () => {
+    const { config } = loadConfig(
+      writeConfig(
+        [
+          'app:',
+          '  name: MyApp',
+          'adapters:',
+          '  - dart:',
+          '      extra:',
+          '        fromBuilder: true',
+          '        special: 1',
+          '      special: 2',
+          '',
+        ].join('\n'),
+      ),
+    );
+
+    expect(config.adapters).toEqual([
+      { name: 'dart', project: '.', extra: { fromBuilder: true, special: 2 } },
+    ]);
+  });
+
+  it('wirft ConfigError, wenn extra: keine Map ist', () => {
+    const path = writeConfig(
+      ['app:', '  name: MyApp', 'adapters:', '  - dart:', '      extra: 42', ''].join('\n'),
+    );
+    expect(() => loadConfig(path)).toThrowError(ConfigError);
+    expect(() => loadConfig(path)).toThrowError(/extra.*muss eine Map/);
+  });
+
   it('wirft ConfigError bei kaputtem YAML', () => {
     const path = writeConfig('app:\n  name: [unclosed\n');
     expect(() => loadConfig(path)).toThrowError(ConfigError);

@@ -449,6 +449,91 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
+  // ───────────── Weg D über das Core-CLI (extra: { fromBuilder: true }) ───────
+
+  describe('CLI-Kette Weg D (fromBuilder über den extra:-Block)', () => {
+    const ADAPTER_ENV = { DUCTUS_DART_ADAPTER_DIR: DART_PKG };
+
+    /** Minimal valides Builder-Artefakt (kanonische Form, DD §N). */
+    const BUILDER_ARTIFACT = `${JSON.stringify(
+      {
+        edges: [],
+        flows: [],
+        meta: { adapters: [{ name: 'dart-builder', version: '0.2.0' }] },
+        nodes: [
+          {
+            id: 'login',
+            source: 'annotation',
+            sourceRef: { file: 'lib/main.dart', line: 5 },
+            title: 'Anmeldung',
+            type: 'screen',
+          },
+        ],
+        schemaVersion: '1.0',
+      },
+      null,
+      2,
+    )}\n`;
+
+    it(
+      'extract mit extra: { fromBuilder: true } reicht das Artefakt durch — kein Scan',
+      () => {
+        const project = makeTmpDir('ductus-e2e-frombuilder-');
+        writeFileSync(join(project, 'ductus_builder.g.json'), BUILDER_ARTIFACT, 'utf8');
+        // Absichtlich NICHT literal lesbar: liefe fälschlich ein parse-only-
+        // Scan (die frühere Silent-Failure-Regression), bräche extract mit
+        // Exit 3 ab statt das Builder-Artefakt durchzureichen.
+        mkdirSync(join(project, 'lib'), { recursive: true });
+        writeFileSync(
+          join(project, 'lib', 'main.dart'),
+          [
+            "import 'package:ductus/ductus.dart';",
+            '',
+            'abstract class MyConstants {',
+            "  static const String title = 'Anmeldung';",
+            '}',
+            '',
+            "@JourneyScreen(id: 'login', title: MyConstants.title)",
+            'class LoginScreen {}',
+            '',
+          ].join('\n'),
+          'utf8',
+        );
+        writeFileSync(
+          join(project, 'ductus.config.yaml'),
+          [
+            'app:',
+            '  name: FromBuilderDemo',
+            '  locale: de',
+            'adapters:',
+            '  - dart:',
+            '      project: .',
+            '      extra: { fromBuilder: true }',
+            'llm:',
+            '  provider: mock',
+            '  model: mock-model',
+            '',
+          ].join('\n'),
+          'utf8',
+        );
+
+        const result = runCli(['extract'], project, ADAPTER_ENV);
+        expect(result.status, result.stderr).toBe(0);
+
+        const graphPath = join(project, 'journey-graph.json');
+        expect(existsSync(graphPath)).toBe(true);
+        const graph = JSON.parse(readFileSync(graphPath, 'utf8')) as JourneyGraph;
+        expect(validateGraph(graph).errors).toEqual([]);
+        // Provenance des Builder-Artefakts, nicht des Scan-Wegs (DD §N).
+        expect(graph.meta?.adapters?.[0]?.name).toBe('dart-builder');
+        expect(graph.nodes.map((node) => node.id)).toEqual(['login']);
+        // Kein Scan ⇒ auch keine Debug-Datei des Scan-Wegs.
+        expect(existsSync(join(project, 'ductus_graph.g.json'))).toBe(false);
+      },
+      240_000,
+    );
+  });
+
   // ──────────────── Adapter-Vertrag §7.1 negativ (fail-fast, §5.4) ────────────
 
   describe('Adapter-Vertrag: widersprüchliche manuelle Annotationen', () => {

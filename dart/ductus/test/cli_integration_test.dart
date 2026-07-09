@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ductus/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -32,7 +33,7 @@ void main() {
     expect(
       (graph['meta'] as Map<String, dynamic>)['adapters'],
       [
-        {'name': 'dart', 'version': '0.1.0'}
+        {'name': 'dart', 'version': adapterVersion}
       ],
     );
 
@@ -135,5 +136,19 @@ void main() {
         (graph['nodes'] as List).map((n) => (n as Map)['id']).toList();
     // Nur manuell annotierte Nodes, keine abgeleiteten Routen.
     expect(nodeIds, unorderedEquals(['login', 'dashboard']));
+  });
+
+  test('adapterVersion stimmt mit version: in pubspec.yaml überein (DD §H)',
+      () {
+    final pubspec =
+        File(p.join(packageDir, 'pubspec.yaml')).readAsStringSync();
+    final match =
+        RegExp(r'^version:\s*(\S+)\s*$', multiLine: true).firstMatch(pubspec);
+    expect(match, isNotNull,
+        reason: 'pubspec.yaml enthält keine version:-Zeile.');
+    // Die Konstante ist hartkodiert — beim Release-Bump beide nachziehen,
+    // sonst verletzt meta.adapters.version die DD-§N-Zusage
+    // "version: <Paketversion>".
+    expect(adapterVersion, match!.group(1));
   });
 }

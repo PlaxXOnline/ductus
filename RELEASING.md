@@ -113,7 +113,10 @@ Danach auf pub.dev automated publishing einrichten:
 Ab dann läuft jedes weitere Release über
 [.github/workflows/publish-dart.yml](.github/workflows/publish-dart.yml):
 
-1. `version` in `dart/ductus/pubspec.yaml` bumpen und
+1. `version` in `dart/ductus/pubspec.yaml` bumpen, die Konstante
+   `adapterVersion` in `dart/ductus/lib/src/adapter/graph_model.dart`
+   nachziehen (muss identisch sein — ein Regressionstest in
+   `test/cli_integration_test.dart` prüft das) und
    `dart/ductus/CHANGELOG.md` ergänzen; mergen.
 2. Tag pushen — die Version im Tag muss exakt der `pubspec.yaml` entsprechen:
 

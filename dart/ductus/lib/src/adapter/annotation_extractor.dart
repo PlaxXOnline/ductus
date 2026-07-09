@@ -1,7 +1,9 @@
 /// Weg B — native Dart-Annotationen `@JourneyScreen` etc. (SPEC §5.2, DD §E).
 ///
 /// Parse-only: Const-Argumente werden literal aus dem AST gelesen, ohne
-/// Resolution (DD §B.5).
+/// Resolution (DD §B.5). Der build_runner-Builder (Weg D) kann über
+/// [AnnotationResolution] zusätzlich nicht-literale konstante Argumente
+/// auflösen — literale Argumente bleiben davon unberührt (Paritätsgarantie).
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -9,6 +11,25 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'candidates.dart';
 import 'graph_model.dart';
 import 'scanner.dart';
+
+/// Löst nicht-literale konstante Annotation-Argumente auf (Weg D).
+///
+/// Der Extraktor fragt hier nach, BEVOR er ein nicht literal lesbares
+/// Argument diagnostiziert. `null` ⇒ nicht konstant auflösbar; dann greift
+/// unverändert die parse-only-Warn-/Fehlersemantik (gleiche Meldungsformate).
+/// Bewusst frei von build-/source_gen-Typen, damit das Adapter-CLI keine
+/// Builder-Abhängigkeiten zieht.
+abstract class AnnotationResolution {
+  /// Konstanter String-Wert des benannten Arguments [key], sonst `null`.
+  String? stringValue(ScannedFile file, Annotation annotation, String key);
+
+  /// Konstante String-Liste des benannten Arguments [key], sonst `null`.
+  List<String>? stringListValue(
+      ScannedFile file, Annotation annotation, String key);
+
+  /// Name des konstanten `JourneyTrigger`-Werts (z. B. 'tap'), sonst `null`.
+  String? triggerValue(ScannedFile file, Annotation annotation, String key);
+}
 
 String _annotationName(Annotation annotation) {
   final name = annotation.name;
@@ -36,11 +57,15 @@ Map<String, Expression> _namedArgs(Annotation annotation) {
 }
 
 /// Extrahiert alle Journey-Annotationen einer Datei.
+///
+/// [resolution] (Weg D) löst nicht-literale konstante Argumente auf; ohne
+/// Auflösung bleibt das parse-only-Verhalten byte-identisch erhalten.
 ManualExtraction extractAnnotations(
   ScannedFile file,
   void Function(String) warn,
-  List<String> errors,
-) {
+  List<String> errors, {
+  AnnotationResolution? resolution,
+}) {
   final result = ManualExtraction();
 
   void handleAnnotation(
@@ -55,12 +80,15 @@ ManualExtraction extractAnnotations(
 
     /// Liest ein benanntes String-Argument. Ist das Argument zwar vorhanden,
     /// aber parse-only nicht literal lesbar (z. B. eine Const-Referenz,
-    /// DD §B.5), wird das diagnostiziert statt stillschweigend verworfen:
-    /// Warnung für optionale Felder, Fehler bei [errorIfUnreadable].
+    /// DD §B.5), versucht zuerst [resolution] (Weg D) die konstante
+    /// Auflösung; scheitert auch die, wird das diagnostiziert statt
+    /// stillschweigend verworfen: Warnung für optionale Felder, Fehler bei
+    /// [errorIfUnreadable].
     String? str(String key, {bool errorIfUnreadable = false}) {
       final expr = args[key];
       if (expr == null) return null;
-      final value = _stringValue(expr);
+      final value =
+          _stringValue(expr) ?? resolution?.stringValue(file, annotation, key);
       if (value == null) {
         if (errorIfUnreadable) {
           errors.add('$where: @$name: "$key" nicht literal lesbar '
@@ -73,24 +101,39 @@ ManualExtraction extractAnnotations(
       return value;
     }
 
-    /// Liest das optionale `tags:`-Argument; nicht-literale Liste bzw.
-    /// nicht-literale Elemente werden mit Warnung übersprungen.
+    /// Liest das optionale `tags:`-Argument. Nicht (vollständig) literal
+    /// lesbare Listen werden zuerst über [resolution] (Weg D) konstant
+    /// aufgelöst; scheitert das, greift die parse-only-Semantik: nicht-
+    /// literale Liste bzw. nicht-literale Elemente mit Warnung überspringen.
     List<String> tagsValue() {
       final expr = args['tags'];
       if (expr == null) return const [];
       if (expr is! ListLiteral) {
+        final resolved = resolution?.stringListValue(file, annotation, 'tags');
+        if (resolved != null) return resolved;
         warn('Warnung: $where: @$name: "tags" nicht literal lesbar '
             '— ignoriert.');
         return const [];
       }
       final values = <String>[];
+      var allLiteral = true;
       for (final element in expr.elements) {
         final v = element is StringLiteral ? element.stringValue : null;
         if (v == null) {
-          warn('Warnung: $where: @$name: "tags"-Element nicht literal '
-              'lesbar — ignoriert.');
+          allLiteral = false;
         } else {
           values.add(v);
+        }
+      }
+      // Voll literal ⇒ Paritätspfad, identisch zum parse-only-Extraktor.
+      if (allLiteral) return values;
+      final resolved = resolution?.stringListValue(file, annotation, 'tags');
+      if (resolved != null) return resolved;
+      // parse-only-Fallback: Warnung je nicht lesbarem Element, Rest behalten.
+      for (final element in expr.elements) {
+        if (element is! StringLiteral || element.stringValue == null) {
+          warn('Warnung: $where: @$name: "tags"-Element nicht literal '
+              'lesbar — ignoriert.');
         }
       }
       return values;
@@ -133,7 +176,11 @@ ManualExtraction extractAnnotations(
         }
         var trigger = 'tap';
         if (args.containsKey('trigger')) {
-          final t = _triggerValue(args['trigger']!);
+          var t = _triggerValue(args['trigger']!);
+          if (t == null || !validTriggers.contains(t)) {
+            // Weg D: konstante Referenz (z. B. `MyConsts.trigger`) auflösen.
+            t = resolution?.triggerValue(file, annotation, 'trigger') ?? t;
+          }
           if (t == null || !validTriggers.contains(t)) {
             warn('Warnung: $where: trigger nicht literal lesbar — '
                 'verwende "tap".');

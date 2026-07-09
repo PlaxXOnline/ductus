@@ -5,10 +5,32 @@ library;
 import 'dart:collection';
 import 'dart:convert';
 
-/// Muss mit `version:` in pubspec.yaml übereinstimmen (DD §H).
-const String adapterVersion = '0.1.0';
+/// Muss mit `version:` in pubspec.yaml übereinstimmen (DD §H) — abgesichert
+/// durch einen Regressionstest in test/cli_integration_test.dart.
+const String adapterVersion = '0.2.0';
 
 const String schemaVersion = '1.0';
+
+/// meta.adapters-Name des Adapter-CLI (Scan via `dart run ductus:adapter`).
+const String cliAdapterName = 'dart';
+
+/// meta.adapters-Name des build_runner-Builders (Weg D).
+const String builderAdapterName = 'dart-builder';
+
+/// Artefakt des build_runner-Builders im Projekt-Root des Zielpakets (Weg D).
+/// NICHT zu verwechseln mit `ductus_graph.g.json` — das ist die Debug-Datei,
+/// die das Adapter-CLI bei jedem Scan schreibt.
+const String builderArtifactFileName = 'ductus_builder.g.json';
+
+/// Vom Adapter unterstützte Schema-Major-Version (V6/NFR7, wie im Core).
+const int supportedSchemaMajor = 1;
+
+/// V6-Logik wie im Core: „major.minor“ mit unterstütztem Major ⇒ kompatibel
+/// (Minor-Erweiterungen sind rückwärtskompatibel zu pflegen, SPEC §6).
+bool isSupportedSchemaVersion(String version) {
+  final match = RegExp(r'^(\d+)\.(\d+)$').firstMatch(version);
+  return match != null && int.parse(match.group(1)!) == supportedSchemaMajor;
+}
 
 /// Herkunft eines Graph-Elements (SPEC §6.2).
 class SourceKind {
@@ -174,10 +196,15 @@ Object? _canonicalize(Object? value) {
 
 /// Kanonisches Graph-JSON nach DD §C: rekursiv sortierte Schlüssel,
 /// 2-Space-Indent, LF, abschließender Zeilenumbruch, kein `generatedAt`.
+///
+/// [adapterName] ist der meta.adapters-Eintrag: [cliAdapterName] für den
+/// CLI-Scan, [builderAdapterName] für das build_runner-Artefakt (Weg D) —
+/// ansonsten sind beide Ausgaben byte-identisch (Paritätsgarantie).
 String encodeCanonicalGraph({
   required List<GraphFlow> flows,
   required List<GraphNode> nodes,
   required List<GraphEdge> edges,
+  String adapterName = cliAdapterName,
 }) {
   int byId(String a, String b) => a.compareTo(b);
   final graph = <String, Object?>{
@@ -193,7 +220,7 @@ String encodeCanonicalGraph({
         .toList(),
     'meta': {
       'adapters': [
-        {'name': 'dart', 'version': adapterVersion},
+        {'name': adapterName, 'version': adapterVersion},
       ],
     },
   };

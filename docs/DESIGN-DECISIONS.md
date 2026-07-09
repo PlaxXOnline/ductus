@@ -31,7 +31,8 @@ intern in Spannung steht), und fixiert die Verträge zwischen den Paketen. Es is
    Zielprojekt:** Erfüllt §7.1/§7.2 vollständig; sieht go_router-Tabellen und
    Kommentar-Blöcke (was `GeneratorForAnnotation` nicht kann); Zielprojekte brauchen
    kein `pub get`/Build-Setup. Bewusste Abweichung vom Implementierungs-Detail §7.3;
-   ein source_gen-Builder kann später ergänzt werden, ohne den Vertrag zu ändern.
+   ein source_gen-Builder kann später ergänzt werden, ohne den Vertrag zu ändern —
+   inzwischen als Weg D umgesetzt (§N).
 6. **Faithfulness-Schwellwert:** `llm.faithfulnessThreshold` (Default `0`) — mehr
    Verstöße als der Schwellwert ⇒ Exit-Code 2 bei `generate`/`check`.
 7. **Website-Modus:** `output.dir` ist die Wurzel des Starlight-Projekts; MDX landet in
@@ -129,16 +130,22 @@ stderr-Warnung, Feld entfällt. `trigger` behält sein Verhalten (Warnung, Defau
 ## H. Adapter-CLI-Vertrag (konkretisiert §7.1)
 
 ```
-dart run ductus:adapter --project <dir> [--config <json-file>] [--no-debug-file]
+dart run ductus:adapter --project <dir> [--config <json-file>] [--no-debug-file] [--from-builder]
 ```
 
 - stdout: **genau ein** kanonisches Graph-JSON; stderr: Diagnostik; Exit 0/≠0.
-- `--config`: JSON mit `{ "deriveFrom": ["go_router","auto_route"], "include": ["lib/**"] }`
-  (Defaults: beide Ableitungen an, `lib/**`). Der Core schreibt diese Datei temporär aus
+- `--config`: JSON mit `{ "deriveFrom": ["go_router","auto_route"], "include": ["lib/**"],
+  "fromBuilder": false }` (Defaults: beide Ableitungen an, `lib/**`, kein
+  Builder-Durchreichen). Der Core schreibt diese Datei temporär aus
   der `adapters:`-Sektion der `ductus.config.yaml`.
+- `--from-builder` (äquivalent Config-Schlüssel `fromBuilder: true`; das Flag
+  gewinnt): Weg D — reicht `<project>/ductus_builder.g.json` nach
+  `schemaVersion`-Prüfung durch statt selbst zu scannen (Details §N).
 - Schreibt zusätzlich `ductus_graph.g.json` ins Projekt (Debugging, §7.3),
-  abschaltbar mit `--no-debug-file`.
-- `meta.adapters = [{name: "dart", version: "<pkg-version>"}]`.
+  abschaltbar mit `--no-debug-file`; mit `--from-builder` entfällt sie
+  (kein Scan).
+- `meta.adapters = [{name: "dart", version: "<pkg-version>"}]` — das
+  build_runner-Artefakt aus §N trägt stattdessen `name: "dart-builder"`.
 - Der npm-Wrapper `@ductus/adapter-dart` stellt das Binary `ductus-adapter-dart` bereit
   und delegiert an `dart run ductus:adapter …`.
 - **Auflösungskette für den Dart-Aufruf** (buildfreie Nutzung, §5.1: Weg A braucht
@@ -174,7 +181,10 @@ dart run ductus:adapter --project <dir> [--config <json-file>] [--no-debug-file]
 ## J. Cache & Kosten (§8.5, NFR3)
 
 - Cache-Key: SHA-256 über kanonisches Segment-JSON + Prompt-Version + Modell +
-  Styleguide-Konfig (voice, locale, granularity). Ablage `.ductus/cache/<hash>.json`.
+  Styleguide-Konfig (`voice|locale`). Ablage `.ductus/cache/<hash>.json`.
+  `granularity` ist bewusst kein Key-Bestandteil: ein Wechsel ändert den
+  Segment-Zuschnitt und damit das Segment-JSON selbst — die Invalidierung
+  passiert dadurch, und beim Zurückwechseln bleiben alte Einträge Treffer.
 - Token-Schätzung vorab: `ceil(chars/4)` je Prompt; nach Lauf: echte `usage`-Werte des
   Providers. Kosten in USD nur, wenn `llm.pricing` (Preis je 1M In-/Out-Token)
   konfiguriert ist — Preise ändern sich zu schnell für eingebaute Tabellen. *(Annahme)*
@@ -263,3 +273,91 @@ dart run ductus:adapter --project <dir> [--config <json-file>] [--no-debug-file]
   war (Exit wäre 0 oder 2); ein Faithfulness-Exit 2 wird durch einen erfolgreichen
   Build NICHT auf 0 maskiert (2 bleibt 2) — scheitert der Build, gewinnt dessen
   Exit 3.
+
+## N. Weg D — build_runner-Builder
+
+- **Motivation & Abgrenzung:** Projekte, die ohnehin `build_runner` fahren,
+  extrahieren den Journey-Graphen als Builder-Schritt. Mehrwert gegenüber dem
+  parse-only-Adapter (§B.5) ist **Resolution**: nicht-literale konstante
+  Annotation-Argumente (z. B. `title: MyConstants.title`, statische
+  `const`-Referenzen) werden über den resolved AST aufgelöst (source_gen
+  `TypeChecker` identifiziert `@JourneyScreen` & Co. robust per Bibliotheks-URI,
+  `ConstantReader` liest die konstanten Werte), statt nach §E als
+  Fehler/Warnung abgelehnt zu werden. Der Adapter-Vertrag §7.1 bleibt
+  **unverändert** (stdout = genau ein JSON); der Builder ist ein zusätzlicher
+  Zubringer, keine Ablösung.
+- **Paket & Import-Hygiene:** Kein neues Paket — der Builder lebt in
+  `dart/ductus` (analyzer ist dort ohnehin Dependency). `lib/ductus.dart`
+  (Annotations-Export) importiert `build`/`source_gen` **nicht**; der Builder
+  liegt in `lib/builder.dart` (Factory
+  `Builder ductusJourneyBuilder(BuilderOptions options)`) plus
+  `lib/src/builder/*.dart`. `build.yaml` im Paket: Builder `journey_builder`,
+  `import: package:ductus/builder.dart`, `auto_apply: dependents`,
+  `build_to: source`; aggregierender Builder mit synthetischem Input
+  (`buildExtensions: {r'$package$': ['ductus_builder.g.json']}`) — dadurch
+  läuft er genau einmal pro Paket statt einmal pro Datei.
+- **Artefakt:** `ductus_builder.g.json` im Projekt-Root des Zielpakets —
+  schema-valider Journey-Graph in der kanonischen Serialisierung (§C) mit
+  `meta.adapters`-Eintrag `{name: "dart-builder", version: <Paketversion>}`.
+  **Nicht verwechseln:** `ductus_graph.g.json` ist bereits die Debug-Datei
+  des Adapter-CLI (§H) und behält diese Rolle; der Builder schreibt bewusst
+  einen anderen Dateinamen. Empfehlung für Ziel-Apps: `ductus_builder.g.json`
+  in die `.gitignore` aufnehmen (Build-Artefakt, analog `ductus_graph.g.json`).
+- **Wiederverwendung statt Kopie:** Der Builder nutzt die bestehende Pipeline
+  (scanner, comment_parser, annotation_extractor,
+  derive_go_router/derive_auto_route, merger, kanonische Serialisierung).
+  Einziger Unterschied ist der zusätzliche Resolutions-Schritt für
+  Annotationen. Fallback: Was der Resolver nicht konstant auflösen kann,
+  behandelt der Builder exakt wie der parse-only-Extraktor — gleiche
+  Fehler-/Warnungsformate nach §E (Pflichtfelder ⇒ Fehler, optionale Felder ⇒
+  stderr-Warnung, `trigger` ⇒ Default `tap`).
+- **Paritäts-Garantie (Kernanforderung):** Für Projekte, deren Annotationen
+  ausschließlich Literale nutzen, ist `ductus_builder.g.json` byte-identisch
+  mit der stdout-Ausgabe des parse-only-Adapters — **bis auf genau eine
+  gewollte Ausnahme:** `meta.adapters[0].name` ist `dart-builder` statt
+  `dart` (Provenance, siehe Artefakt oben; §H bleibt für das CLI bei
+  `dart`). `flows`/`nodes`/`edges`/`schemaVersion` entstehen aus derselben
+  Merge-/Sortier-/Serialisierungslogik (NFR2) und sind byte-identisch;
+  inhaltliche Abweichungen entstehen nur dort, wo Resolution zusätzliche
+  Werte liefert. Ein byte-genauer Paritäts-Vergleich (z. B. `diff` in CI)
+  muss den `meta.adapters`-Namen normalisieren.
+- **Versionsranges (NFR8):** `build` und `source_gen` kommen als reguläre
+  dependencies dazu, `build_runner`/`build_test` als dev_dependencies (nur
+  für die Builder-Tests). Die konkreten Ranges werden **empirisch** ermittelt
+  und stehen samt Begründungskommentar in der `pubspec.yaml` (hier keine
+  Zahlen, sie veralten). Entscheidungsregel: `dart pub get` muss mit
+  analyzer-Serie 13 **und** 14 auflösbar bleiben, und
+  `examples/flutter_go_router_demo` muss mit dem Flutter-meta-Pin
+  (`flutter pub get`) auflösbar bleiben. Geben source_gen/build das mit
+  beiden Serien nicht her, wird die analyzer-Serie auf die mit aktuellem
+  Flutter stable auflösbare eingeengt; diese NFR8-Abwägung ist dann im
+  pubspec-Kommentar festzuhalten (Flutter-Kompatibilität schlägt Breite).
+- **`--from-builder` (Adapter-CLI):** Neues Flag, äquivalent der
+  Config-Schlüssel `fromBuilder: true` in der `--config`-JSON (das Flag
+  gewinnt). Liest `<project>/ductus_builder.g.json`, prüft `schemaVersion`
+  (V6-Logik wie vorhanden) und emittiert die Datei nach stdout — **kein
+  eigener Scan**. Fehlt die Datei: klarer deutscher Fehler mit Hinweis auf
+  `dart run build_runner build`, Exit ≠ 0. Damit funktioniert Weg D auch
+  über das Core-CLI: `adapters: - dart: { extra: { fromBuilder: true } }`.
+  Der Core flacht einen literalen `extra:`-Block dafür **ab** — seine
+  Schlüssel landen top-level in der temporären `--config`-Datei des
+  Core-Runners (§H); ohne Abflachung entstünde `{"extra": {...}}`, das der
+  Adapter stillschweigend ignorieren würde. Unbekannte flache Schlüssel
+  direkt unter dem Adapter (`- dart: { fromBuilder: true }`) wirken
+  gleichwertig und gewinnen bei Namensgleichheit über den Block
+  (Regressionstests in `packages/core/test/integration/config.test.ts`).
+- **Builder-Optionen & Target-Sources:** Der Builder akzeptiert in der
+  `build.yaml` des Zielpakets die Optionen `deriveFrom` und `include`
+  (gleiche Schlüssel und Defaults wie die `--config`-JSON des CLI).
+  Einschränkung: `buildStep.findAssets` sieht nur Assets der
+  build_runner-**Target-Sources** (Default u. a. `lib/`) — ein
+  `include`-Muster außerhalb davon (z. B. `extra/**`) liefert im Builder
+  keine Dateien, während das Adapter-CLI sie scannen würde. Der Builder
+  warnt deshalb pro `include`-Muster ohne Treffer; wer solche Pfade
+  braucht, erweitert `targets.$default.sources` in der `build.yaml` des
+  Zielpakets oder nutzt das Adapter-CLI. Mit dem Default `lib/**` tritt
+  die Abweichung nicht auf.
+- **Staleness:** `ductus_builder.g.json` ist so aktuell wie der letzte
+  build_runner-Lauf; das CLI erkennt eine veraltete Datei nicht. Wer
+  `--from-builder` nutzt, führt vor `ductus extract` also
+  `dart run build_runner build` aus (oder lässt `watch` laufen).

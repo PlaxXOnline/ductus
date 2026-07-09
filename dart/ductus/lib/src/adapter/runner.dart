@@ -21,7 +21,21 @@ String runAdapter({
   required void Function(String) warn,
 }) {
   final files = scanProject(projectDir, config, warn);
+  return runPipeline(files: files, config: config, warn: warn);
+}
 
+/// Pipeline auf bereits gescannten Dateien — gemeinsame Basis von Adapter-CLI
+/// und build_runner-Builder (Weg D). Gleiche Merge-/Sortier-/
+/// Serialisierungslogik für beide Zubringer (Paritätsgarantie): Unterschiede
+/// entstehen nur durch [resolution] (zusätzlich aufgelöste Werte) und
+/// [adapterName] (meta.adapters-Eintrag).
+String runPipeline({
+  required List<ScannedFile> files,
+  AdapterConfig config = const AdapterConfig(),
+  required void Function(String) warn,
+  AnnotationResolution? resolution,
+  String adapterName = cliAdapterName,
+}) {
   final errors = <String>[];
   final nodes = <GraphNode>[];
   final flows = <GraphFlow>[];
@@ -32,7 +46,7 @@ String runAdapter({
   for (final file in files) {
     for (final extraction in [
       parseComments(file, warn, errors),
-      extractAnnotations(file, warn, errors),
+      extractAnnotations(file, warn, errors, resolution: resolution),
     ]) {
       nodes.addAll(extraction.nodes);
       flows.addAll(extraction.flows);
@@ -105,5 +119,6 @@ String runAdapter({
     flows: merged.flows,
     nodes: merged.nodes,
     edges: merged.edges,
+    adapterName: adapterName,
   );
 }

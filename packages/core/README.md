@@ -25,9 +25,13 @@ ductus graph --open # Graph als Mermaid/HTML inspizieren
 
 Hinweis: Die von `ductus graph` erzeugte HTML-Seite lädt Mermaid beim Öffnen
 per CDN — das Rendern im Browser braucht also einmalig Netz. `--offline`
-betrifft nur LLM- und Adapter-Läufe.
+wirkt nur auf `generate` (nur mit `llm.provider: mock` erlaubt, nicht mit
+`--build` kombinierbar).
 
 ## Weiterführende Doku
+
+Best Practices (Graph-Qualität, Arbeitsablauf, LLM & Kosten):
+[Abschnitt im Repo-README](https://github.com/PlaxXOnline/ductus#best-practices).
 
 Verbindliche Spezifikation:
 [SPEC.md](https://github.com/PlaxXOnline/ductus/blob/main/SPEC.md) ·

@@ -1,6 +1,7 @@
 /// Adapter-CLI (SPEC §7, DD §H):
 ///
-///     dart run ductus:adapter --project <dir> [--config <json>] [--no-debug-file]
+///     dart run ductus:adapter --project <dir> [--config <json>]
+///         [--no-debug-file] [--from-builder]
 ///
 /// stdout: genau ein kanonisches Graph-JSON; Diagnostik auf stderr;
 /// Exit 0 Erfolg / ≠0 Fehler.
@@ -13,6 +14,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:ductus/src/adapter/config.dart';
+import 'package:ductus/src/adapter/from_builder.dart';
 import 'package:ductus/src/adapter/graph_model.dart';
 import 'package:ductus/src/adapter/runner.dart';
 
@@ -23,7 +25,12 @@ void main(List<String> argv) {
     ..addFlag('debug-file',
         defaultsTo: true,
         help: 'Schreibt ductus_graph.g.json ins Projektverzeichnis '
-            '(--no-debug-file schaltet ab).');
+            '(--no-debug-file schaltet ab).')
+    ..addFlag('from-builder',
+        negatable: false,
+        help: 'Weg D: reicht das build_runner-Artefakt ductus_builder.g.json '
+            'aus dem Projektverzeichnis durch statt selbst zu scannen '
+            '(äquivalent: Config-Key "fromBuilder": true).');
 
   final ArgResults args;
   try {
@@ -47,6 +54,15 @@ void main(List<String> argv) {
 
   try {
     final config = AdapterConfig.load(args['config'] as String?);
+
+    // Weg D: Artefakt des build_runner-Builders durchreichen — kein eigener
+    // Scan, keine Debug-Datei (das Artefakt liegt bereits im Projekt).
+    // Das Flag gewinnt gegenüber dem Config-Key.
+    if ((args['from-builder'] as bool) || config.fromBuilder) {
+      stdout.add(utf8.encode(readBuilderArtifact(projectDir)));
+      return;
+    }
+
     final json = runAdapter(
       projectDir: projectDir,
       config: config,

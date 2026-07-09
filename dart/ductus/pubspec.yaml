@@ -1,0 +1,30 @@
+name: ductus
+description: >-
+  Journey annotations and adapter CLI for Ductus — derive end-user
+  documentation from your app's user journey, versioned with your code.
+version: 0.1.0
+repository: https://github.com/PlaxXOnline/ductus
+issue_tracker: https://github.com/PlaxXOnline/ductus/issues
+
+environment:
+  sdk: ^3.5.0
+
+# Die Annotationen selbst sind abhängigkeitsfrei; analyzer & Co. braucht nur
+# das Adapter-CLI (bin/adapter.dart).
+dependencies:
+  # Bereich statt ^14: analyzer 13 ist die höchste Serie, deren
+  # meta-Constraint (^1.18.0) mit dem von Flutter gepinnten meta harmoniert —
+  # so bleibt `ductus` als dev_dependency in Flutter-Projekten auflösbar
+  # (NFR8). Es werden nur stabile parse-only-APIs benutzt (DD §B.5);
+  # beide Serien (13, 14) sind getestet.
+  analyzer: '>=13.0.0 <15.0.0'
+  args: ^2.7.0
+  glob: ^2.1.3
+  path: ^1.9.1
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.31.2
+
+executables:
+  adapter: adapter

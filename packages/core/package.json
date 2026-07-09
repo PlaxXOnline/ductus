@@ -1,0 +1,54 @@
+{
+  "name": "@ductus/core",
+  "version": "0.1.0",
+  "description": "Ductus core — orchestrator, CLI, LLM layer (BYOK), MDX/website output",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlaxXOnline/ductus.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/PlaxXOnline/ductus#readme",
+  "keywords": [
+    "ductus",
+    "cli",
+    "documentation",
+    "user-journey",
+    "llm",
+    "mdx",
+    "flutter"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "bin": {
+    "ductus": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ductus/schema": "^0.1.0",
+    "ajv": "^8.17.0",
+    "commander": "^14.0.0",
+    "yaml": "^2.6.0"
+  }
+}

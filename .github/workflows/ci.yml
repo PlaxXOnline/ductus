@@ -1,0 +1,52 @@
+# CI-Vorlage für das Ductus-Monorepo: Node-Pakete, Dart-Adapter,
+# Flutter-Beispiel-Apps.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx vitest run
+
+  dart:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dart/ductus
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart analyze
+      - run: dart test
+
+  flutter-analyze:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        example:
+          - examples/flutter_comment_demo
+          - examples/flutter_go_router_demo
+    defaults:
+      run:
+        working-directory: ${{ matrix.example }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze

@@ -1,0 +1,27 @@
+# Ductus-Konfiguration (SPEC §10.2)
+app:
+  name: comment_demo
+  locale: de
+
+adapters:
+  - dart:
+      project: .
+      deriveFrom: [go_router, auto_route]
+
+llm:
+  provider: mock        # anthropic | openai | custom | mock
+  model: claude-sonnet-4-5
+  apiKeyEnv: DUCTUS_LLM_API_KEY
+  temperature: 0.2
+  faithfulnessCheck: true
+
+style:
+  voice: formal-sie          # formal-sie | informal-du | en-you
+  granularity: flow          # flow | screen
+
+output:
+  format: mdx                # mdx | website
+  dir: docs/
+  website:
+    generator: starlight     # starlight | docusaurus
+    diagrams: true

@@ -1,0 +1,33 @@
+{
+  "name": "@ductus/adapter-dart",
+  "version": "0.1.0",
+  "description": "Ductus Dart adapter wrapper — delegates to the pub.dev `ductus` adapter CLI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlaxXOnline/ductus.git",
+    "directory": "packages/adapter-dart"
+  },
+  "homepage": "https://github.com/PlaxXOnline/ductus#readme",
+  "keywords": [
+    "ductus",
+    "dart",
+    "flutter",
+    "adapter",
+    "user-journey"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "bin": {
+    "ductus-adapter-dart": "./bin/ductus-adapter-dart.js"
+  },
+  "files": [
+    "bin"
+  ]
+}

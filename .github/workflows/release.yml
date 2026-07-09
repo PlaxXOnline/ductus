@@ -1,0 +1,52 @@
+# Release-Workflow für die npm-Pakete (@ductus/schema, @ductus/core,
+# @ductus/adapter-dart): changesets/action pflegt bei jedem Push nach main
+# den "Version Packages"-PR und publiziert nach dessen Merge via
+# "npm run release" nach npm. Auth über das NPM_TOKEN-Secret (NODE_AUTH_TOKEN,
+# .npmrc kommt von actions/setup-node); Provenance ist in der publishConfig
+# der Pakete aktiviert und braucht id-token: write.
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Create release pull request or publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

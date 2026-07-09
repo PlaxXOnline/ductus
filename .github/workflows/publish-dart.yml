@@ -1,0 +1,36 @@
+# Publiziert das Dart-Paket dart/ductus nach pub.dev, sobald ein Tag nach dem
+# Muster "dart-vX.Y.Z" gepusht wird. Der Publish läuft über das offizielle
+# Reusable-Workflow von dart-lang/setup-dart und authentifiziert sich per
+# OIDC (pub.dev automated publishing; auf pub.dev muss dafür das Tag-Muster
+# "dart-v{{version}}" konfiguriert sein — siehe RELEASING.md). Vorher laufen
+# die Tests des Pakets als eigener Job.
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - 'dart-v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  test:
+    name: Test dart/ductus
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dart/ductus
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart test
+
+  publish:
+    name: Publish
+    needs: test
+    permissions:
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      working-directory: dart/ductus

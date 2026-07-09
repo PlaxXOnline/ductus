@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Build-Artefakt: wird bei jedem Build von scripts/copy-assets.mjs
+# aus templates/starlight neu erzeugt (Single Source of Truth: templates/)
+packages/core/assets/
+
+# Dart / Flutter
+.dart_tool/
+.packages
+pubspec.lock
+build/
+
+# Ductus artifacts
+.ductus/
+ductus_graph.g.json
+
+# Werkzeug-Artefakte (lokal)
+.playwright-mcp/
+
+# OS / Editor
+.DS_Store
+*.log
+.idea/
+.vscode/

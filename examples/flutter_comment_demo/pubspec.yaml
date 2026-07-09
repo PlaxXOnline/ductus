@@ -1,0 +1,18 @@
+name: comment_demo
+description: Ductus-Beispiel - Kommentar-Konvention (Weg A), ganz ohne Build-Abhängigkeit.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

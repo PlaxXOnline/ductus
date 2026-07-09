@@ -1,0 +1,48 @@
+{
+  "name": "@ductus/schema",
+  "version": "0.1.0",
+  "description": "Ductus journey graph — JSON Schema and TypeScript types",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlaxXOnline/ductus.git",
+    "directory": "packages/schema"
+  },
+  "homepage": "https://github.com/PlaxXOnline/ductus#readme",
+  "keywords": [
+    "ductus",
+    "json-schema",
+    "user-journey",
+    "documentation",
+    "types"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./journey-graph.schema.json": "./schema/journey-graph.schema.json"
+  },
+  "files": [
+    "dist",
+    "schema"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "gen:schema": "node scripts/gen-schema.ts"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.0"
+  }
+}

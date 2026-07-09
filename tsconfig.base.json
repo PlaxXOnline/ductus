@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true,
+    // sourcesContent in die .js.map einbetten — die Tarballs enthalten kein
+    // src/, ohne inlineSources wären die Source-Maps für Konsumenten tot.
+    "inlineSources": true,
+    "resolveJsonModule": true
+  }
+}

@@ -19,47 +19,60 @@ Der Scope `@ductus` setzt eine npm-Organisation namens `ductus` voraus:
 Hinweis: Das *unscoped* npm-Paket `ductus` ist ein Security-Holding-Package
 von npm — das ist irrelevant, publiziert wird ausschließlich scoped.
 
-## 2. GitHub-Repository anlegen und pushen
+## 2. `main` nach GitHub pushen
 
-Das Arbeitsverzeichnis ist noch **kein** Git-Repository — `gh repo create
---source . --push` setzt ein initialisiertes Repo mit mindestens einem Commit
-voraus. Also zuerst initialisieren (Branch `main`, weil Release-Workflow und
-Changesets-`baseBranch` darauf konfiguriert sind):
+Das Repository existiert bereits — lokal (Branches `main` und `develop`) und
+auf GitHub unter `https://github.com/PlaxXOnline/ductus`; die Repo-URL ist in
+allen Manifests (`package.json`, `pubspec.yaml`) und READMEs eingetragen.
+
+Auf `origin` liegt bisher allerdings nur `develop`. Der Release-Workflow
+triggert auf Pushes nach `main` (dort ist auch der Changesets-`baseBranch`
+konfiguriert), also vor dem ersten Workflow-Release `main` pushen:
 
 ```bash
-git init -b main
-git add -A
-git commit -m "Initial commit"
-gh repo create PlaxXOnline/ductus --public --source . --push
+git push -u origin main
 ```
 
-Die Repo-URL `https://github.com/PlaxXOnline/ductus` ist bereits in allen
-Manifests (`package.json`, `pubspec.yaml`) und READMEs eingetragen.
+## 3. Publishing konfigurieren: Trusted Publishing und Actions-Rechte
 
-## 3. GitHub-Repo konfigurieren: `NPM_TOKEN` und Actions-Rechte
-
-### 3a. `NPM_TOKEN` als Actions-Secret hinterlegen
-
-1. Auf npmjs.com ein **Granular Access Token** erzeugen (Access Tokens →
-   Generate New Token; die klassischen „Automation“-Tokens wurden im November
-   2025 entfernt, es gibt nur noch Granular Access Tokens). Einstellungen:
-   - **Packages and scopes**: *Read and write*, beschränkt auf den Scope
-     `@ductus`.
-   - **Bypass 2FA** aktivieren — sonst scheitert der unbeaufsichtigte Publish
-     aus GitHub Actions an der 2FA-Abfrage (die Option hat Vorrang vor
-     Account- und Paket-2FA-Einstellungen).
-   - Granular Tokens haben ein **Pflicht-Ablaufdatum**: Das Secret muss
-     periodisch rotiert werden — Ablaufdatum notieren und rechtzeitig ein
-     neues Token hinterlegen. Alternative ohne Rotation: npm
-     **Trusted Publishing** (OIDC direkt aus GitHub Actions, je Paket auf
-     npmjs.com konfigurierbar) — dann entfällt `NPM_TOKEN` komplett.
-2. Im GitHub-Repo unter **Settings → Secrets and variables → Actions** als
-   Secret `NPM_TOKEN` anlegen.
+### 3a. npm Trusted Publishing (OIDC) einrichten
 
 Der Workflow [.github/workflows/release.yml](.github/workflows/release.yml)
-nutzt das Token als `NODE_AUTH_TOKEN`; die Provenance-Attestierung ist über
-`publishConfig.provenance` in den Paketen aktiviert (braucht keinen weiteren
-Schlüssel, nur die `id-token: write`-Permission des Workflows).
+publiziert über [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers):
+npm vertraut dem OIDC-Token von GitHub Actions direkt — es gibt **kein**
+npm-Token, kein `NPM_TOKEN`-Secret und keine Token-Rotation.
+
+Trusted Publisher werden in den **Paket**-Settings auf npmjs.com konfiguriert,
+die Pakete müssen also zuerst existieren. Die Erstveröffentlichung läuft
+deshalb **lokal**:
+
+1. `npm login` — die interaktive 2FA/OTP-Abfrage ist hier völlig in Ordnung,
+   ein Bypass ist nicht nötig.
+2. Im Repo-Root: `npm run build && npx changeset publish` — publiziert alle
+   drei Pakete in 0.1.0 (noch ohne Provenance; ab dem nächsten CI-Release
+   automatisch mit).
+
+Danach **je Paket** (`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`)
+auf npmjs.com: **Package Settings → Trusted Publisher → GitHub Actions** mit:
+
+- **Organization or user**: `PlaxXOnline`
+- **Repository**: `ductus`
+- **Workflow filename**: `release.yml` (nur der Dateiname, kein Pfad)
+- **Environment name**: leer lassen
+- **Allowed actions**: *npm publish*
+
+Alle Felder sind case-sensitiv und müssen exakt passen. Weitere Hinweise:
+
+- Je Paket ist genau **ein** Trusted Publisher möglich; wird die
+  Workflow-Datei umbenannt, muss die Konfiguration je Paket nachgezogen
+  werden.
+- Self-hosted Runner werden nicht unterstützt (nur GitHub-hosted).
+- Trusted Publishing braucht npm CLI ≥ 11.5.1 — der Workflow installiert
+  deshalb vor dem Publish `npm@latest`.
+- Provenance wird beim Trusted Publishing automatisch erzeugt; ein
+  `publishConfig.provenance` in den Paketen ist nicht nötig (und würde den
+  lokalen Erstpublish brechen, weil Provenance unterstütztes CI/OIDC
+  voraussetzt).
 
 ### 3b. GitHub Actions das Erstellen von Pull Requests erlauben
 
@@ -69,8 +82,8 @@ Bei Repos unter persönlichen Accounts (wie `PlaxXOnline`) ist sie per Default
 **deaktiviert** — ohne sie bricht der Release-Workflow beim Anlegen des
 „Version Packages“-PR mit *„GitHub Actions is not permitted to create or
 approve pull requests“* ab (workflow-seitig ist `pull-requests: write`
-bereits gesetzt). Die Erstveröffentlichung 0.1.0 (direkter Publish ohne
-Version-PR) funktioniert auch ohne die Option, jedes Folge-Release nicht.
+bereits gesetzt). Die Erstveröffentlichung 0.1.0 läuft lokal (Schritt 3a)
+und braucht die Option nicht — jedes Folge-Release über den Workflow schon.
 
 ## 4. Release-Ablauf npm (Changesets)
 
@@ -86,11 +99,12 @@ Pro Änderung:
 3. Den „Version Packages"-PR mergen → der Workflow publiziert die Pakete
    automatisch nach npm (`npm run release`) und erzeugt GitHub-Releases/Tags.
 
-**Erstveröffentlichung (0.1.0):** Es ist *kein* Changeset nötig. Alle Pakete
-stehen bereits auf 0.1.0 und sind unveröffentlicht — `changeset publish`
-publiziert auf npm fehlende Versionen direkt. Es reicht also, nach Schritt 1–3
-auf `main` zu pushen; der Release-Workflow publiziert 0.1.0 beim ersten Lauf
-ohne Version-PR.
+**Erstveröffentlichung (0.1.0):** Läuft **lokal** (siehe Schritt 3a), nicht
+über den ersten Workflow-Lauf — die Trusted-Publisher-Konfiguration setzt
+existierende Pakete voraus. Ein Changeset ist nicht nötig: Alle Pakete stehen
+bereits auf 0.1.0, `npx changeset publish` publiziert auf npm fehlende
+Versionen direkt. Ab dann publiziert der Release-Workflow jedes Folge-Release
+über OIDC.
 
 ## 5. Release-Ablauf pub.dev (Dart-Paket)
 

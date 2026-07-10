@@ -4,13 +4,18 @@
  * dart/ductus/lib/src/adapter/graph_model.dart.
  */
 
+import { createRequire } from 'node:module';
 import { SCHEMA_VERSION } from '@ductus/schema';
 
 /**
- * Muss mit "version" in package.json übereinstimmen — abgesichert durch
- * einen Regressionstest in test/cli.test.ts.
+ * Adapter-Version aus der eigenen package.json — zur Laufzeit gelesen, damit
+ * Changesets-Versionsbumps keine Konstante verwaisen lassen (der Dart-Adapter
+ * braucht dafür eine manuell gepflegte Konstante samt Regressionstest; hier
+ * sichert der Test in test/cli.test.ts nur noch den Lesepfad ab).
  */
-export const adapterVersion = '0.1.0';
+export const adapterVersion: string = (
+  createRequire(import.meta.url)('../package.json') as { version: string }
+).version;
 
 export const schemaVersion = SCHEMA_VERSION;
 

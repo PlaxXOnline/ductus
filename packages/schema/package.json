@@ -1,6 +1,6 @@
 {
   "name": "@ductus/schema",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ductus journey graph — JSON Schema and TypeScript types",
   "license": "MIT",
   "repository": {

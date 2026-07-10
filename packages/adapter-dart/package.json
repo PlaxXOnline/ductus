@@ -1,6 +1,6 @@
 {
   "name": "@ductus/adapter-dart",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ductus Dart adapter wrapper — delegates to the pub.dev `ductus` adapter CLI",
   "license": "MIT",
   "repository": {

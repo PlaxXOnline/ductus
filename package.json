@@ -21,6 +21,6 @@
     "@changesets/cli": "^2.31.0",
     "@types/node": "^24.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.10"
   }
 }

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="13">
+  <style>
+    /* Gemeinsame 18s-Zeitachse: Kommandos tippen sich ein (clip-path + steps),
+       Ausgabezeilen erscheinen kaskadiert; am Ende kurzer Fade, dann Loop. */
+    .line { opacity: 0; animation: 18s linear infinite; }
+    @keyframes t1 { 0%,1.6% { clip-path: inset(-5% 100% -5% 0); } 1.7% { clip-path: inset(-5% 100% -5% 0); animation-timing-function: steps(15, end); } 7% { clip-path: inset(-5% -2% -5% 0); } 100% { clip-path: inset(-5% -2% -5% 0); } }
+    @keyframes t2 { 0%,22% { clip-path: inset(-5% 100% -5% 0); } 22.1% { clip-path: inset(-5% 100% -5% 0); animation-timing-function: steps(16, end); } 28% { clip-path: inset(-5% -2% -5% 0); } 100% { clip-path: inset(-5% -2% -5% 0); } }
+    @keyframes t3 { 0%,56% { clip-path: inset(-5% 100% -5% 0); } 56.1% { clip-path: inset(-5% 100% -5% 0); animation-timing-function: steps(13, end); } 61% { clip-path: inset(-5% -2% -5% 0); } 100% { clip-path: inset(-5% -2% -5% 0); } }
+    .cmd1 { opacity: 1; animation: 18s linear infinite t1; }
+    .cmd2 { opacity: 1; animation: 18s linear infinite t2; }
+    .cmd3 { opacity: 1; animation: 18s linear infinite t3; }
+    @keyframes o1  { 0%,8%    { opacity: 0; } 8.5%,93%  { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o2  { 0%,10%   { opacity: 0; } 10.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o3  { 0%,12%   { opacity: 0; } 12.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o4  { 0%,14%   { opacity: 0; } 14.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o5  { 0%,30%   { opacity: 0; } 30.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o6  { 0%,33%   { opacity: 0; } 33.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o7  { 0%,38%   { opacity: 0; } 38.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o8  { 0%,42%   { opacity: 0; } 42.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o9  { 0%,45%   { opacity: 0; } 45.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o10 { 0%,48%   { opacity: 0; } 48.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    @keyframes o11 { 0%,63%   { opacity: 0; } 63.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    /* Fade der Kommandozeilen am Zyklusende, damit der Neustart sauber wirkt */
+    @keyframes cf { 0%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
+    .cwrap { animation: 18s linear infinite cf; }
+    @media (prefers-reduced-motion: reduce) {
+      .line, .cmd1, .cmd2, .cmd3, .cwrap { animation: none; opacity: 1; clip-path: none; }
+    }
+  </style>
+
+  <!-- Fenster -->
+  <rect x="0.5" y="0.5" width="759" height="469" rx="10" fill="#0d1117" stroke="#30363d"/>
+  <rect x="0.5" y="0.5" width="759" height="34" rx="10" fill="#161b22" stroke="#30363d"/>
+  <rect x="1" y="24" width="758" height="11" fill="#161b22"/>
+  <circle cx="22" cy="17.5" r="5.5" fill="#ff5f57"/>
+  <circle cx="42" cy="17.5" r="5.5" fill="#febc2e"/>
+  <circle cx="62" cy="17.5" r="5.5" fill="#28c840"/>
+  <text x="380" y="21.5" text-anchor="middle" fill="#8b949e" font-size="12">flutter_comment_demo — zsh</text>
+
+  <!-- $ ductus extract -->
+  <g class="cwrap"><text x="24" y="64" class="cmd1"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" xml:space="preserve"> ductus extract</tspan></text></g>
+  <text x="24" y="86"  fill="#8b949e" class="line" style="animation-name:o1">Adapter "dart" wird ausgeführt …</text>
+  <text x="24" y="108" fill="#e6edf3" class="line" style="animation-name:o2">Graph: <tspan fill="#79c0ff">5 Nodes</tspan>, <tspan fill="#79c0ff">8 Edges</tspan>, <tspan fill="#79c0ff">1 Flows</tspan>, 0 Warnung(en)</text>
+  <text x="24" y="130" fill="#8b949e" class="line" style="animation-name:o3">Geschrieben: journey-graph.json</text>
+  <text x="24" y="152" fill="#8b949e" class="line" style="animation-name:o4">Geschrieben: ductus-report.json</text>
+
+  <!-- $ ductus generate -->
+  <g class="cwrap"><text x="24" y="196" class="cmd2"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" xml:space="preserve"> ductus generate</tspan></text></g>
+  <text x="24" y="218" fill="#d2a8ff" class="line" style="animation-name:o5">Kostenschätzung (vorab): 1 Segment(e), ~3756 Input-Token, ~1600 Output-Token</text>
+  <text x="24" y="240" fill="#8b949e" class="line" style="animation-name:o6">Segment "notes": wird generiert</text>
+  <text x="24" y="262" fill="#e6edf3" class="line" style="animation-name:o7">Generiert: 1 Segment(e) (Cache: 0 Treffer, 1 neu)</text>
+  <text x="24" y="284" fill="#e6edf3" class="line" style="animation-name:o8">Token: 3170 in / 219 out (geschätzt: 3756 / 1600)</text>
+  <text x="24" y="306" fill="#8b949e" class="line" style="animation-name:o9">Geschrieben: docs/notes.mdx</text>
+  <text x="24" y="328" fill="#8b949e" class="line" style="animation-name:o10">Report: ductus-report.json</text>
+
+  <!-- $ ductus check -->
+  <g class="cwrap"><text x="24" y="372" class="cmd3"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" xml:space="preserve"> ductus check</tspan></text></g>
+  <text x="24" y="394" class="line" style="animation-name:o11"><tspan fill="#7ee787">check: OK</tspan><tspan fill="#8b949e" xml:space="preserve"> (0 Warnung(en), 0 Segment(e) noch nicht generiert)</tspan></text>
+
+  <text x="24" y="438" fill="#484f58" font-size="11.5">extract läuft ohne LLM · generate nur bei Graph-Änderungen (Segment-Cache) · check kostenlos in CI</text>
+</svg>

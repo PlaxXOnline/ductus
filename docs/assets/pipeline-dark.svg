@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 260" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    :root {
+      --text: #e6edf3; --muted: #8b949e; --box: #161b22; --stroke: #30363d;
+      --accent: #6d8dff; --arrow: #6e7681; --code: #7ee787; --soft: #0d1117;
+    }
+    .flow { stroke: var(--accent); stroke-width: 2; fill: none; stroke-dasharray: 6 6; animation: dash 1.2s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -12; } }
+    .judge { animation: judgepulse 3.6s ease-in-out infinite; }
+    @keyframes judgepulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .flow, .judge { animation: none; } }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrj" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Station 1: Quellcode -->
+  <g>
+    <rect x="20" y="60" width="180" height="120" rx="10" fill="var(--box)" stroke="var(--stroke)"/>
+    <text x="110" y="86" text-anchor="middle" fill="var(--text)" font-size="15" font-weight="600">Quellcode</text>
+    <text x="110" y="104" text-anchor="middle" fill="var(--muted)" font-size="11">Dart · Flutter · TS/JS</text>
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="10.5">
+      <text x="36" y="130" fill="var(--code)">// @journey:screen</text>
+      <text x="36" y="146" fill="var(--code)">//   id="note-editor"</text>
+      <text x="36" y="162" fill="var(--muted)">class NoteEditor …</text>
+    </g>
+  </g>
+
+  <!-- Pfeil 1: extract -->
+  <path class="flow" d="M 206 120 H 262" marker-end="url(#arr)"/>
+  <text x="235" y="102" text-anchor="middle" fill="var(--muted)" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace">extract</text>
+
+  <!-- Station 2: Graph -->
+  <g>
+    <rect x="270" y="60" width="180" height="120" rx="10" fill="var(--box)" stroke="var(--stroke)"/>
+    <text x="360" y="86" text-anchor="middle" fill="var(--text)" font-size="13.5" font-weight="600" font-family="ui-monospace, Menlo, Consolas, monospace">journey-graph.json</text>
+    <text x="360" y="104" text-anchor="middle" fill="var(--muted)" font-size="11">validiert · byte-stabil</text>
+    <g stroke="var(--arrow)" stroke-width="1.4" fill="none">
+      <path d="M 322 138 C 340 128, 354 128, 372 133"/>
+      <path d="M 322 144 C 344 156, 362 156, 384 150"/>
+      <path d="M 392 138 C 402 130, 410 128, 418 132"/>
+    </g>
+    <g>
+      <rect x="300" y="130" width="22" height="15" rx="3" fill="var(--soft)" stroke="var(--accent)" stroke-width="1.4"/>
+      <rect x="372" y="126" width="22" height="15" rx="3" fill="var(--soft)" stroke="var(--accent)" stroke-width="1.4"/>
+      <rect x="384" y="140" width="22" height="15" rx="3" fill="var(--soft)" stroke="var(--accent)" stroke-width="1.4" transform="rotate(45 395 147.5)"/>
+    </g>
+    <text x="360" y="172" text-anchor="middle" fill="var(--muted)" font-size="10.5">Screens · Actions · Decisions</text>
+  </g>
+
+  <!-- Pfeil 2: generate -->
+  <path class="flow" d="M 456 120 H 512" marker-end="url(#arr)"/>
+  <text x="485" y="102" text-anchor="middle" fill="var(--muted)" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace">generate</text>
+
+  <!-- Station 3: LLM -->
+  <g>
+    <rect x="520" y="60" width="180" height="120" rx="10" fill="var(--box)" stroke="var(--stroke)"/>
+    <text x="610" y="86" text-anchor="middle" fill="var(--text)" font-size="15" font-weight="600">LLM — BYOK</text>
+    <text x="610" y="104" text-anchor="middle" fill="var(--muted)" font-size="11">eigener API-Key, kein Backend</text>
+    <path class="judge" d="M 610 116 l 5.2 12.6 12.8 1.4 -9.6 9 2.8 13 -11.2 -7 -11.2 7 2.8 -13 -9.6 -9 12.8 -1.4 Z" fill="var(--accent)"/>
+    <text x="610" y="164" text-anchor="middle" fill="var(--muted)" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace">anthropic · openai · mistral</text>
+    <text x="610" y="171.5" text-anchor="middle" fill="var(--muted)" font-size="10.5" font-family="ui-monospace, Menlo, Consolas, monospace" dy="7">custom · mock</text>
+  </g>
+
+  <!-- Pfeil 3 -->
+  <path class="flow" d="M 706 120 H 762" marker-end="url(#arr)"/>
+
+  <!-- Station 4: Doku -->
+  <g>
+    <rect x="770" y="60" width="150" height="120" rx="10" fill="var(--box)" stroke="var(--stroke)"/>
+    <text x="845" y="86" text-anchor="middle" fill="var(--text)" font-size="15" font-weight="600">Endnutzer-Doku</text>
+    <text x="845" y="104" text-anchor="middle" fill="var(--muted)" font-size="11">MDX · statische Website</text>
+    <g>
+      <rect x="786" y="118" width="80" height="48" rx="5" fill="var(--soft)" stroke="var(--stroke)"/>
+      <rect x="786" y="118" width="80" height="12" rx="5" fill="var(--stroke)"/>
+      <rect x="792" y="136" width="46" height="4" rx="2" fill="var(--accent)" opacity="0.75"/>
+      <rect x="792" y="146" width="64" height="3.5" rx="1.75" fill="var(--arrow)" opacity="0.6"/>
+      <rect x="792" y="154" width="56" height="3.5" rx="1.75" fill="var(--arrow)" opacity="0.6"/>
+      <rect x="850" y="128" width="44" height="44" rx="5" fill="var(--box)" stroke="var(--stroke)"/>
+      <text x="872" y="156" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="700" font-family="ui-monospace, Menlo, Consolas, monospace">.mdx</text>
+    </g>
+  </g>
+
+  <!-- Judge-Rückkopplung -->
+  <path class="judge" d="M 845 188 V 214 Q 845 228 831 228 H 374 Q 360 228 360 214 V 188" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 5" marker-end="url(#arrj)"/>
+  <text x="602" y="222" text-anchor="middle" fill="var(--muted)" font-size="11.5">Faithfulness-Judge — jede Aussage muss durch den Graphen gedeckt sein</text>
+
+  <!-- Kommando-Hinweise -->
+  <text x="110" y="44" text-anchor="middle" fill="var(--muted)" font-size="11">annotieren oder ableiten</text>
+  <text x="360" y="44" text-anchor="middle" fill="var(--muted)" font-size="11">ohne LLM nutzbar</text>
+  <text x="610" y="44" text-anchor="middle" fill="var(--muted)" font-size="11">Segment-Cache spart Kosten</text>
+  <text x="845" y="44" text-anchor="middle" fill="var(--muted)" font-size="11">journey · starlight</text>
+</svg>

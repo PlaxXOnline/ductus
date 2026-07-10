@@ -44,10 +44,21 @@ jobs:
       - name: Test
         run: npx vitest run
 
-      # Trusted Publishing braucht npm >= 11.5.1 (und Node >= 22.14) — nicht
-      # darauf verlassen, welche npm-Version der Runner bündelt.
-      - name: Update npm for trusted publishing
-        run: npm install -g npm@latest
+      # Trusted Publishing braucht npm >= 11.5.1 (und Node >= 22.14). Das von
+      # Node 24 gebündelte npm (>= 11.16) erfüllt das. Bewusst KEIN
+      # "npm install -g npm@latest": npm 12.0.0 deklariert `sigstore` nicht
+      # mehr als Dependency, libnpmpublish braucht es aber für Provenance —
+      # ein Registry-Install räumt das Modul weg und der Publish stirbt mit
+      # MODULE_NOT_FOUND (npm/cli#9722). Der Guard schlägt fehl, falls ein
+      # Runner-Image je ein zu altes npm bündeln sollte.
+      - name: Verify npm supports trusted publishing (>= 11.5.1)
+        run: |
+          node -e '
+            const v = process.argv[1].trim().split(".").map(Number);
+            const ok = v[0] > 11 || (v[0] === 11 && (v[1] > 5 || (v[1] === 5 && v[2] >= 1)));
+            if (!ok) { console.error(`npm ${process.argv[1].trim()} < 11.5.1 — Trusted Publishing nicht möglich`); process.exit(1); }
+            console.log(`npm ${process.argv[1].trim()} >= 11.5.1 — ok`);
+          ' "$(npm --version)"
 
       - name: Create release pull request or publish to npm
         id: changesets

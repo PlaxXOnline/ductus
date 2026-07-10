@@ -67,8 +67,13 @@ Alle Felder sind case-sensitiv und müssen exakt passen. Weitere Hinweise:
   Workflow-Datei umbenannt, muss die Konfiguration je Paket nachgezogen
   werden.
 - Self-hosted Runner werden nicht unterstützt (nur GitHub-hosted).
-- Trusted Publishing braucht npm CLI ≥ 11.5.1 — der Workflow installiert
-  deshalb vor dem Publish `npm@latest`.
+- Trusted Publishing braucht npm CLI ≥ 11.5.1. Das von Node 24 gebündelte
+  npm erfüllt das; ein Guard-Schritt im Workflow prüft die Version vor dem
+  Publish. Bewusst **kein** `npm install -g npm@latest` im Workflow:
+  npm 12.0.0 deklariert `sigstore` nicht mehr als Dependency, obwohl
+  `libnpmpublish` es für Provenance lädt — ein Registry-Install entfernt das
+  Modul und der Publish scheitert mit `MODULE_NOT_FOUND`
+  ([npm/cli#9722](https://github.com/npm/cli/issues/9722)).
 - Provenance wird beim Trusted Publishing automatisch erzeugt; ein
   `publishConfig.provenance` in den Paketen ist nicht nötig (und würde den
   lokalen Erstpublish brechen, weil Provenance unterstütztes CI/OIDC

@@ -167,23 +167,32 @@ function journeyTaskLabel(node: JourneyNode): string {
   return label.trim() === '' ? node.id : label;
 }
 
+/** Ergebnis der Hauptpfad-Ableitung: Nodes in Pfad-Reihenfolge + gewählte Kanten. */
+export interface MainPath {
+  /** Pfad-Nodes ab flow.start; leer, wenn kein Hauptpfad ableitbar ist. */
+  nodes: JourneyNode[];
+  /** Gewählte Kanten; edges[i] verbindet nodes[i] mit nodes[i+1]. */
+  edges: JourneyEdge[];
+}
+
+const EMPTY_MAIN_PATH: MainPath = { nodes: [], edges: [] };
+
 /**
- * Rendert für ein Flow-Segment den deterministisch abgeleiteten Hauptpfad als
- * Mermaid-'journey'. journey ist strikt linear (keine Verzweigungen) — deshalb
- * wird ab flow.start pro Schritt genau eine ausgehende Kante innerhalb des
+ * Deterministische Hauptpfad-Ableitung eines Flow-Segments (NFR2, DD §L):
+ * ab flow.start wird pro Schritt genau eine ausgehende Kante innerhalb des
  * Segments gewählt (compareMainPathEdges); besuchte Nodes werden nie wiederholt,
- * Zyklen terminieren also. Score konstant 3 (neutral) — der Graph enthält kein
- * Sentiment, es wird nichts erfunden; ebenso keine Akteure und keine Kantenlabels
- * (dafür gibt es das flowchart). Liefert undefined für screen-/misc-Segmente und
- * für Pfade mit weniger als 2 Nodes.
+ * Zyklen terminieren also. Liefert einen leeren Pfad für screen-/misc-Segmente
+ * und für Pfade mit weniger als 2 Nodes — Konsumenten (segmentToJourney,
+ * buildJourneyData) müssen den Fall nicht selbst unterscheiden.
  */
-export function segmentToJourney(segment: GraphSegment): string | undefined {
-  if (segment.kind !== 'flow' || segment.flow === undefined) return undefined;
+export function deriveMainPath(segment: GraphSegment): MainPath {
+  if (segment.kind !== 'flow' || segment.flow === undefined) return EMPTY_MAIN_PATH;
   const nodesById = new Map(segment.nodes.map((node) => [node.id, node]));
   const start = nodesById.get(segment.flow.start);
-  if (start === undefined) return undefined;
+  if (start === undefined) return EMPTY_MAIN_PATH;
 
   const path: JourneyNode[] = [start];
+  const chosen: JourneyEdge[] = [];
   const visited = new Set<string>([start.id]);
   let current = start;
   for (let step = 0; step < MAX_JOURNEY_STEPS; step += 1) {
@@ -200,8 +209,24 @@ export function segmentToJourney(segment: GraphSegment): string | undefined {
     if (next === undefined) break; // durch nodesById.has bereits ausgeschlossen
     visited.add(next.id);
     path.push(next);
+    chosen.push(best);
     current = next;
   }
+  if (path.length < 2) return EMPTY_MAIN_PATH;
+  return { nodes: path, edges: chosen };
+}
+
+/**
+ * Rendert für ein Flow-Segment den deterministisch abgeleiteten Hauptpfad
+ * (deriveMainPath) als Mermaid-'journey'. journey ist strikt linear (keine
+ * Verzweigungen). Score konstant 3 (neutral) — der Graph enthält kein
+ * Sentiment, es wird nichts erfunden; ebenso keine Akteure und keine Kantenlabels
+ * (dafür gibt es das flowchart). Liefert undefined für screen-/misc-Segmente und
+ * für Pfade mit weniger als 2 Nodes.
+ */
+export function segmentToJourney(segment: GraphSegment): string | undefined {
+  if (segment.kind !== 'flow' || segment.flow === undefined) return undefined;
+  const path = deriveMainPath(segment).nodes;
   if (path.length < 2) return undefined;
 
   const lines = [

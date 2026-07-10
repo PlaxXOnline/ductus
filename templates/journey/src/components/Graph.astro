@@ -1,0 +1,493 @@
+---
+/**
+ * Interaktiver Journey-Graph (linkes Panel der Detailseite): Punktraster-
+ * Hintergrund, Screens als abgerundete Karten mit Icon, Entscheidungen als
+ * Rauten, Bezier-Kanten mit Pfeilspitzen, Kanten-Label-Chips, Legende und
+ * „SCHRITT i/N“-Badge. Zustände (Selektion/Play) setzt das Seiten-Skript in
+ * journeys/[slug].astro per Klassen/Inline-Styles (Referenz: edgeSvg/nodeVals
+ * in der Design-Datei).
+ */
+import type { Journey } from '../lib/types';
+import { layoutGraph } from '../lib/layout';
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+
+interface Props {
+  journey: Journey;
+}
+
+const { journey } = Astro.props;
+const t = uiStrings(data.site.locale);
+const layout = layoutGraph(journey);
+
+const chipEdges = journey.edges.filter(
+  (e) => layout.edges[e.id] !== undefined && (e.label !== '' || (e.condition !== null && e.condition !== '')),
+);
+---
+
+<div class="dj-graph" id="dj-graph">
+  {
+    /* Sticky-Wrapper (0 Höhe): hält das Badge wie Kopfzeile/Legende oben rechts
+       im sichtbaren Panel-Ausschnitt, auch wenn der Graph scrollt. */
+    journey.mainPath.length > 0 && (
+      <div class="dj-graph-badge-wrap">
+        <div class="dj-graph-badge dj-mono" id="dj-step-badge">
+          {t.stepBadge(1, journey.mainPath.length)}
+        </div>
+      </div>
+    )
+  }
+  <div class="dj-graph-head">
+    <div class="dj-graph-head-title">{t.graphTitle}</div>
+    <div class="dj-graph-head-hint">{t.graphHint}</div>
+  </div>
+
+  <div class="dj-graph-canvas" style={`width:${layout.width}px;height:${layout.height}px`}>
+    <svg
+      class="dj-graph-svg"
+      viewBox={`0 0 ${layout.width} ${layout.height}`}
+      style={`width:${layout.width}px;height:${layout.height}px`}
+      aria-hidden="true"
+    >
+      {
+        journey.edges.map((edge) => {
+          const geo = layout.edges[edge.id];
+          if (!geo) return null;
+          return (
+            <>
+              <path
+                class="dj-edge-path"
+                d={geo.d}
+                pathLength="1"
+                data-edge-path
+                data-edge-id={edge.id}
+                data-from={edge.from}
+                data-to={edge.to}
+                data-main={edge.main === null ? '' : String(edge.main)}
+              />
+              {/* gestrichelte Lauf-Überlagerung bei Selektion (dashFlow im Design) */}
+              <path class="dj-edge-flow" d={geo.d} data-edge-flow data-edge-id={edge.id} style="display:none" />
+              <path
+                class="dj-edge-arrow"
+                d="M0,-4.4 L9,0 L0,4.4 Z"
+                transform={geo.arrowTransform}
+                data-edge-arrow
+                data-edge-id={edge.id}
+              />
+            </>
+          );
+        })
+      }
+    </svg>
+
+    {
+      journey.nodes.map((node) => {
+        const r = layout.nodes[node.id];
+        if (!r) return null;
+        if (node.type === 'decision') {
+          return (
+            <div
+              class="dj-gnode is-decision"
+              data-graph-node
+              data-node-id={node.id}
+              style={`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`}
+              title={node.title}
+              role="button"
+              tabindex="0"
+            >
+              <div class="dj-gnode-diamond" />
+              <div class="dj-gnode-diamond-label">
+                {node.title}
+                <div class="dj-gnode-sub">{t.typeLabel('decision')}</div>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div
+            class:list={['dj-gnode', 'is-card', { 'is-action-node': node.type === 'action' }]}
+            data-graph-node
+            data-node-id={node.id}
+            style={`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`}
+            title={node.title}
+            role="button"
+            tabindex="0"
+          >
+            <span class:list={['dj-gnode-icon', node.type === 'action' ? 'is-action' : 'is-screen']} aria-hidden="true" />
+            <span class="dj-gnode-text">
+              <span class="dj-gnode-title">{node.title}</span>
+              <span class="dj-gnode-sub">
+                {node.start ? `${t.startPoint} · ` : ''}
+                {t.typeLabel(node.type)}
+              </span>
+            </span>
+          </div>
+        );
+      })
+    }
+
+    {
+      chipEdges.map((edge) => {
+        const geo = layout.edges[edge.id];
+        const hasCondition = edge.condition !== null && edge.condition !== '';
+        return (
+          <div
+            class:list={[
+              'dj-edge-chip',
+              { 'has-condition': hasCondition, 'is-success': hasCondition && edge.main !== null, 'is-warn': hasCondition && edge.main === null },
+            ]}
+            data-edge-chip
+            data-edge-id={edge.id}
+            data-from={edge.from}
+            data-main={edge.main === null ? '' : String(edge.main)}
+            style={`left:${geo.labelX}px;top:${geo.labelY}px`}
+          >
+            {edge.label !== '' ? edge.label : edge.condition}
+            {hasCondition && edge.label !== '' && <div class="dj-edge-chip-cond">{t.conditionPrefix(edge.condition as string)}</div>}
+          </div>
+        );
+      })
+    }
+  </div>
+
+  <div class="dj-graph-legend">
+    <span><span class="dj-legend-screen"></span>{t.legendScreen}</span>
+    <span><span class="dj-legend-decision"></span>{t.legendDecision}</span>
+    <span><span class="dj-legend-main"></span>{t.legendMainPath}</span>
+  </div>
+</div>
+
+<style is:global>
+  .dj-graph {
+    flex: none;
+    width: 620px;
+    border-right: 1px solid var(--dj-border);
+    position: relative;
+    background-image: radial-gradient(rgba(35, 32, 25, 0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+    overflow: auto;
+  }
+  .dj-graph-head {
+    position: sticky;
+    left: 26px;
+    top: 16px;
+    z-index: 4;
+    width: fit-content;
+    margin: 16px 0 0 26px;
+    pointer-events: none;
+  }
+  .dj-graph-head-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--dj-muted);
+  }
+  .dj-graph-head-hint {
+    font-size: 11.5px;
+    color: var(--dj-muted-2);
+    margin-top: 2px;
+  }
+  .dj-graph-badge-wrap {
+    position: sticky;
+    top: 16px;
+    left: 0;
+    z-index: 4;
+    height: 0;
+    pointer-events: none;
+  }
+  .dj-graph-badge {
+    position: absolute;
+    right: 20px;
+    top: 0;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    color: var(--dj-accent);
+    background: rgba(58, 98, 196, 0.1);
+    border: 1px solid rgba(58, 98, 196, 0.32);
+    border-radius: 20px;
+    padding: 4px 11px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .dj-graph-badge.is-visible {
+    opacity: 1;
+  }
+  .dj-graph-canvas {
+    position: relative;
+    margin: 14px 30px 46px;
+  }
+  .dj-graph-svg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .dj-edge-path {
+    fill: none;
+    stroke: var(--dj-edge);
+    stroke-width: 1.6;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    transition:
+      stroke-dashoffset 0.9s cubic-bezier(0.5, 0, 0.2, 1),
+      opacity 0.4s,
+      stroke 0.3s,
+      stroke-width 0.3s;
+  }
+  .dj-edge-arrow {
+    fill: var(--dj-edge);
+    transition:
+      opacity 0.4s,
+      fill 0.3s;
+  }
+  .dj-edge-flow {
+    fill: none;
+    stroke: var(--dj-accent);
+    stroke-width: 2.4;
+    stroke-dasharray: 7 6;
+    opacity: 0.9;
+    animation: dj-dash-flow 0.75s linear infinite;
+  }
+
+  /* ── Nodes ─────────────────────────────────────────────────────────────── */
+  .dj-gnode {
+    position: absolute;
+    cursor: pointer;
+    z-index: 2;
+    transition:
+      opacity 0.5s ease,
+      transform 0.2s;
+  }
+  .dj-gnode:focus-visible {
+    outline: 2px solid var(--dj-accent);
+    outline-offset: 2px;
+  }
+  .dj-gnode.is-intro {
+    opacity: 0;
+  }
+  .dj-gnode.is-dim {
+    opacity: 0.3;
+  }
+  .dj-gnode.is-card {
+    background: var(--dj-panel);
+    border: 1.5px solid var(--dj-node-line);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(35, 32, 25, 0.07);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    transition:
+      all 0.4s,
+      opacity 0.5s ease;
+  }
+  .dj-gnode.is-card:hover {
+    transform: translateY(-2px);
+  }
+  .dj-gnode.is-card.is-visited,
+  .dj-gnode.is-card.is-active {
+    border-color: var(--dj-accent);
+  }
+  .dj-gnode.is-card.is-active {
+    box-shadow:
+      0 0 0 4px var(--dj-accent-soft),
+      0 1px 3px rgba(35, 32, 25, 0.07);
+    animation: dj-pulse 1.1s ease-out infinite;
+  }
+  .dj-gnode.is-card.is-selected {
+    border-color: var(--dj-accent);
+    box-shadow:
+      0 0 0 4px var(--dj-accent-soft),
+      0 12px 30px rgba(0, 0, 0, 0.14);
+  }
+  .dj-gnode-text {
+    min-width: 0;
+  }
+  .dj-gnode-title {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dj-gnode-sub {
+    display: block;
+    font-size: 9px;
+    color: var(--dj-muted);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Dokument-Icon (Screens) bzw. Kreis-Icon (Aktionen), reines CSS */
+  .dj-gnode-icon {
+    flex: none;
+    position: relative;
+    display: block;
+  }
+  .dj-gnode-icon.is-screen {
+    width: 20px;
+    height: 28px;
+    border: 1.5px solid #8b8474;
+    border-radius: 4px;
+  }
+  .dj-gnode-icon.is-screen::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    top: 5px;
+    height: 2px;
+    background: #c9c3b4;
+    border-radius: 2px;
+  }
+  .dj-gnode-icon.is-screen::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    right: 7px;
+    top: 10px;
+    height: 2px;
+    background: #dedace;
+    border-radius: 2px;
+  }
+  .dj-gnode-icon.is-action {
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid #8b8474;
+    border-radius: 50%;
+  }
+  .dj-gnode-icon.is-action::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1.5px solid #c9c3b4;
+    border-radius: 50%;
+  }
+
+  /* Entscheidungs-Raute — im Ruhezustand neutrale Node-Linienfarbe wie die
+     Karten (Design: nodeVals bc = P.line); orange ist nur der Legenden-Marker. */
+  .dj-gnode-diamond {
+    position: absolute;
+    inset: 6px;
+    background: var(--dj-panel);
+    border: 1.5px solid var(--dj-node-line);
+    border-radius: 7px;
+    transform: rotate(45deg);
+    box-shadow: 0 1px 3px rgba(35, 32, 25, 0.07);
+    transition: all 0.4s;
+  }
+  .dj-gnode.is-decision.is-visited .dj-gnode-diamond,
+  .dj-gnode.is-decision.is-active .dj-gnode-diamond {
+    border-color: var(--dj-accent);
+  }
+  .dj-gnode.is-decision.is-active .dj-gnode-diamond {
+    box-shadow:
+      0 0 0 4px var(--dj-accent-soft),
+      0 1px 3px rgba(35, 32, 25, 0.07);
+    animation: dj-pulse 1.1s ease-out infinite;
+  }
+  .dj-gnode.is-decision.is-selected .dj-gnode-diamond {
+    border-color: var(--dj-accent);
+    box-shadow:
+      0 0 0 4px var(--dj-accent-soft),
+      0 12px 30px rgba(0, 0, 0, 0.14);
+  }
+  .dj-gnode-diamond-label {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 9px;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 650;
+  }
+  .dj-gnode-diamond-label .dj-gnode-sub {
+    font-size: 8.5px;
+  }
+
+  /* ── Kanten-Label-Chips ───────────────────────────────────────────────── */
+  .dj-edge-chip {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    transition: all 0.4s;
+    z-index: 3;
+    pointer-events: none;
+    background: var(--dj-panel);
+    border: 1px solid var(--dj-border-2);
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #4c473c;
+    box-shadow: 0 1px 3px rgba(35, 32, 25, 0.08);
+    white-space: nowrap;
+  }
+  .dj-edge-chip.has-condition {
+    border-radius: 12px;
+    text-align: center;
+  }
+  .dj-edge-chip.is-warn {
+    border-color: rgba(176, 96, 58, 0.4);
+  }
+  .dj-edge-chip.is-success {
+    border-color: rgba(60, 138, 99, 0.45);
+  }
+  .dj-edge-chip-cond {
+    font-size: 9px;
+    font-weight: 650;
+  }
+  .dj-edge-chip.is-warn .dj-edge-chip-cond {
+    color: var(--dj-decision);
+  }
+  .dj-edge-chip.is-success .dj-edge-chip-cond {
+    color: var(--dj-success);
+  }
+
+  /* ── Legende ──────────────────────────────────────────────────────────── */
+  .dj-graph-legend {
+    position: sticky;
+    left: 26px;
+    bottom: 14px;
+    width: fit-content;
+    margin: -34px 0 14px 26px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 10.5px;
+    color: var(--dj-muted);
+    z-index: 4;
+  }
+  .dj-graph-legend > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dj-legend-screen {
+    width: 14px;
+    height: 10px;
+    border: 1.5px solid #8b8474;
+    border-radius: 3px;
+    display: block;
+  }
+  .dj-legend-decision {
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid var(--dj-decision);
+    border-radius: 2px;
+    transform: rotate(45deg);
+    display: block;
+  }
+  .dj-legend-main {
+    width: 16px;
+    height: 2.5px;
+    background: var(--dj-accent);
+    border-radius: 2px;
+    display: block;
+  }
+</style>

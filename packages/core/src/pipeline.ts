@@ -3,7 +3,7 @@
  * Verbindet Adapter-Runner, Graph-Pipeline, LLM-Schicht und Ausgabe-Module.
  */
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AdapterInfo, AppInfo, JourneyGraph } from '@ductus/schema';
@@ -18,6 +18,7 @@ import type {
   MdxPage,
   ValidationIssue,
   ValidationResult,
+  WebsiteGenerator,
 } from './contracts.js';
 import { mergeGraphs, serializeGraph, validateGraph } from './graph/index.js';
 import {
@@ -32,6 +33,7 @@ import {
   segmentGraph,
   serializeSegment,
 } from './llm/index.js';
+import { buildJourneyData } from './output/journey-data.js';
 import { buildMdxPages, writeMdxPages } from './output/mdx.js';
 import { scaffoldWebsite } from './output/website.js';
 import { buildReport, writeReport } from './report.js';
@@ -179,8 +181,13 @@ function logEstimate(config: DuctusConfig, graph: JourneyGraph, log?: (m: string
   );
 }
 
+/** Wurzelverzeichnis des @ductus/core-Pakets — dieses Modul liegt in <corePkg>/src bzw. <corePkg>/dist. */
+function corePackageDir(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), '..');
+}
+
 /** Template-Auflösung (§9.2): Config-Pfad → Paket-Assets → Repo-Vorlage. */
-function resolveTemplateDir(config: DuctusConfig): string {
+function resolveTemplateDir(config: DuctusConfig, generator: WebsiteGenerator): string {
   if (config.output.website.template !== undefined) {
     const custom = resolve(config.rootDir, config.output.website.template);
     if (!existsSync(custom)) {
@@ -188,19 +195,34 @@ function resolveTemplateDir(config: DuctusConfig): string {
     }
     return custom;
   }
-  // Dieses Modul liegt in <corePkg>/src bzw. <corePkg>/dist.
-  const corePkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const corePkgDir = corePackageDir();
   const candidates = [
-    join(corePkgDir, 'assets', 'templates', 'starlight'),
-    resolve(corePkgDir, '..', '..', 'templates', 'starlight'),
+    join(corePkgDir, 'assets', 'templates', generator),
+    resolve(corePkgDir, '..', '..', 'templates', generator),
   ];
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
   throw new ConfigError(
-    `Starlight-Template nicht gefunden (gesucht: ${candidates.join(', ')}). ` +
+    `Website-Template "${generator}" nicht gefunden (gesucht: ${candidates.join(', ')}). ` +
       'Alternativ output.website.template setzen.',
   );
+}
+
+/**
+ * Version von @ductus/core deterministisch zur Laufzeit aus der package.json
+ * des Pakets lesen (KEIN Hardcoding — Muster analog resolveTemplateDir mit
+ * import.meta.url). Wird in ductus.data.json als site.ductusVersion eingebettet.
+ */
+function resolveDuctusVersion(): string {
+  const pkgPath = join(corePackageDir(), 'package.json');
+  try {
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: unknown };
+    if (typeof pkg.version === 'string' && pkg.version !== '') return pkg.version;
+  } catch {
+    // fällt unten auf den ConfigError durch
+  }
+  throw new ConfigError(`Version von @ductus/core nicht ermittelbar (package.json: "${pkgPath}").`);
 }
 
 export async function runGenerate(
@@ -220,7 +242,9 @@ export async function runGenerate(
     );
   }
   if (config.output.format === 'website' && config.output.website.generator === 'docusaurus') {
-    throw new ConfigError('output.website.generator "docusaurus" ist in Phase 1 nicht enthalten — bitte "starlight" verwenden.');
+    throw new ConfigError(
+      'output.website.generator "docusaurus" ist in Phase 1 nicht enthalten — bitte "journey" (Default) oder "starlight" verwenden.',
+    );
   }
 
   let provider;
@@ -251,12 +275,26 @@ export async function runGenerate(
   if (config.output.format === 'mdx') {
     writtenDocs = await writeMdxPages(pages, outDir);
   } else {
+    const generator = config.output.website.generator;
     await scaffoldWebsite({
-      templateDir: resolveTemplateDir(config),
+      templateDir: resolveTemplateDir(config, generator),
       outDir,
       pages,
       appName: config.app.name,
       locale: config.app.locale,
+      generator,
+      // journey-Modus (DD §O): statt MDX/Sidebar wird ductus.data.json geschrieben.
+      ...(generator === 'journey'
+        ? {
+            journeyData: buildJourneyData({
+              result,
+              adapterInfos: extract.adapterInfos,
+              appName: config.app.name,
+              locale: config.app.locale,
+              ductusVersion: resolveDuctusVersion(),
+            }),
+          }
+        : {}),
     });
   }
 

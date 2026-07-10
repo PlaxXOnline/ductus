@@ -4,7 +4,7 @@ dist/
 *.tsbuildinfo
 
 # Build-Artefakt: wird bei jedem Build von scripts/copy-assets.mjs
-# aus templates/starlight neu erzeugt (Single Source of Truth: templates/)
+# aus templates/ neu erzeugt (Single Source of Truth: templates/)
 packages/core/assets/
 
 # Dart / Flutter
@@ -19,6 +19,8 @@ ductus_graph.g.json
 
 # Werkzeug-Artefakte (lokal)
 .playwright-mcp/
+.claude/
+CLAUDE.md
 
 # OS / Editor
 .DS_Store

@@ -1,0 +1,189 @@
+---
+/**
+ * Übersicht (Screen 1 der Design-Referenz): Hero „Wie können wir helfen?“,
+ * großes Suchfeld, „Häufig gesucht“-Chips (häufigste Kanten-Labels),
+ * Journey-Karten-Grid und Footer.
+ */
+import Base from '../layouts/Base.astro';
+import Footer from '../components/Footer.astro';
+import JourneyCard from '../components/JourneyCard.astro';
+import { data, frequentEdgeLabels } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+
+const t = uiStrings(data.site.locale);
+const chips = frequentEdgeLabels(data);
+---
+
+<Base pageTitle={`${data.site.title} ${t.handbook}`} active="home">
+  <div class="dj-home">
+    <div class="dj-hero dj-fade-up">
+      <div class="dj-hero-kicker">{t.heroKicker(data.site.title)}</div>
+      <h1 class="dj-hero-title">{t.heroTitle}</h1>
+      <p class="dj-hero-sub">{t.heroSubtitle}</p>
+      <button class="dj-hero-search" type="button" data-search-open>
+        <span class="dj-search-icon is-hero" aria-hidden="true"><span class="dj-search-icon-ring"></span><span class="dj-search-icon-stem"></span></span>
+        <span class="dj-hero-search-label">{t.heroSearchPlaceholder}</span>
+        <span class="dj-hero-search-keys"><span class="dj-kbd is-hero">⌘</span><span class="dj-kbd is-hero">K</span></span>
+      </button>
+      {
+        chips.length > 0 && (
+          <div class="dj-hero-chips">
+            <span>{t.frequentlySearched}</span>
+            {chips.map((label) => (
+              <button class="dj-hero-chip" type="button" data-search-open data-search-query={label}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )
+      }
+    </div>
+
+    <div class="dj-journeys dj-fade-up" id="journeys">
+      <div class="dj-journeys-head">
+        <h2 class="dj-journeys-title">{t.journeysHeading}</h2>
+        <span class="dj-journeys-count">{t.journeysDocumented(data.journeys.length)}</span>
+      </div>
+      <div class="dj-journeys-grid">
+        {data.journeys.map((journey) => <JourneyCard journey={journey} />)}
+      </div>
+    </div>
+
+    <Footer />
+  </div>
+</Base>
+
+<style is:global>
+  .dj-home {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .dj-hero {
+    max-width: 780px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 74px 32px 40px;
+    text-align: center;
+  }
+  .dj-hero-kicker {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--dj-muted);
+    margin-bottom: 15px;
+  }
+  .dj-hero-title {
+    font-size: 41px;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    margin: 0 0 12px;
+  }
+  .dj-hero-sub {
+    font-size: 15px;
+    color: var(--dj-text-2);
+    margin: 0 0 28px;
+  }
+  .dj-hero-search {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    background: var(--dj-panel);
+    border: 1px solid rgba(35, 32, 25, 0.14);
+    border-radius: 14px;
+    padding: 17px 19px;
+    cursor: text;
+    box-shadow: 0 12px 34px rgba(35, 32, 25, 0.08);
+    transition: all 0.25s;
+  }
+  .dj-hero-search:hover {
+    border-color: var(--dj-accent);
+    box-shadow: 0 14px 40px rgba(58, 98, 196, 0.14);
+  }
+  .dj-search-icon.is-hero {
+    width: 17px;
+    height: 17px;
+  }
+  .dj-search-icon.is-hero .dj-search-icon-ring {
+    width: 11.5px;
+    height: 11.5px;
+    border-width: 1.9px;
+    border-color: var(--dj-accent);
+  }
+  .dj-search-icon.is-hero .dj-search-icon-stem {
+    left: 12px;
+    top: 12px;
+    width: 6.5px;
+    height: 1.9px;
+    background: var(--dj-accent);
+  }
+  .dj-hero-search-label {
+    flex: 1;
+    text-align: left;
+    font-size: 15.5px;
+    color: #a39c8c;
+  }
+  .dj-hero-search-keys {
+    display: flex;
+    gap: 3px;
+  }
+  .dj-kbd.is-hero {
+    font-size: 11px;
+    border-radius: 5px;
+    padding: 2px 6px;
+  }
+  .dj-hero-chips {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 17px;
+    font-size: 12px;
+    color: var(--dj-muted);
+    flex-wrap: wrap;
+  }
+  .dj-hero-chip {
+    border: 1px solid var(--dj-border-2);
+    background: var(--dj-panel);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #4c473c;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dj-hero-chip:hover {
+    border-color: var(--dj-accent);
+    color: var(--dj-accent);
+  }
+  .dj-journeys {
+    max-width: 1140px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 10px 40px 34px;
+  }
+  .dj-journeys-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+  .dj-journeys-title {
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .dj-journeys-count {
+    font-size: 11.5px;
+    color: var(--dj-muted);
+  }
+  .dj-journeys-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+  }
+</style>

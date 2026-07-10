@@ -1,0 +1,442 @@
+---
+/**
+ * Rechtes Panel der Detailseite: „HAUPTPFAD — …“ mit nummerierten Karten,
+ * Abschnitt „WEITERE AKTIONEN“ (Kanten abseits des Hauptpfads),
+ * Faithfulness-Banner und der Abschnitt „Ausführliche Anleitung“
+ * (LLM-Markdown, zur Buildzeit gerendert/escaped).
+ */
+import type { Journey } from '../lib/types';
+import { formatSourceRef } from '../lib/types';
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+import { deriveSteps, deriveActionCards, deriveAllActionCards } from '../lib/steps';
+import { renderMarkdown } from '../lib/markdown';
+
+interface Props {
+  journey: Journey;
+}
+
+const { journey } = Astro.props;
+const t = uiStrings(data.site.locale);
+
+const hasMainPath = journey.mainPath.length > 0;
+const steps = hasMainPath ? deriveSteps(journey, t) : [];
+const actionCards = hasMainPath ? deriveActionCards(journey, t) : deriveAllActionCards(journey, t);
+const markdownHtml = renderMarkdown(journey.markdown);
+const warnings = journey.violations.length;
+---
+
+<div class="dj-steps" id="dj-step-scroll">
+  <div class="dj-steps-inner">
+    {hasMainPath && <div class="dj-steps-heading">{t.mainPathHeading(journey.title)}</div>}
+    {
+      steps.map((step) => (
+        <div
+          class:list={['dj-step', { 'is-done': step.done }]}
+          data-step-card
+          data-node-id={step.nodeId}
+          data-step-index={String(step.index)}
+          data-done={step.done ? '1' : '0'}
+          role="button"
+          tabindex="0"
+        >
+          <div class:list={['dj-step-num', { 'is-decision': step.nodeType === 'decision' && !step.done }]}>
+            <span>{step.done ? '✓' : step.index}</span>
+          </div>
+          <div class="dj-step-body">
+            <div class:list={['dj-step-kicker', { 'is-decision': step.nodeType === 'decision' && !step.done }]}>
+              {step.kicker}
+            </div>
+            <div class="dj-step-title">{step.title}</div>
+            {step.description !== '' && (
+              <div class="dj-step-desc">
+                {step.description}
+                {step.branches !== null && ` ${t.decisionIntro}`}
+              </div>
+            )}
+            {step.branches !== null && (
+              <div class="dj-step-branches">
+                {step.branches.map((branch) => (
+                  <div class="dj-step-branch">
+                    <span class:list={['dj-step-branch-badge', branch.positive ? 'is-pos' : 'is-neg']}>
+                      {branch.positive ? '✓' : '✕'} {branch.badge}
+                    </span>
+                    <span class="dj-step-branch-text">— {branch.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {step.actionHint !== null && <div class="dj-step-action">→ {step.actionHint}</div>}
+            {step.sourceRef !== null && <div class="dj-step-src dj-mono">{step.sourceRef}</div>}
+          </div>
+        </div>
+      ))
+    }
+
+    {
+      !hasMainPath && journey.nodes.length > 0 && (
+        <>
+          <div class="dj-steps-heading">{t.elementsHeading}</div>
+          {journey.nodes.map((node) => {
+            const src = formatSourceRef(node.sourceRef);
+            return (
+              <div class="dj-action" data-step-card data-node-id={node.id} data-done="0" role="button" tabindex="0">
+                <div class="dj-step-kicker">
+                  {node.start ? `${t.typeLabel(node.type)} · ${t.startPoint}` : t.typeLabel(node.type)}
+                </div>
+                <div class="dj-action-title">{node.title}</div>
+                {node.description !== '' && <div class="dj-action-desc">{node.description}</div>}
+                {src !== null && <div class="dj-action-src dj-mono">{src}</div>}
+              </div>
+            );
+          })}
+        </>
+      )
+    }
+
+    {
+      actionCards.length > 0 && (
+        <>
+          <div class="dj-steps-heading is-actions">{t.furtherActionsHeading}</div>
+          {actionCards.map((card) => (
+            <div class="dj-action" data-action-card data-from={card.from} data-to={card.to} role="button" tabindex="0">
+              <div class="dj-action-title">{card.title}</div>
+              <div class="dj-action-desc">{card.description}</div>
+              {card.sourceRef !== null && <div class="dj-action-src dj-mono">{card.sourceRef}</div>}
+            </div>
+          ))}
+        </>
+      )
+    }
+
+    {
+      markdownHtml !== '' && (
+        <>
+          <div class="dj-steps-heading is-guide">{t.detailedGuideHeading.toUpperCase()}</div>
+          <div class="dj-prose" set:html={markdownHtml} />
+        </>
+      )
+    }
+
+    {
+      warnings === 0 ? (
+        <div class="dj-faith is-ok">
+          <span class="dj-faith-mark">✓</span>
+          <span class="dj-faith-text">{t.faithfulnessOk}</span>
+          <span class="dj-faith-meta dj-mono">{t.faithfulnessOkMeta}</span>
+        </div>
+      ) : (
+        <div class="dj-faith is-warn">
+          <span class="dj-faith-mark">△</span>
+          <span class="dj-faith-text">
+            {t.faithfulnessWarn(warnings)}
+            <ul class="dj-faith-list">
+              {journey.violations.map((v) => (
+                <li>
+                  „{v.claim}“ — {v.reason}
+                </li>
+              ))}
+            </ul>
+          </span>
+          <span class="dj-faith-meta dj-mono">{t.faithfulnessWarnMeta}</span>
+        </div>
+      )
+    }
+  </div>
+</div>
+
+<style is:global>
+  .dj-steps {
+    flex: 1;
+    overflow: auto;
+    background: var(--dj-panel-alt);
+    min-width: 0;
+  }
+  .dj-steps-inner {
+    max-width: 760px;
+    padding: 0 10px 0 6px;
+  }
+  .dj-steps-heading {
+    padding: 18px 24px 6px;
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    font-weight: 700;
+    color: var(--dj-muted);
+  }
+  .dj-steps-heading.is-actions {
+    padding-top: 16px;
+  }
+  .dj-steps-heading.is-guide {
+    padding-top: 20px;
+  }
+
+  /* ── Hauptpfad-Karten ─────────────────────────────────────────────────── */
+  .dj-step {
+    margin: 8px 18px;
+    padding: 16px 18px;
+    border-radius: 13px;
+    background: transparent;
+    border: 1px solid rgba(35, 32, 25, 0.1);
+    cursor: pointer;
+    transition: all 0.35s;
+    display: flex;
+    gap: 13px;
+  }
+  .dj-step:hover {
+    border-color: rgba(58, 98, 196, 0.45);
+  }
+  .dj-step:focus-visible,
+  .dj-action:focus-visible {
+    outline: 2px solid var(--dj-accent);
+    outline-offset: 2px;
+  }
+  .dj-step.is-active {
+    background: #ffffff;
+    border-color: rgba(58, 98, 196, 0.55);
+  }
+  .dj-step-num {
+    flex: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #ece8dd;
+    color: var(--dj-text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.35s;
+  }
+  .dj-step.is-active .dj-step-num {
+    background: var(--dj-accent);
+    color: var(--dj-panel);
+  }
+  .dj-step-num.is-decision {
+    border-radius: 8px;
+    transform: rotate(45deg);
+  }
+  .dj-step-num.is-decision > span {
+    transform: rotate(-45deg);
+    display: block;
+  }
+  .dj-step-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .dj-step-kicker {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--dj-muted);
+    margin-bottom: 3px;
+  }
+  .dj-step-kicker.is-decision {
+    color: var(--dj-decision);
+  }
+  .dj-step-title {
+    font-size: 15.5px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .dj-step-desc {
+    font-size: 13px;
+    line-height: 1.58;
+    color: var(--dj-text-3);
+    max-width: 54ch;
+  }
+  .dj-step-branches {
+    margin-top: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .dj-step-branch {
+    display: flex;
+    gap: 8px;
+  }
+  .dj-step-branch-badge {
+    flex: none;
+    font-weight: 700;
+  }
+  .dj-step-branch-badge.is-pos {
+    color: var(--dj-success);
+  }
+  .dj-step-branch-badge.is-neg {
+    color: var(--dj-decision);
+  }
+  .dj-step-branch-text {
+    color: var(--dj-text-3);
+  }
+  .dj-step-action {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--dj-accent);
+    font-weight: 600;
+  }
+  .dj-step-src {
+    margin-top: 8px;
+    font-size: 9.5px;
+    color: var(--dj-muted-3);
+  }
+
+  /* ── Weitere Aktionen / Bestandteile ──────────────────────────────────── */
+  .dj-action {
+    margin: 8px 18px;
+    padding: 13px 18px;
+    border-radius: 13px;
+    background: transparent;
+    border: 1px solid rgba(35, 32, 25, 0.1);
+    cursor: pointer;
+    transition: all 0.35s;
+  }
+  .dj-action:hover {
+    border-color: rgba(58, 98, 196, 0.45);
+  }
+  .dj-action.is-active {
+    background: #ffffff;
+    border-color: rgba(58, 98, 196, 0.55);
+  }
+  .dj-action-title {
+    font-size: 14px;
+    font-weight: 650;
+    margin-bottom: 3px;
+  }
+  .dj-action-desc {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--dj-text-3);
+    max-width: 60ch;
+  }
+  .dj-action-src {
+    margin-top: 7px;
+    font-size: 9.5px;
+    color: var(--dj-muted-3);
+  }
+
+  /* ── Ausführliche Anleitung (LLM-Markdown) ────────────────────────────── */
+  .dj-prose {
+    margin: 8px 18px 4px;
+    padding: 4px 18px 10px;
+    border-radius: 13px;
+    border: 1px solid rgba(35, 32, 25, 0.1);
+    background: var(--dj-panel);
+    font-size: 13.5px;
+    line-height: 1.62;
+    color: var(--dj-text-3);
+    overflow-wrap: break-word;
+  }
+  .dj-prose h1,
+  .dj-prose h2,
+  .dj-prose h3,
+  .dj-prose h4 {
+    color: var(--dj-text);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin: 18px 0 8px;
+  }
+  .dj-prose h1 {
+    font-size: 19px;
+  }
+  .dj-prose h2 {
+    font-size: 17px;
+  }
+  .dj-prose h3 {
+    font-size: 15px;
+  }
+  .dj-prose h4 {
+    font-size: 13.5px;
+  }
+  .dj-prose p {
+    margin: 8px 0;
+  }
+  .dj-prose ul,
+  .dj-prose ol {
+    margin: 8px 0;
+    padding-left: 22px;
+  }
+  .dj-prose li {
+    margin: 4px 0;
+  }
+  .dj-prose code {
+    font-family: var(--dj-mono);
+    font-size: 11.5px;
+    background: var(--dj-chip);
+    border-radius: 5px;
+    padding: 1.5px 5px;
+  }
+  .dj-prose pre {
+    background: var(--dj-chip);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+  }
+  .dj-prose pre code {
+    background: transparent;
+    padding: 0;
+  }
+  .dj-prose blockquote {
+    margin: 10px 0;
+    padding: 2px 14px;
+    border-left: 3px solid var(--dj-muted-3);
+    color: var(--dj-text-2);
+  }
+  .dj-prose table {
+    border-collapse: collapse;
+    margin: 10px 0;
+    display: block;
+    overflow-x: auto;
+  }
+  .dj-prose th,
+  .dj-prose td {
+    border: 1px solid var(--dj-border-2);
+    padding: 6px 10px;
+    text-align: left;
+  }
+  .dj-prose hr {
+    border: none;
+    border-top: 1px solid var(--dj-border-2);
+    margin: 16px 0;
+  }
+
+  /* ── Faithfulness-Banner ──────────────────────────────────────────────── */
+  .dj-faith {
+    margin: 16px 18px 20px;
+    padding: 11px 16px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 11.5px;
+  }
+  .dj-faith.is-ok {
+    background: rgba(60, 138, 99, 0.07);
+    border: 1px solid rgba(60, 138, 99, 0.22);
+    color: var(--dj-success);
+  }
+  .dj-faith.is-warn {
+    background: rgba(176, 96, 58, 0.07);
+    border: 1px solid rgba(176, 96, 58, 0.28);
+    color: var(--dj-decision);
+    align-items: flex-start;
+  }
+  .dj-faith-mark {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .dj-faith-text {
+    flex: 1;
+  }
+  .dj-faith-list {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    color: var(--dj-text-3);
+  }
+  .dj-faith-meta {
+    font-size: 9px;
+    color: var(--dj-muted);
+  }
+</style>

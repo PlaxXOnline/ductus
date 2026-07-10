@@ -1,6 +1,11 @@
 /**
- * Website-Modus (§9.2, DD §B.7): Starlight-Preset in das Ausgabeverzeichnis kopieren,
- * MDX-Seiten nach src/content/docs/ schreiben und Sidebar-/Site-Konfiguration erzeugen.
+ * Website-Modus (§9.2, DD §B.7): Template in das Ausgabeverzeichnis kopieren und
+ * mit Daten befüllen — generatorabhängig:
+ * - "starlight": MDX-Seiten nach src/content/docs/ schreiben und
+ *   Sidebar-/Site-Konfiguration (ductus.sidebar.json/ductus.site.json) erzeugen.
+ * - "journey" (Default, DD §O): genau eine ductus.data.json in die Site-Wurzel
+ *   schreiben — KEINE MDX-Dateien, KEINE sidebar-/site-Dateien; das Template
+ *   liest die Daten zur Buildzeit.
  * Der SSG selbst ist Peer-Dependency des Nutzers — installiert/gebaut wird nur auf
  * ausdrücklichen Wunsch via `ductus generate --build` (buildWebsite, DD §M).
  */
@@ -9,7 +14,8 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { cp, rename, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import type { MdxPage } from '../contracts.js';
+import type { JourneyWebsiteData, MdxPage, WebsiteGenerator } from '../contracts.js';
+import { serializeJourneyData } from './journey-data.js';
 import { writeMdxPages } from './mdx.js';
 
 function cmp(a: string, b: string): number {
@@ -24,10 +30,15 @@ export interface ScaffoldWebsiteOptions {
   pages: MdxPage[];
   appName: string;
   locale: string;
+  /** Website-Generator; Default 'starlight' (API-kompatibel zu Phase-1-Aufrufern). */
+  generator?: WebsiteGenerator;
+  /** Pflicht im journey-Modus: fertiges Datenobjekt für ductus.data.json. */
+  journeyData?: JourneyWebsiteData;
 }
 
 export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<void> {
   const { templateDir, outDir, pages, appName, locale } = opts;
+  const generator = opts.generator ?? 'starlight';
 
   // Template rekursiv kopieren; Build-Artefakte des Templates auslassen,
   // vorhandene Dateien im Ziel überschreiben (idempotenter Re-Run).
@@ -46,6 +57,15 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
   const undottedGitignore = join(outDir, 'gitignore');
   if (existsSync(undottedGitignore)) {
     await rename(undottedGitignore, join(outDir, '.gitignore'));
+  }
+
+  // journey-Modus (DD §O): einzige Daten-Datei ist ductus.data.json — danach fertig.
+  if (generator === 'journey') {
+    if (opts.journeyData === undefined) {
+      throw new Error('scaffoldWebsite: generator "journey" erfordert journeyData (ductus.data.json).');
+    }
+    await writeFile(join(outDir, 'ductus.data.json'), serializeJourneyData(opts.journeyData), 'utf8');
+    return;
   }
 
   await writeMdxPages(pages, join(outDir, 'src', 'content', 'docs'));

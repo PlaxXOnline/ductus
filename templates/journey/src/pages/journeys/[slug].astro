@@ -1,0 +1,528 @@
+---
+/**
+ * Journey-Detail (Screen 2 der Design-Referenz): Kopfzeile (Zurück-Button,
+ * „JOURNEY NN“, Titel + Beschreibung, Stat-Chips, „Pfad abspielen“),
+ * Split-View aus interaktivem Graphen (links) und Schrittliste (rechts).
+ * Journeys ohne Hauptpfad (kind screen/misc): gleiche Seite ohne
+ * Hauptpfad-Abschnitt; der Graph erscheint nur, wenn Kanten existieren.
+ */
+import Base from '../../layouts/Base.astro';
+import Graph from '../../components/Graph.astro';
+import StepList from '../../components/StepList.astro';
+import { data } from '../../lib/data';
+import { uiStrings } from '../../lib/strings';
+import { toJsonIsland } from '../../lib/json';
+
+export function getStaticPaths() {
+  // Laut Datenvertrag sind Slugs eindeutig (buildJourneyData dedupliziert) —
+  // bei dennoch doppelten Slugs (z. B. handeditierte Daten) würde Astro nur
+  // eine der Seiten rendern und die andere still verschwinden lassen. Lieber
+  // hart scheitern als eine unerreichbare Journey ausliefern.
+  const seen = new Set<string>();
+  for (const journey of data.journeys) {
+    if (seen.has(journey.slug)) {
+      throw new Error(
+        `ductus.data.json: doppelter Journey-Slug "${journey.slug}" — die Detailseiten wären mehrdeutig.`,
+      );
+    }
+    seen.add(journey.slug);
+  }
+  return data.journeys.map((journey) => ({ params: { slug: journey.slug }, props: { journey } }));
+}
+
+import type { Journey } from '../../lib/types';
+
+interface Props {
+  journey: Journey;
+}
+
+const { journey } = Astro.props;
+const t = uiStrings(data.site.locale);
+const base = import.meta.env.BASE_URL;
+
+const journeyNumber = String(journey.order).padStart(2, '0');
+const warnings = journey.violations.length;
+const hasMainPath = journey.mainPath.length > 0;
+const hasGraph = journey.edges.length > 0;
+
+/** Zustandsdaten für das Seiten-Skript (Hauptpfad + fertige Badge-Texte). */
+const pageData = {
+  mainPath: journey.mainPath,
+  badges: journey.mainPath.map((_, i) => t.stepBadge(i + 1, journey.mainPath.length)),
+};
+---
+
+<Base pageTitle={`${journey.title} — ${data.site.title} ${t.handbook}`} active="journeys">
+  <div class="dj-journey dj-fade-up">
+    <div class="dj-journey-head">
+      <a class="dj-journey-back" href={base} title={t.backToOverview} aria-label={t.backToOverview}>←</a>
+      <div class="dj-journey-head-text">
+        <div class="dj-journey-kicker">{t.journeyKicker(journeyNumber)}</div>
+        <div class="dj-journey-title">
+          {journey.title}
+          {journey.description !== '' && <span class="dj-journey-desc">{journey.description}</span>}
+        </div>
+      </div>
+      <div class="dj-journey-chips">
+        <span class="dj-journey-chip">{t.steps(journey.nodes.length)}</span>
+        <span class="dj-journey-chip">{t.actions(journey.edges.length)}</span>
+        <span class:list={['dj-journey-chip', warnings === 0 ? 'is-ok' : 'is-warn']}>{t.warningsChip(warnings)}</span>
+      </div>
+      {
+        hasMainPath && (
+          <button class="dj-play" id="dj-play-btn" type="button">
+            <span class="dj-play-triangle" aria-hidden="true" />
+            {t.playPath}
+          </button>
+        )
+      }
+    </div>
+    <div class="dj-journey-split">
+      {hasGraph && <Graph journey={journey} />}
+      <StepList journey={journey} />
+    </div>
+  </div>
+</Base>
+
+{/* toJsonIsland escaped </script>-Ausbrüche — Node-ids sind untrusted. */}
+<script type="application/json" id="dj-journey-data" set:html={toJsonIsland(pageData)} />
+
+<script>
+  // Interaktionslogik der Detailseite — Referenz-Implementierung: die
+  // Component-Klasse der Design-Datei (edgeSvg/nodeVals/chipVals/aPlay).
+  interface PageData {
+    mainPath: string[];
+    badges: string[];
+  }
+
+  const dataEl = document.getElementById('dj-journey-data');
+  const page: PageData = dataEl?.textContent ? JSON.parse(dataEl.textContent) : { mainPath: [], badges: [] };
+  const MAIN = page.mainPath;
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PLAY_MS = 950;
+  const PAL = { accent: '#3a62c4', edge: '#aaa393' };
+
+  const svg = document.querySelector<SVGSVGElement>('.dj-graph-svg');
+  const edgePaths = [...document.querySelectorAll<SVGPathElement>('[data-edge-path]')];
+  const edgeArrows = new Map<string, SVGPathElement>();
+  for (const a of document.querySelectorAll<SVGPathElement>('[data-edge-arrow]')) {
+    edgeArrows.set(a.dataset.edgeId ?? '', a);
+  }
+  const edgeFlows = new Map<string, SVGPathElement>();
+  for (const f of document.querySelectorAll<SVGPathElement>('[data-edge-flow]')) {
+    edgeFlows.set(f.dataset.edgeId ?? '', f);
+  }
+  const chips = [...document.querySelectorAll<HTMLElement>('[data-edge-chip]')];
+  const nodes = [...document.querySelectorAll<HTMLElement>('[data-graph-node]')];
+  const stepCards = [...document.querySelectorAll<HTMLElement>('[data-step-card]')];
+  const actionCards = [...document.querySelectorAll<HTMLElement>('[data-action-card]')];
+  const scroller = document.getElementById('dj-step-scroll');
+  const badge = document.getElementById('dj-step-badge');
+  const playBtn = document.getElementById('dj-play-btn');
+
+  let sel: string | null = null;
+  let play = -1;
+  let timer: number | undefined;
+
+  function mainIndex(el: HTMLElement | SVGElement): number | null {
+    const value = (el as HTMLElement).dataset.main;
+    return value === undefined || value === '' ? null : Number(value);
+  }
+
+  function renderEdges(): void {
+    for (const p of edgePaths) {
+      const id = p.dataset.edgeId ?? '';
+      const main = mainIndex(p);
+      const isMain = main !== null;
+      let stroke = PAL.edge;
+      let width = 1.6;
+      let opacity = 1;
+      let dashOffset = 0;
+      if (play >= 0) {
+        if (isMain) {
+          dashOffset = (main as number) < play ? 0 : 1;
+          stroke = PAL.accent;
+          width = 2.4;
+        } else {
+          opacity = 0.14;
+        }
+      }
+      const highlighted = sel !== null && p.dataset.from === sel && play < 0;
+      if (highlighted) {
+        stroke = PAL.accent;
+        width = 2.2;
+      }
+      p.style.stroke = stroke;
+      p.style.strokeWidth = String(width);
+      p.style.opacity = String(opacity);
+      p.style.strokeDashoffset = String(dashOffset);
+      const arrow = edgeArrows.get(id);
+      if (arrow) {
+        arrow.style.fill = stroke;
+        arrow.style.opacity = String(opacity);
+      }
+      const flow = edgeFlows.get(id);
+      if (flow) flow.style.display = highlighted && !reduced ? '' : 'none';
+    }
+  }
+
+  function renderNodes(): void {
+    for (const node of nodes) {
+      const id = node.dataset.nodeId ?? '';
+      const indices: number[] = [];
+      MAIN.forEach((m, i) => {
+        if (m === id) indices.push(i);
+      });
+      const active = play >= 0 && MAIN[play] === id;
+      const visited = play >= 0 && indices.some((i) => i <= play);
+      node.classList.toggle('is-active', active);
+      node.classList.toggle('is-visited', visited && !active);
+      node.classList.toggle('is-selected', sel === id && play < 0);
+      node.classList.toggle('is-dim', play >= 0 && !visited && !active);
+    }
+  }
+
+  function renderChips(): void {
+    for (const chip of chips) {
+      const main = mainIndex(chip);
+      let opacity = 1;
+      let scale = 1;
+      if (play >= 0) {
+        if (main !== null && main < play) scale = main === play - 1 ? 1.08 : 1;
+        else opacity = 0.1;
+      } else if (sel !== null) {
+        opacity = chip.dataset.from === sel ? 1 : 0.3;
+        scale = chip.dataset.from === sel ? 1.06 : 1;
+      }
+      chip.style.opacity = String(opacity);
+      chip.style.transform = `translate(-50%,-50%) scale(${scale})`;
+    }
+  }
+
+  function renderCards(): void {
+    let stepActive = false;
+    for (const card of stepCards) {
+      const index = card.dataset.stepIndex === undefined ? null : Number(card.dataset.stepIndex) - 1;
+      const done = card.dataset.done === '1';
+      const active = (index !== null && play === index) || (play < 0 && !done && sel !== null && card.dataset.nodeId === sel);
+      if (active) stepActive = true;
+      card.classList.toggle('is-active', active);
+    }
+    // Aktionskarten nur, wenn keine Schrittkarte aktiv wurde — bei Selektion
+    // eines Hauptpfad-Nodes leuchtet ausschließlich dessen Schrittkarte
+    // (Design: aX1 bleibt für sel='note-editor' hart inaktiv).
+    for (const card of actionCards) {
+      card.classList.toggle('is-active', play < 0 && sel !== null && !stepActive && card.dataset.to === sel);
+    }
+  }
+
+  function render(): void {
+    renderEdges();
+    renderNodes();
+    renderChips();
+    renderCards();
+    if (badge) {
+      badge.textContent = page.badges[play >= 0 ? play : 0] ?? '';
+      badge.classList.toggle('is-visible', play >= 0);
+    }
+    playBtn?.classList.toggle('is-playing', play >= 0);
+  }
+
+  function scrollToCard(card: HTMLElement): void {
+    if (!scroller) return;
+    const top = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 14;
+    scroller.scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' });
+  }
+
+  /** Ziel-Karte eines Nodes: Hauptpfad-Schritt vor Aktionskarte (Design: AMAP). */
+  function cardForNode(id: string): HTMLElement | null {
+    return (
+      stepCards.find((c) => c.dataset.nodeId === id && c.dataset.done !== '1') ??
+      actionCards.find((c) => c.dataset.to === id) ??
+      actionCards.find((c) => c.dataset.from === id) ??
+      null
+    );
+  }
+
+  function stopPlay(): void {
+    if (timer !== undefined) window.clearTimeout(timer);
+    timer = undefined;
+    play = -1;
+    removeDot();
+    render();
+  }
+
+  function selectNode(id: string, scroll: boolean): void {
+    if (timer !== undefined) window.clearTimeout(timer);
+    timer = undefined;
+    removeDot();
+    play = -1;
+    sel = id;
+    render();
+    if (scroll) {
+      const card = cardForNode(id);
+      if (card) scrollToCard(card);
+    }
+  }
+
+  // ── Play: Hauptpfad mit Puls + wanderndem Punkt (SVG animateMotion) ──────
+  let dot: SVGCircleElement | null = null;
+
+  function removeDot(): void {
+    dot?.remove();
+    dot = null;
+  }
+
+  function spawnDot(step: number): void {
+    removeDot();
+    if (reduced || step < 1 || !svg) return;
+    const path = edgePaths.find((p) => mainIndex(p) === step - 1);
+    const d = path?.getAttribute('d');
+    if (!d) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('r', '4.5');
+    circle.style.fill = PAL.accent;
+    circle.style.filter = `drop-shadow(0 0 7px ${PAL.accent})`;
+    const motion = document.createElementNS(ns, 'animateMotion');
+    const duration = Math.min(900, Math.max(450, PLAY_MS * 0.85)) / 1000;
+    motion.setAttribute('dur', `${duration.toFixed(2)}s`);
+    motion.setAttribute('path', d);
+    motion.setAttribute('fill', 'freeze');
+    motion.setAttribute('calcMode', 'spline');
+    motion.setAttribute('keySplines', '0.4 0 0.2 1');
+    motion.setAttribute('keyTimes', '0;1');
+    motion.setAttribute('begin', 'indefinite');
+    circle.append(motion);
+    svg.append(circle);
+    dot = circle;
+    (motion as SVGElement & { beginElement(): void }).beginElement();
+  }
+
+  playBtn?.addEventListener('click', () => {
+    if (play >= 0) {
+      stopPlay();
+      return;
+    }
+    if (MAIN.length === 0) return;
+    const ms = reduced ? 350 : PLAY_MS;
+    const step = (i: number): void => {
+      play = i;
+      sel = null;
+      render();
+      const card = stepCards.find((c) => Number(c.dataset.stepIndex) - 1 === i);
+      if (card) scrollToCard(card);
+      spawnDot(i);
+      timer = window.setTimeout(() => {
+        if (i < MAIN.length - 1) step(i + 1);
+        else timer = window.setTimeout(stopPlay, 1500);
+      }, ms);
+    };
+    step(0);
+  });
+
+  // ── Interaktion: Node-/Karten-Aktivierung (Klick + Enter/Space), Deep-Link ─
+  // Nodes und Karten sind role="button"-Divs (tabindex 0) — Enter/Space muss
+  // wie ein Klick wirken, sonst wäre die Auswahl nur mit der Maus bedienbar.
+  function onActivate(el: HTMLElement, handler: () => void): void {
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      handler();
+    });
+  }
+  for (const node of nodes) {
+    onActivate(node, () => selectNode(node.dataset.nodeId ?? '', true));
+  }
+  for (const card of stepCards) {
+    onActivate(card, () => selectNode(card.dataset.nodeId ?? '', false));
+  }
+  for (const card of actionCards) {
+    onActivate(card, () => selectNode(card.dataset.to ?? '', false));
+  }
+
+  function applyHash(): void {
+    const match = window.location.hash.match(/^#node-(.+)$/);
+    if (!match) return;
+    selectNode(decodeURIComponent(match[1]), true);
+  }
+  window.addEventListener('hashchange', applyHash);
+
+  // ── Intro: Kanten zeichnen sich gestaffelt ein, Nodes blenden gestaffelt
+  //    auf (Design: st.intro — Node-Delays .02s/.08s/.14s/… pro Node) ───────
+  function intro(): void {
+    if (reduced || edgePaths.length === 0) return;
+    edgePaths.forEach((p) => {
+      p.style.transition = 'none';
+      p.style.strokeDashoffset = '1';
+    });
+    for (const arrow of edgeArrows.values()) {
+      arrow.style.transition = 'none';
+      arrow.style.opacity = '0';
+    }
+    chips.forEach((chip) => {
+      chip.style.transition = 'none';
+      chip.style.opacity = '0';
+    });
+    nodes.forEach((node) => {
+      node.style.transition = 'none';
+      node.classList.add('is-intro');
+    });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        edgePaths.forEach((p, i) => {
+          p.style.transition = `stroke-dashoffset .9s cubic-bezier(.5,0,.2,1) ${(i * 0.07).toFixed(2)}s, opacity .4s, stroke .3s, stroke-width .3s`;
+          p.style.strokeDashoffset = '0';
+        });
+        for (const arrow of edgeArrows.values()) {
+          arrow.style.transition = 'opacity .4s ease .55s, fill .3s';
+          arrow.style.opacity = '1';
+        }
+        chips.forEach((chip) => {
+          chip.style.transition = 'all .4s ease .5s';
+          chip.style.opacity = '1';
+        });
+        nodes.forEach((node, i) => {
+          node.style.transition = `opacity .5s ease ${(0.02 + i * 0.06).toFixed(2)}s`;
+          node.classList.remove('is-intro');
+        });
+        // Danach wieder die Basis-Transitions aus dem Stylesheet.
+        window.setTimeout(() => {
+          edgePaths.forEach((p) => {
+            p.style.transition = '';
+          });
+          for (const arrow of edgeArrows.values()) arrow.style.transition = '';
+          chips.forEach((chip) => {
+            chip.style.transition = '';
+          });
+          nodes.forEach((node) => {
+            node.style.transition = '';
+          });
+        }, 1600);
+      });
+    });
+  }
+
+  render();
+  intro();
+  applyHash();
+</script>
+
+<style is:global>
+  .dj-journey {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .dj-journey-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 15px 30px;
+    border-bottom: 1px solid var(--dj-border);
+    background: var(--dj-panel);
+  }
+  .dj-journey-back {
+    flex: none;
+    width: 33px;
+    height: 33px;
+    border-radius: 9px;
+    border: 1px solid rgba(35, 32, 25, 0.14);
+    background: var(--dj-bg);
+    font-size: 15px;
+    color: var(--dj-text-2);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dj-journey-back:hover {
+    border-color: var(--dj-accent);
+    color: var(--dj-accent);
+  }
+  .dj-journey-head-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .dj-journey-kicker {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--dj-muted);
+  }
+  .dj-journey-title {
+    font-size: 19px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dj-journey-desc {
+    font-weight: 450;
+    font-size: 13px;
+    color: var(--dj-muted);
+    margin-left: 8px;
+  }
+  .dj-journey-chips {
+    display: flex;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--dj-text-2);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .dj-journey-chip {
+    background: var(--dj-chip);
+    border-radius: 16px;
+    padding: 4.5px 11px;
+  }
+  .dj-journey-chip.is-ok {
+    background: rgba(60, 138, 99, 0.1);
+    color: var(--dj-success);
+    font-weight: 600;
+  }
+  .dj-journey-chip.is-warn {
+    background: rgba(176, 96, 58, 0.12);
+    color: var(--dj-decision);
+    font-weight: 600;
+  }
+  .dj-play {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dj-accent);
+    color: var(--dj-panel);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 17px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 14px rgba(58, 98, 196, 0.3);
+  }
+  .dj-play:hover {
+    transform: translateY(-1px);
+  }
+  .dj-play.is-playing {
+    background: var(--dj-decision);
+  }
+  .dj-play-triangle {
+    width: 0;
+    height: 0;
+    border-left: 7px solid var(--dj-panel);
+    border-top: 4.5px solid transparent;
+    border-bottom: 4.5px solid transparent;
+    display: block;
+  }
+  .dj-journey-split {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+</style>

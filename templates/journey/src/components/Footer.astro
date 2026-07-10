@@ -1,0 +1,54 @@
+---
+/**
+ * Footer: „Automatisch generiert aus dem Quellcode · ductus vX · Adapter: … ·
+ * Faithfulness-Check: N Warnungen“. Bewusst OHNE Zeitstempel (NFR2-Geist).
+ */
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+
+const t = uiStrings(data.site.locale);
+const adapters = data.site.adapters.map((a) => `${a.name} ${a.version}`).join(', ');
+const warnings = data.site.violationsTotal;
+---
+
+<footer class="dj-footer dj-mono">
+  <span>{t.footerGenerated}</span>
+  <span>·</span>
+  <span>ductus v{data.site.ductusVersion}{adapters !== '' && ` · ${t.footerAdapters}: ${adapters}`}</span>
+  <span class="dj-footer-spacer"></span>
+  <span class:list={['dj-footer-check', warnings === 0 ? 'is-ok' : 'is-warn']}>
+    <span class="dj-footer-check-mark">{warnings === 0 ? '✓' : '△'}</span>
+    {t.footerFaithfulness(warnings)}
+  </span>
+</footer>
+
+<style is:global>
+  .dj-footer {
+    margin-top: auto;
+    border-top: 1px solid rgba(35, 32, 25, 0.08);
+    padding: 14px 40px;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 10px;
+    color: var(--dj-muted-2);
+    flex-wrap: wrap;
+  }
+  .dj-footer-spacer {
+    flex: 1;
+  }
+  .dj-footer-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dj-footer-check.is-ok {
+    color: var(--dj-success);
+  }
+  .dj-footer-check.is-warn {
+    color: var(--dj-decision);
+  }
+  .dj-footer-check-mark {
+    font-size: 11px;
+  }
+</style>

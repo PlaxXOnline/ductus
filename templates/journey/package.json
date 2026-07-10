@@ -1,0 +1,14 @@
+{
+  "name": "ductus-journey-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^7.0.7",
+    "marked": "^18.0.6"
+  }
+}

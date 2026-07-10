@@ -12,6 +12,7 @@ import type {
   JourneyFlow,
   JourneyGraph,
   JourneyNode,
+  NodeType,
   SourceRef,
 } from '@ductus/schema';
 
@@ -56,7 +57,7 @@ export interface LlmConfig {
 export type Voice = 'formal-sie' | 'informal-du' | 'en-you';
 export type Granularity = 'flow' | 'screen';
 export type OutputFormat = 'mdx' | 'website';
-export type WebsiteGenerator = 'starlight' | 'docusaurus';
+export type WebsiteGenerator = 'journey' | 'starlight' | 'docusaurus';
 
 export interface StyleConfig {
   voice: Voice;
@@ -200,6 +201,92 @@ export interface MdxPage {
   };
   /** Vollständiger Seiteninhalt unterhalb des Frontmatters. */
   body: string;
+}
+
+// ─────────────── Website-Generator "journey": ductus.data.json (§9.2, DD §O) ──
+
+/**
+ * Node-Eintrag im Datenvertrag: aufgelöste Anzeige-Felder statt optionaler
+ * Schema-Felder — das Template braucht keine Fallback-Logik.
+ * `title`: für type=action label ?? title ?? id, sonst title ?? id
+ * (konsistent zu renderNode/journeyTaskLabel in output/mermaid.ts).
+ */
+export interface JourneyWebsiteNode {
+  id: string;
+  type: NodeType;
+  title: string;
+  /** node.description ?? "". */
+  description: string;
+  /** true genau für den Start-Node des Flows (flow.start). */
+  start: boolean;
+  /** Rückverweis in den Quellcode; null statt undefined (JSON-stabil). */
+  sourceRef: SourceRef | null;
+}
+
+/** Kanten-Eintrag im Datenvertrag (fehlende Werte als null, JSON-stabil). */
+export interface JourneyWebsiteEdge {
+  id: string;
+  from: string;
+  to: string;
+  /** edge.label ?? "" (trigger/condition stehen separat). */
+  label: string;
+  trigger: string | null;
+  condition: string | null;
+  /**
+   * 0-basierter Index der Hauptpfad-Kante (zwischen mainPath[i] und
+   * mainPath[i+1], gewählt wie in deriveMainPath/segmentToJourney), sonst null.
+   */
+  main: number | null;
+}
+
+/** Ein Journey-Eintrag (= ein GraphSegment) im Datenvertrag. */
+export interface JourneyWebsiteEntry {
+  /** segment.id. */
+  id: string;
+  /** toSlug(segment.id) — URL-Segment. */
+  slug: string;
+  kind: 'flow' | 'screen' | 'misc';
+  order: number;
+  title: string;
+  /** flow.description ?? "". */
+  description: string;
+  /** flow.start (nur flows), sonst null. */
+  startNodeId: string | null;
+  /** Nach id sortiert (NFR2). */
+  nodes: JourneyWebsiteNode[];
+  /** Nach id sortiert (NFR2). */
+  edges: JourneyWebsiteEdge[];
+  /** Node-IDs des Hauptpfads; leer wenn kein flow-Segment oder Pfad < 2 Nodes. */
+  mainPath: string[];
+  /** Generiertes LLM-Markdown pur (ohne Mermaid-Anhänge, ohne Aside). */
+  markdown: string;
+  violations: FaithfulnessViolation[];
+}
+
+/** Site-weite Metadaten des Datenvertrags. */
+export interface JourneyWebsiteSite {
+  /** config.app.name. */
+  title: string;
+  /** config.app.locale (z. B. "de"). */
+  locale: string;
+  /** Version von @ductus/core (deterministisch aus der package.json des Pakets). */
+  ductusVersion: string;
+  /** extract.adapterInfos, nach name sortiert (NFR2). */
+  adapters: AdapterInfo[];
+  violationsTotal: number;
+}
+
+/**
+ * Wurzelobjekt der ductus.data.json — die einzige Datei, die scaffoldWebsite
+ * im Modus generator="journey" zusätzlich zum Template schreibt. Das Template
+ * liest sie zur Buildzeit. Deterministisch (NFR2): stabile Sortierung, LF,
+ * abschließender Zeilenumbruch, KEINE Zeitstempel.
+ */
+export interface JourneyWebsiteData {
+  dataVersion: '1';
+  site: JourneyWebsiteSite;
+  /** Nach order sortiert (Tie-Break slug, NFR2). */
+  journeys: JourneyWebsiteEntry[];
 }
 
 // ─────────────────────────────── Report (§9.3) ───────────────────────────────

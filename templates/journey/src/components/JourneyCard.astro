@@ -1,0 +1,151 @@
+---
+/**
+ * Journey-Karte der Übersicht: Stationen-Miniatur, Titel, Beschreibung,
+ * „N Schritte · M Aktionen“ und „Journey öffnen →“.
+ */
+import type { Journey } from '../lib/types';
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+
+interface Props {
+  journey: Journey;
+}
+
+const { journey } = Astro.props;
+const t = uiStrings(data.site.locale);
+const base = import.meta.env.BASE_URL;
+
+/** Miniatur: eine Station je Node (max. 6) — Raute für Entscheidungen. */
+const MAX_STATIONS = 6;
+const stations = journey.nodes.slice(0, MAX_STATIONS).map((node, i) => ({
+  decision: node.type === 'decision',
+  start: node.start,
+  last: i === Math.min(journey.nodes.length, MAX_STATIONS) - 1,
+}));
+---
+
+<a class="dj-card" href={`${base}journeys/${journey.slug}/`}>
+  <span class="dj-card-mini">
+    {
+      stations.map((s) => (
+        <>
+          <span
+            class:list={[
+              'dj-card-station',
+              { 'is-decision': s.decision, 'is-start': s.start, 'is-outline': s.last && !s.decision },
+            ]}
+          />
+          {!s.last && <span class="dj-card-line" />}
+        </>
+      ))
+    }
+    <span class="dj-card-mini-spacer"></span>
+    <span class="dj-card-mini-count dj-mono">{journey.nodes.length} {t.stations}</span>
+  </span>
+  <span class="dj-card-title">{journey.title}</span>
+  <span class="dj-card-desc">{journey.description}</span>
+  <span class="dj-card-meta">
+    <span>{t.steps(journey.nodes.length)}</span>
+    <span class="dj-card-dot"></span>
+    <span>{t.actions(journey.edges.length)}</span>
+    <span class="dj-card-meta-spacer"></span>
+    <span class="dj-card-open">{t.openJourney}</span>
+  </span>
+</a>
+
+<style is:global>
+  .dj-card {
+    display: block;
+    background: var(--dj-panel);
+    border: 1px solid rgba(35, 32, 25, 0.11);
+    border-radius: 16px;
+    padding: 21px 23px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 6px rgba(35, 32, 25, 0.04);
+    color: var(--dj-text);
+  }
+  .dj-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px rgba(35, 32, 25, 0.12);
+    border-color: rgba(58, 98, 196, 0.5);
+    color: var(--dj-text);
+  }
+  .dj-card-mini {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 17px;
+    height: 26px;
+  }
+  .dj-card-station {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--dj-accent);
+    opacity: 0.75;
+    flex: none;
+  }
+  .dj-card-station.is-start {
+    opacity: 1;
+  }
+  .dj-card-station.is-decision {
+    background: var(--dj-decision);
+    transform: rotate(45deg);
+    border-radius: 2px;
+    opacity: 1;
+  }
+  .dj-card-station.is-outline {
+    background: transparent;
+    border: 1.6px solid var(--dj-accent);
+    opacity: 1;
+  }
+  .dj-card-line {
+    width: 28px;
+    height: 1.5px;
+    background: #c9c3b4;
+    flex: none;
+  }
+  .dj-card-mini-spacer {
+    flex: 1;
+  }
+  .dj-card-mini-count {
+    font-size: 9.5px;
+    color: var(--dj-muted-2);
+  }
+  .dj-card-title {
+    display: block;
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+  }
+  .dj-card-desc {
+    display: block;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--dj-text-2);
+    margin-bottom: 15px;
+  }
+  .dj-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--dj-muted);
+  }
+  .dj-card-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #c9c3b4;
+  }
+  .dj-card-meta-spacer {
+    flex: 1;
+  }
+  .dj-card-open {
+    color: var(--dj-accent);
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+</style>

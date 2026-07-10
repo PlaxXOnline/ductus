@@ -51,7 +51,12 @@ ductus graph --journey             # Hauptpfad je Flow als Mermaid-journey
 ### Website-Modus
 
 Mit `output.format: website` exportiert `ductus generate` ein vollständiges
-Starlight-Projekt nach `output.dir`. `ductus generate --build` installiert dort
+Astro-Projekt nach `output.dir`. Default-Generator ist `journey` (DD §O): ein
+journey-zentriertes, pures Astro-Template, das seine Daten aus genau einer
+`ductus.data.json` in der Site-Wurzel liest (deterministischer Datenvertrag —
+keine MDX-Dateien). Mit `output.website.generator: starlight` entsteht
+stattdessen wie bisher ein Starlight-Projekt (MDX + Sidebar-/Site-Konfig).
+`ductus generate --build` installiert im exportierten Projekt
 anschließend die Abhängigkeiten (`npm ci` bei vorhandener `package-lock.json`,
 sonst `npm install`) und führt `npm run build` aus — die fertige Website liegt
 danach unter `<output.dir>/dist` (DD §M). Ohne `--build` bleibt der Build wie
@@ -68,7 +73,11 @@ zwei Knoten hat, DD §L) und **„Ablaufdiagramm"** (`flowchart` des
 vollständigen Segments).
 Das Starlight-Template rendert beide client-seitig (Mermaid per CDN,
 theme-aware); ohne Netz bleibt der Codeblock als Fallback sichtbar
-(DD §L).
+(DD §L). Das journey-Template braucht die Mermaid-Diagramme nicht: Es
+rendert den Graphen nativ als interaktive Ansicht (anklickbare Knoten,
+Hauptpfad-Animation) direkt aus `ductus.data.json` — die
+Diagramm-Abschnitte betreffen nur den MDX-Modus und das
+Starlight-Template.
 
 ## Best Practices
 
@@ -183,7 +192,7 @@ Alle Regeln folgen aus [SPEC.md](SPEC.md) bzw.
 ```
 packages/{schema,core,adapter-dart}   # npm-Pakete (TypeScript)
 dart/ductus                           # pub.dev-Paket (Annotationen + Adapter)
-templates/starlight                   # Website-Preset (Astro Starlight)
+templates/                            # Website-Templates (journey = Default, starlight)
 examples/                             # Beispiel-Apps mit Annotationen
 ```
 

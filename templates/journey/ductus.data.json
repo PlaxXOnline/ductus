@@ -1,0 +1,140 @@
+{
+  "dataVersion": "1",
+  "site": {
+    "title": "Blatt",
+    "locale": "de",
+    "ductusVersion": "0.1.0",
+    "adapters": [{ "name": "dart", "version": "0.1.0" }],
+    "violationsTotal": 0
+  },
+  "journeys": [
+    {
+      "id": "notes",
+      "slug": "notes",
+      "kind": "flow",
+      "order": 1,
+      "title": "Notizen verwalten",
+      "description": "Notizen anlegen, lesen, bearbeiten und die App einstellen.",
+      "startNodeId": "note-list",
+      "nodes": [
+        {
+          "id": "note-detail",
+          "type": "screen",
+          "title": "Notiz-Detail",
+          "description": "Zeigt den vollständigen Inhalt einer einzelnen Notiz an.",
+          "start": false,
+          "sourceRef": { "file": "lib/screens/note_detail_screen.dart", "line": 5 }
+        },
+        {
+          "id": "note-editor",
+          "type": "screen",
+          "title": "Notiz-Editor",
+          "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+          "start": false,
+          "sourceRef": { "file": "lib/screens/note_editor_screen.dart", "line": 3 }
+        },
+        {
+          "id": "note-list",
+          "type": "screen",
+          "title": "Notizliste",
+          "description": "Startbildschirm mit allen gespeicherten Notizen in einer Liste.",
+          "start": true,
+          "sourceRef": { "file": "lib/screens/note_list_screen.dart", "line": 7 }
+        },
+        {
+          "id": "save-check",
+          "type": "decision",
+          "title": "Eingaben gültig?",
+          "description": "Beim Speichern wird geprüft, ob die Notiz einen Titel hat.",
+          "start": false,
+          "sourceRef": { "file": "lib/screens/note_editor_screen.dart", "line": 8 }
+        },
+        {
+          "id": "settings",
+          "type": "screen",
+          "title": "Einstellungen",
+          "description": "Einstellungen der App, z. B. das Farbschema.",
+          "start": false,
+          "sourceRef": { "file": "lib/screens/settings_screen.dart", "line": 3 }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "from": "note-list",
+          "to": "note-detail",
+          "label": "Notiz öffnen",
+          "trigger": "tap",
+          "condition": null,
+          "main": null
+        },
+        {
+          "id": "e2",
+          "from": "note-list",
+          "to": "note-editor",
+          "label": "Neue Notiz",
+          "trigger": "tap",
+          "condition": null,
+          "main": 0
+        },
+        {
+          "id": "e3",
+          "from": "note-list",
+          "to": "settings",
+          "label": "Einstellungen öffnen",
+          "trigger": "tap",
+          "condition": null,
+          "main": null
+        },
+        {
+          "id": "e4",
+          "from": "note-detail",
+          "to": "note-editor",
+          "label": "Notiz bearbeiten",
+          "trigger": "tap",
+          "condition": null,
+          "main": null
+        },
+        {
+          "id": "e5",
+          "from": "note-editor",
+          "to": "save-check",
+          "label": "Speichern",
+          "trigger": "submit",
+          "condition": null,
+          "main": 1
+        },
+        {
+          "id": "e6",
+          "from": "save-check",
+          "to": "note-editor",
+          "label": "Fehlerhinweis anzeigen",
+          "trigger": "auto",
+          "condition": "Titel fehlt",
+          "main": null
+        },
+        {
+          "id": "e7",
+          "from": "save-check",
+          "to": "note-list",
+          "label": "Zurück zur Liste",
+          "trigger": "auto",
+          "condition": "Titel vorhanden",
+          "main": 2
+        },
+        {
+          "id": "e8",
+          "from": "settings",
+          "to": "note-list",
+          "label": "Zurück",
+          "trigger": "back",
+          "condition": null,
+          "main": null
+        }
+      ],
+      "mainPath": ["note-list", "note-editor", "save-check", "note-list"],
+      "markdown": "## Notizen verwalten\n\nBlatt startet in der **Notizliste** — hier sehen Sie alle gespeicherten Notizen auf einen Blick.\n\n### Eine neue Notiz anlegen\n\n1. Tippen Sie in der Notizliste auf **„Neue Notiz“** — der Notiz-Editor öffnet sich.\n2. Geben Sie der Notiz einen Titel und schreiben Sie den Inhalt in das Textfeld darunter.\n3. Tippen Sie auf **„Speichern“**. Blatt prüft dabei, ob die Notiz einen Titel hat:\n   - **Titel vorhanden** — die Notiz wird gespeichert und Sie kehren zur Liste zurück.\n   - **Titel fehlt** — ein Fehlerhinweis erscheint und Sie bleiben im Editor.\n\n### Notizen lesen und bearbeiten\n\nTippen Sie in der Liste auf eine Notiz, um sie in der Detailansicht zu lesen. Über **„Notiz bearbeiten“** öffnet sich der Editor mit den vorhandenen Inhalten.\n\n### Einstellungen\n\nÜber **„Einstellungen öffnen“** erreichen Sie die App-Einstellungen, z. B. das Farbschema. Mit der Zurück-Geste gelangen Sie jederzeit zur Notizliste zurück.\n",
+      "violations": []
+    }
+  ]
+}

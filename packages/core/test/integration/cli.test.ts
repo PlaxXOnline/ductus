@@ -245,6 +245,131 @@ describe('ductus init', () => {
   });
 });
 
+describe('ductus generate (Website-Modus, generator journey — DD §O)', () => {
+  /**
+   * Projekt mit output.format website; ohne generator-Zeile greift der
+   * Default 'journey'. Das Template wird über den Repo-Fallback
+   * templates/journey aufgelöst (resolveTemplateDir, §9.2).
+   */
+  function makeJourneyProject(adapterMode?: string, generator?: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'ductus-cli-journey-'));
+    tmpRoots.push(dir);
+    const command = `node ${FIXTURE}${adapterMode !== undefined ? ` ${adapterMode}` : ''}`;
+    writeFileSync(
+      join(dir, 'ductus.config.yaml'),
+      [
+        'app:',
+        '  name: TestApp',
+        '  locale: de',
+        'adapters:',
+        '  - fake:',
+        `      command: ${command}`,
+        'llm:',
+        '  provider: mock',
+        '  model: mock-model',
+        'output:',
+        '  format: website',
+        '  dir: site/',
+        ...(generator !== undefined ? ['  website:', `    generator: ${generator}`] : []),
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+    return dir;
+  }
+
+  it('schreibt das journey-Scaffold mit ductus.data.json gemäß Datenvertrag — keine MDX/Sidebar/Site-Dateien', () => {
+    // 'flowfull': beide Screens im Flow "auth" ⇒ Hauptpfad login → dashboard.
+    const dir = makeJourneyProject('flowfull');
+    const result = runCli(['--offline', 'generate'], dir);
+    expect(result.status, result.stderr).toBe(0);
+
+    const siteDir = join(dir, 'site');
+    // Template kopiert; gitignore → .gitignore umbenannt.
+    for (const file of ['package.json', 'astro.config.mjs', '.gitignore']) {
+      expect(existsSync(join(siteDir, file)), `${file} fehlt`).toBe(true);
+    }
+    expect(existsSync(join(siteDir, 'gitignore'))).toBe(false);
+    // Einzige Daten-Datei ist ductus.data.json — keine Starlight-Artefakte.
+    expect(existsSync(join(siteDir, 'src', 'content', 'docs'))).toBe(false);
+    expect(existsSync(join(siteDir, 'ductus.sidebar.json'))).toBe(false);
+    expect(existsSync(join(siteDir, 'ductus.site.json'))).toBe(false);
+
+    const raw = readFileSync(join(siteDir, 'ductus.data.json'), 'utf8');
+    expect(raw.endsWith('\n')).toBe(true);
+    const data = JSON.parse(raw) as {
+      dataVersion: string;
+      site: {
+        title: string;
+        locale: string;
+        ductusVersion: string;
+        adapters: Array<{ name: string; version: string }>;
+        violationsTotal: number;
+      };
+      journeys: Array<{
+        id: string;
+        slug: string;
+        kind: string;
+        startNodeId: string | null;
+        nodes: Array<{ id: string; start: boolean; sourceRef: { file: string } | null }>;
+        edges: Array<{ id: string; main: number | null }>;
+        mainPath: string[];
+        markdown: string;
+      }>;
+    };
+
+    expect(data.dataVersion).toBe('1');
+    expect(data.site.title).toBe('TestApp');
+    expect(data.site.locale).toBe('de');
+    expect(data.site.adapters).toEqual([{ name: 'fake', version: '1.0.0' }]);
+    expect(data.site.violationsTotal).toBe(0);
+    // ductusVersion zur Laufzeit aus der package.json von @ductus/core (kein Hardcoding).
+    const corePkg = JSON.parse(
+      readFileSync(join(ROOT, 'packages', 'core', 'package.json'), 'utf8'),
+    ) as { version: string };
+    expect(data.site.ductusVersion).toBe(corePkg.version);
+
+    const auth = data.journeys.find((journey) => journey.id === 'auth');
+    expect(auth).toBeDefined();
+    expect(auth?.slug).toBe('auth');
+    expect(auth?.kind).toBe('flow');
+    expect(auth?.startNodeId).toBe('login');
+    expect(auth?.mainPath).toEqual(['login', 'dashboard']);
+    expect(auth?.markdown.length).toBeGreaterThan(0);
+    // Hauptpfad-Kante trägt den 0-basierten Index; start-Flag nur am Start-Node.
+    expect(auth?.edges.find((edge) => edge.id === 'e_login_dashboard')?.main).toBe(0);
+    const login = auth?.nodes.find((node) => node.id === 'login');
+    expect(login?.start).toBe(true);
+    expect(login?.sourceRef).toEqual({
+      file: 'lib/screens/login.dart',
+      line: 12,
+      symbol: 'LoginScreen',
+    });
+    expect(auth?.nodes.find((node) => node.id === 'dashboard')?.sourceRef).toBeNull();
+  });
+
+  it('schreibt ductus.data.json byte-identisch bei zwei Läufen (NFR2)', () => {
+    const dir = makeJourneyProject('flowfull');
+    expect(runCli(['--offline', 'generate'], dir).status).toBe(0);
+    const dataPath = join(dir, 'site', 'ductus.data.json');
+    const bytes1 = readFileSync(dataPath);
+
+    const second = runCli(['--offline', 'generate'], dir);
+    expect(second.status, second.stderr).toBe(0);
+    expect(readFileSync(dataPath).equals(bytes1)).toBe(true);
+  });
+
+  it('lehnt generator docusaurus in Phase 1 mit Exit 3 ab (Guard in runGenerate)', () => {
+    const dir = makeJourneyProject(undefined, 'docusaurus');
+    const result = runCli(['--offline', 'generate'], dir);
+    expect(result.status).toBe(3);
+    expect(result.stderr).toContain('docusaurus');
+    expect(result.stderr).toMatch(/journey.*starlight/);
+    // Vor dem Guard wurde kein Site-Scaffold erzeugt.
+    expect(existsSync(join(dir, 'site'))).toBe(false);
+  });
+});
+
 describe('ductus generate --build', () => {
   const FAKE_NPM = join(ROOT, 'packages', 'core', 'test', 'fixtures', 'fake-npm.mjs');
 
@@ -267,6 +392,10 @@ describe('ductus generate --build', () => {
         'output:',
         '  format: website',
         '  dir: site/',
+        '  website:',
+        // Explizit 'starlight' (Default ist 'journey', DD §O) — diese Tests
+        // prüfen die Build-Kette gegen das Starlight-Preset.
+        '    generator: starlight',
         '',
       ].join('\n'),
       'utf8',

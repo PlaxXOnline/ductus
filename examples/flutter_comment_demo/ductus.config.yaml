@@ -23,5 +23,5 @@ output:
   format: mdx                # mdx | website
   dir: docs/
   website:
-    generator: starlight     # starlight | docusaurus
+    generator: journey       # journey | starlight | docusaurus
     diagrams: true

@@ -42,7 +42,7 @@ const LLM_PROVIDERS = ['anthropic', 'openai', 'custom', 'mock'] as const;
 const VOICES: readonly Voice[] = ['formal-sie', 'informal-du', 'en-you'];
 const GRANULARITIES: readonly Granularity[] = ['flow', 'screen'];
 const OUTPUT_FORMATS: readonly OutputFormat[] = ['mdx', 'website'];
-const WEBSITE_GENERATORS: readonly WebsiteGenerator[] = ['starlight', 'docusaurus'];
+const WEBSITE_GENERATORS: readonly WebsiteGenerator[] = ['journey', 'starlight', 'docusaurus'];
 
 const LLM_DEFAULTS = {
   provider: 'anthropic',
@@ -291,7 +291,7 @@ function parseOutput(raw: unknown): DuctusConfig['output'] {
     format: requireEnum(section['format'], OUTPUT_FORMATS, 'output.format', 'mdx'),
     dir: optionalString(section['dir'], 'output.dir') ?? 'docs/',
     website: {
-      generator: requireEnum(rawWebsite['generator'], WEBSITE_GENERATORS, 'output.website.generator', 'starlight'),
+      generator: requireEnum(rawWebsite['generator'], WEBSITE_GENERATORS, 'output.website.generator', 'journey'),
       diagrams: optionalBoolean(rawWebsite['diagrams'], 'output.website.diagrams') ?? true,
       ...(template !== undefined ? { template } : {}),
     },
@@ -390,7 +390,7 @@ export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
     '  format: mdx                # mdx | website',
     '  dir: docs/',
     '  website:',
-    '    generator: starlight     # starlight | docusaurus',
+    '    generator: journey       # journey | starlight | docusaurus',
     '    diagrams: true',
     '',
   ].join('\n');

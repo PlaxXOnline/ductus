@@ -1,0 +1,159 @@
+---
+/**
+ * Top-Nav: Logo-Badge (App-Initial), "<AppName> Handbuch", Buttons
+ * Übersicht/Journeys sowie das ⌘K-Suchfeld (öffnet das Suchoverlay).
+ */
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+
+interface Props {
+  active: 'home' | 'journeys';
+}
+
+const { active } = Astro.props;
+const t = uiStrings(data.site.locale);
+const base = import.meta.env.BASE_URL;
+const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
+---
+
+<nav class="dj-nav">
+  <a class="dj-nav-brand" href={base}>
+    <span class="dj-nav-logo">{initial}</span>
+    <span class="dj-nav-title">{data.site.title} <span class="dj-nav-title-suffix">{t.handbook}</span></span>
+  </a>
+  <div class="dj-nav-links">
+    <a class:list={['dj-nav-link', { 'is-active': active === 'home' }]} href={base}>{t.navOverview}</a>
+    <a class:list={['dj-nav-link', { 'is-active': active === 'journeys' }]} href={`${base}#journeys`}>
+      {t.navJourneys}
+    </a>
+  </div>
+  <div class="dj-nav-spacer"></div>
+  <button class="dj-nav-search" type="button" data-search-open>
+    <span class="dj-search-icon" aria-hidden="true"><span class="dj-search-icon-ring"></span><span class="dj-search-icon-stem"></span></span>
+    <span class="dj-nav-search-label">{t.searchButton}</span>
+    <span class="dj-nav-search-keys"><span class="dj-kbd">⌘</span><span class="dj-kbd">K</span></span>
+  </button>
+</nav>
+
+<style is:global>
+  .dj-nav {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    height: 60px;
+    padding: 0 30px;
+    border-bottom: 1px solid var(--dj-border);
+    background: rgba(255, 254, 251, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 5;
+  }
+  .dj-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--dj-text);
+  }
+  .dj-nav-brand:hover {
+    color: var(--dj-text);
+  }
+  .dj-nav-logo {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    background: var(--dj-accent);
+    color: var(--dj-panel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13.5px;
+  }
+  .dj-nav-title {
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .dj-nav-title-suffix {
+    font-weight: 450;
+    color: var(--dj-muted);
+  }
+  .dj-nav-links {
+    display: flex;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 550;
+  }
+  .dj-nav-link {
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: var(--dj-text-2);
+    transition: all 0.2s;
+  }
+  .dj-nav-link:hover {
+    background: rgba(35, 32, 25, 0.07);
+    color: var(--dj-text-2);
+  }
+  .dj-nav-link.is-active {
+    background: rgba(35, 32, 25, 0.07);
+    color: var(--dj-text);
+  }
+  .dj-nav-spacer {
+    flex: 1;
+  }
+  .dj-nav-search {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--dj-panel);
+    border: 1px solid var(--dj-border-2);
+    border-radius: 9px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 220px;
+  }
+  .dj-nav-search:hover {
+    border-color: var(--dj-accent);
+  }
+  .dj-nav-search-label {
+    flex: 1;
+    text-align: left;
+    font-size: 12.5px;
+    color: var(--dj-muted);
+  }
+  .dj-nav-search-keys {
+    display: flex;
+    gap: 3px;
+  }
+
+  /* Lupe (reines CSS wie in der Design-Referenz) */
+  .dj-search-icon {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    flex: none;
+    display: block;
+  }
+  .dj-search-icon-ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 9px;
+    height: 9px;
+    border: 1.6px solid #8b8474;
+    border-radius: 50%;
+    display: block;
+  }
+  .dj-search-icon-stem {
+    position: absolute;
+    left: 9.5px;
+    top: 9.5px;
+    width: 5.5px;
+    height: 1.6px;
+    background: #8b8474;
+    transform: rotate(45deg);
+    transform-origin: 0 50%;
+    display: block;
+  }
+</style>

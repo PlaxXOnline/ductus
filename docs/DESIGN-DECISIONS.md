@@ -361,3 +361,40 @@ dart run ductus:adapter --project <dir> [--config <json-file>] [--no-debug-file]
   build_runner-Lauf; das CLI erkennt eine veraltete Datei nicht. Wer
   `--from-builder` nutzt, führt vor `ductus extract` also
   `dart run build_runner build` aus (oder lässt `watch` laufen).
+
+## O. Website-Generator `journey` als Default (2026-07-09)
+
+- **Entscheidung:** Der Website-Modus (§9.2) erhält einen neuen Generator-Wert
+  `journey` mit eigenem Template `templates/journey` — pures Astro **ohne**
+  Starlight — und dieser wird der **neue Default** von
+  `output.website.generator`. `starlight` bleibt als Preset wählbar
+  (Verhalten byte-identisch zu Phase 1: Template-Kopie, MDX unter
+  `src/content/docs/`, `ductus.sidebar.json`, `ductus.site.json`);
+  `docusaurus` bleibt in Phase 1 abgelehnt (Guard in `pipeline.ts`, Exit 3).
+- **Herkunft:** Das journey-Template setzt den Design-Prototyp
+  „Ductus Doku Website" um — eine journey-zentrierte Doku-Site statt einer
+  generischen Doku-Sidebar; deshalb ein eigenes Template statt
+  Starlight-Theming.
+- **Datenvertrag `ductus.data.json`:** Im journey-Modus schreibt
+  `scaffoldWebsite` **keine** MDX-Dateien und **keine**
+  `ductus.site.json`/`ductus.sidebar.json`, sondern genau **eine**
+  `ductus.data.json` in die Site-Wurzel; das Template liest sie zur
+  Buildzeit. Aufbau (`dataVersion: "1"`): `site` (title, locale,
+  `ductusVersion` — zur Laufzeit aus der package.json von `@ductus/core`
+  gelesen, kein Hardcoding —, adapters nach name sortiert, violationsTotal)
+  und `journeys` (je Segment: id, slug, kind, order, title, description,
+  startNodeId, nodes, edges, mainPath, markdown **pur** — ohne
+  Mermaid-Anhänge, ohne Aside —, violations). Deterministisch (NFR2):
+  journeys nach order (Tie-Break slug), nodes/edges nach id, LF,
+  abschließender Zeilenumbruch, keine Zeitstempel. `edges[].main` ist der
+  0-basierte Index der Hauptpfad-Kante (gewählt mit exakt derselben
+  Priorität wie die journey-Ableitung in §L, jetzt als `deriveMainPath` in
+  `output/mermaid.ts` extrahiert), sonst `null`; Node-`title` folgt der
+  renderNode-/journeyTaskLabel-Logik (action: label ?? title ?? id, sonst
+  title ?? id). Typen: `JourneyWebsiteData` u. a. in
+  `packages/core/src/contracts.ts`, Aufbau in
+  `packages/core/src/output/journey-data.ts`.
+- **Template-Auflösung:** `resolveTemplateDir` ist auf den Generator
+  parametrisiert (`<corePkg>/assets/templates/<generator>`, Repo-Fallback
+  `templates/<generator>`); `scripts/copy-assets.mjs` kopiert alle
+  Verzeichnisse unter `templates/` in die Paket-Assets.

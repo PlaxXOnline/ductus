@@ -1,0 +1,351 @@
+---
+/**
+ * ⌘K-Suchoverlay (Screen 3 der Design-Referenz): Input, Ergebniszeilen mit
+ * Typ-Badges (JOURNEY/SCHRITT/ENTSCHEIDUNG/AKTION), Pfeiltasten + Enter, esc.
+ * Der Index wird zur Buildzeit erzeugt und als JSON eingebettet; gefiltert
+ * wird client-seitig per Substring (Verhalten wie searchVals im Design).
+ */
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+import { buildSearchIndex } from '../lib/search';
+import { toJsonIsland } from '../lib/json';
+
+const t = uiStrings(data.site.locale);
+const base = import.meta.env.BASE_URL;
+const index = buildSearchIndex(data, t, base);
+---
+
+<div class="dj-search-overlay" id="dj-search-overlay" hidden>
+  <div class="dj-search-panel" role="dialog" aria-modal="true" aria-label={t.searchButton}>
+    <div class="dj-search-head">
+      <span class="dj-search-icon is-large" aria-hidden="true"><span class="dj-search-icon-ring"></span><span class="dj-search-icon-stem"></span></span>
+      <input id="dj-search-input" type="text" placeholder={t.searchPlaceholder} autocomplete="off" spellcheck="false" />
+      <span class="dj-search-esc dj-mono">esc</span>
+    </div>
+    <div class="dj-search-results" id="dj-search-results" data-empty-text={t.searchEmpty}></div>
+    <div class="dj-search-foot dj-mono">
+      <span>{t.searchSelect}</span><span>{t.searchOpen}</span><span>{t.searchClose}</span>
+      <span class="dj-search-foot-spacer"></span>
+      <span>{index.summary}</span>
+    </div>
+  </div>
+</div>
+
+{/* toJsonIsland escaped </script>-Ausbrüche — Index-Strings sind untrusted. */}
+<script type="application/json" id="dj-search-index" set:html={toJsonIsland(index.items)} />
+
+<script>
+  // Suchlogik — Referenz-Implementierung: searchVals/sKey in der Design-Datei.
+  interface SearchItem {
+    t: string;
+    k: 'J' | 'S' | 'E' | 'A';
+    title: string;
+    sub: string;
+    href: string;
+  }
+
+  const overlay = document.getElementById('dj-search-overlay') as HTMLElement;
+  const input = document.getElementById('dj-search-input') as HTMLInputElement;
+  const resultsEl = document.getElementById('dj-search-results') as HTMLElement;
+  const indexEl = document.getElementById('dj-search-index');
+  const items: SearchItem[] = indexEl?.textContent ? JSON.parse(indexEl.textContent) : [];
+
+  // Fokus-Verwaltung (aria-modal verlangt sie wirklich): Hintergrund wird
+  // inert (Overlay ist Geschwister von .dj-app, bleibt also bedienbar), der
+  // Fokus kehrt beim Schließen zum auslösenden Element zurück.
+  const appRoot = document.querySelector<HTMLElement>('.dj-app');
+  let lastFocused: HTMLElement | null = null;
+
+  let filtered: SearchItem[] = items;
+  let selectedIndex = 0;
+
+  function go(href: string): void {
+    close();
+    const target = new URL(href, window.location.href);
+    if (target.pathname === window.location.pathname && target.hash !== '') {
+      // Gleiche Seite: nur Hash setzen; identischer Hash feuert kein
+      // hashchange — dann manuell auslösen, damit die Auswahl greift.
+      if (window.location.hash === target.hash) window.dispatchEvent(new Event('hashchange'));
+      else window.location.hash = target.hash;
+    } else {
+      window.location.href = target.href;
+    }
+  }
+
+  function render(): void {
+    resultsEl.textContent = '';
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'dj-search-empty';
+      empty.textContent = resultsEl.dataset.emptyText ?? '';
+      resultsEl.append(empty);
+      return;
+    }
+    filtered.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = `dj-search-row${i === selectedIndex ? ' is-selected' : ''}`;
+      const badge = document.createElement('span');
+      badge.className = `dj-search-badge is-${item.k.toLowerCase()}`;
+      badge.textContent = item.t;
+      const text = document.createElement('span');
+      text.className = 'dj-search-text';
+      const title = document.createElement('span');
+      title.className = 'dj-search-row-title';
+      title.textContent = item.title;
+      const sub = document.createElement('span');
+      sub.className = 'dj-search-row-sub';
+      sub.textContent = item.sub;
+      text.append(title, sub);
+      const enter = document.createElement('span');
+      enter.className = 'dj-search-enter dj-mono';
+      enter.textContent = '↵';
+      row.append(badge, text, enter);
+      row.addEventListener('click', () => go(item.href));
+      row.addEventListener('mouseenter', () => {
+        if (selectedIndex !== i) {
+          selectedIndex = i;
+          render();
+        }
+      });
+      resultsEl.append(row);
+    });
+    const selected = resultsEl.children[selectedIndex] as HTMLElement | undefined;
+    selected?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function filter(): void {
+    const q = input.value.trim().toLowerCase();
+    filtered = q === '' ? items : items.filter((it) => `${it.title} ${it.sub} ${it.t}`.toLowerCase().includes(q));
+    selectedIndex = 0;
+    render();
+  }
+
+  function open(query = ''): void {
+    lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    appRoot?.setAttribute('inert', '');
+    overlay.hidden = false;
+    input.value = query;
+    filter();
+    window.setTimeout(() => input.focus(), 60);
+  }
+
+  function close(): void {
+    overlay.hidden = true;
+    appRoot?.removeAttribute('inert');
+    lastFocused?.focus();
+    lastFocused = null;
+  }
+
+  // Auslöser: Nav-Button, Hero-Suchfeld, „Häufig gesucht“-Chips.
+  for (const trigger of document.querySelectorAll<HTMLElement>('[data-search-open]')) {
+    trigger.addEventListener('click', () => open(trigger.dataset.searchQuery ?? ''));
+  }
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) close();
+  });
+  // Fokus-Falle: Tab/Shift+Tab zirkulieren innerhalb des Dialogs, statt in den
+  // verdeckten Hintergrund zu entweichen (inert ist die zweite Verteidigung).
+  overlay.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    const focusables = [
+      ...overlay.querySelectorAll<HTMLElement>('input, button, a[href], [tabindex]:not([tabindex="-1"])'),
+    ];
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (first === undefined || last === undefined) {
+      event.preventDefault();
+      return;
+    }
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !overlay.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !overlay.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  input.addEventListener('input', filter);
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, Math.max(0, filtered.length - 1));
+      render();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      render();
+    } else if (event.key === 'Enter') {
+      const item = filtered[selectedIndex];
+      if (item) go(item.href);
+    }
+  });
+  window.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      if (overlay.hidden) open();
+      else close();
+    } else if (event.key === 'Escape' && !overlay.hidden) {
+      close();
+    }
+  });
+</script>
+
+<style is:global>
+  /* [hidden] muss das display:flex schlagen — sonst wäre das Overlay immer sichtbar. */
+  .dj-search-overlay[hidden] {
+    display: none;
+  }
+  .dj-search-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    background: rgba(30, 27, 22, 0.36);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 110px;
+    animation: dj-fade-in 0.18s both;
+  }
+  .dj-search-panel {
+    width: 640px;
+    max-width: calc(100% - 48px);
+    max-height: 540px;
+    display: flex;
+    flex-direction: column;
+    background: var(--dj-panel);
+    border-radius: 16px;
+    box-shadow: 0 30px 90px rgba(30, 27, 22, 0.4);
+    overflow: hidden;
+    animation: dj-pop-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  }
+  .dj-search-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 18px;
+    border-bottom: 1px solid rgba(35, 32, 25, 0.08);
+  }
+  .dj-search-icon.is-large {
+    width: 16px;
+    height: 16px;
+  }
+  .dj-search-icon.is-large .dj-search-icon-ring {
+    width: 11px;
+    height: 11px;
+    border-width: 1.8px;
+    border-color: var(--dj-accent);
+  }
+  .dj-search-icon.is-large .dj-search-icon-stem {
+    left: 11.5px;
+    top: 11.5px;
+    width: 6px;
+    height: 1.8px;
+    background: var(--dj-accent);
+  }
+  #dj-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 15.5px;
+    font-family: var(--dj-font);
+    color: var(--dj-text);
+  }
+  .dj-search-esc {
+    font-size: 9.5px;
+    border: 1px solid var(--dj-border-3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--dj-muted);
+  }
+  .dj-search-results {
+    flex: 1;
+    overflow: auto;
+    padding: 7px;
+  }
+  .dj-search-empty {
+    padding: 26px;
+    text-align: center;
+    color: var(--dj-muted);
+    font-size: 13px;
+  }
+  .dj-search-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 11px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .dj-search-row.is-selected {
+    background: #f1eee5;
+  }
+  .dj-search-badge {
+    flex: none;
+    width: 92px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 3.5px 0;
+    border-radius: 20px;
+  }
+  .dj-search-badge.is-j {
+    background: rgba(58, 98, 196, 0.13);
+    color: var(--dj-accent);
+  }
+  .dj-search-badge.is-s {
+    background: var(--dj-chip-alt);
+    color: var(--dj-text-2);
+  }
+  .dj-search-badge.is-e {
+    background: rgba(176, 96, 58, 0.14);
+    color: var(--dj-decision);
+  }
+  .dj-search-badge.is-a {
+    background: rgba(60, 138, 99, 0.13);
+    color: var(--dj-success);
+  }
+  .dj-search-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .dj-search-row-title {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--dj-text);
+  }
+  .dj-search-row-sub {
+    display: block;
+    font-size: 11px;
+    color: #8b8574;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+  .dj-search-enter {
+    flex: none;
+    font-size: 11px;
+    color: var(--dj-accent);
+    opacity: 0;
+  }
+  .dj-search-row.is-selected .dj-search-enter {
+    opacity: 1;
+  }
+  .dj-search-foot {
+    display: flex;
+    gap: 14px;
+    padding: 10px 18px;
+    border-top: 1px solid rgba(35, 32, 25, 0.08);
+    font-size: 9.5px;
+    color: var(--dj-muted-2);
+  }
+  .dj-search-foot-spacer {
+    flex: 1;
+  }
+</style>

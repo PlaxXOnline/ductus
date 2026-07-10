@@ -106,6 +106,10 @@ const CONFIG_WEBSITE = [
   'output:',
   '  format: website',
   '  dir: site/',
+  '  website:',
+  // Explizit 'starlight' (Default ist 'journey', DD §O) — dieser E2E-Fall
+  // prüft weiterhin das Starlight-Scaffold (MDX + Sidebar + Site-Konfig).
+  '    generator: starlight',
   '',
 ].join('\n');
 

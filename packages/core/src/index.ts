@@ -12,9 +12,12 @@ export * from './graph/index.js';
 // LLM-Schicht (BYOK, Segmentierung, Cache, Kosten).
 export * from './llm/index.js';
 
-// Ausgabe (MDX, Website, Mermaid, Slugs).
+// Ausgabe (MDX, Website, Mermaid, Slugs, journey-Datenvertrag).
 export { buildMdxPages, writeMdxPages } from './output/mdx.js';
-export { graphToMermaid, segmentToJourney, segmentToMermaid } from './output/mermaid.js';
+export { deriveMainPath, graphToMermaid, segmentToJourney, segmentToMermaid } from './output/mermaid.js';
+export type { MainPath } from './output/mermaid.js';
+export { buildJourneyData, serializeJourneyData } from './output/journey-data.js';
+export type { BuildJourneyDataInput } from './output/journey-data.js';
 export { toSlug } from './output/slug.js';
 export { buildWebsite, scaffoldWebsite, WebsiteBuildError } from './output/website.js';
 export type { BuildWebsiteOptions, ScaffoldWebsiteOptions, WebsiteBuildSpawn } from './output/website.js';

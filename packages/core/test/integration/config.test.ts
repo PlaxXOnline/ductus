@@ -45,7 +45,7 @@ describe('loadConfig', () => {
         '  format: mdx                # mdx | website',
         '  dir: docs/',
         '  website:',
-        '    generator: starlight     # starlight | docusaurus',
+        '    generator: journey       # journey | starlight | docusaurus',
         '    diagrams: true',
         '',
       ].join('\n'),
@@ -71,7 +71,7 @@ describe('loadConfig', () => {
     expect(config.output).toEqual({
       format: 'mdx',
       dir: 'docs/',
-      website: { generator: 'starlight', diagrams: true },
+      website: { generator: 'journey', diagrams: true },
     });
     expect(config.rootDir).toBe(join(path, '..'));
   });
@@ -93,7 +93,8 @@ describe('loadConfig', () => {
     expect(config.output).toEqual({
       format: 'mdx',
       dir: 'docs/',
-      website: { generator: 'starlight', diagrams: true },
+      // Default-Generator ist 'journey' (DD §O); 'starlight' bleibt wählbar.
+      website: { generator: 'journey', diagrams: true },
     });
   });
 
@@ -199,6 +200,24 @@ describe('loadConfig', () => {
   it('wirft ConfigError bei ungültigen Enum-Werten mit präziser Meldung', () => {
     const path = writeConfig(`${MINIMAL}llm:\n  provider: gpt5\n`);
     expect(() => loadConfig(path)).toThrowError(/llm\.provider.*anthropic \| openai \| custom \| mock/);
+  });
+
+  it('akzeptiert alle Website-Generator-Enum-Werte und lehnt unbekannte ab', () => {
+    // 'starlight' bleibt neben dem Default 'journey' wählbar (DD §O) …
+    for (const generator of ['journey', 'starlight', 'docusaurus'] as const) {
+      const { config } = loadConfig(
+        writeConfig(`${MINIMAL}output:\n  format: website\n  website:\n    generator: ${generator}\n`),
+      );
+      // … 'docusaurus' passiert die Config-Ebene, wird aber erst von der
+      // Pipeline abgelehnt (Phase-1-Guard in runGenerate, DD §O).
+      expect(config.output.website.generator).toBe(generator);
+    }
+
+    const invalid = writeConfig(`${MINIMAL}output:\n  website:\n    generator: hugo\n`);
+    expect(() => loadConfig(invalid)).toThrowError(ConfigError);
+    expect(() => loadConfig(invalid)).toThrowError(
+      /output\.website\.generator.*journey \| starlight \| docusaurus/,
+    );
   });
 
   it('meldet unbekannte Top-Level-Schlüssel als Warnung, nicht als Fehler', () => {

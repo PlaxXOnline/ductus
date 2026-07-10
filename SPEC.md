@@ -295,7 +295,7 @@ ductus-adapter-<lang> --project <dir> [--config <file>]  →  stdout: graph JSON
 Das LLM übersetzt **nur** den validierten Graphen in Prosa — es erfindet keine Features. Der Graph ist die vertrauenswürdige Quelle (RAG-artige Erdung). Das reduziert Faktizitäts-Halluzinationen strukturell; Restrisiko sind Faithfulness-Fehler (Überinterpretation von Lücken).
 
 ### 8.2 BYOK-Konfiguration
-- Provider-agnostisch: Anthropic (Claude), OpenAI (GPT), lokale/OpenAI-kompatible Endpunkte.
+- Provider-agnostisch: Anthropic, OpenAI, lokale/OpenAI-kompatible Endpunkte.
 - API-Key aus Umgebungsvariable (`DUCTUS_LLM_API_KEY`) oder Konfig; **niemals** ins Repo schreiben, niemals loggen.
 - Provider/Modell konfigurierbar (§10). Kosten trägt der Nutzer.
 
@@ -327,8 +327,8 @@ Das LLM übersetzt **nur** den validierten Graphen in Prosa — es erfindet kein
 - Optional: eingebettetes Mermaid-Diagramm des Flow-Graphen pro Seite.
 
 ### 9.2 Website-Modus
-- Preset für einen MDX-fähigen Static-Site-Generator (Empfehlung: **Starlight/Astro** wegen schneller Builds und eingebauter Suche; **Docusaurus** als Alternative mit Versioning).
-- Ductus erzeugt MDX + Navigations-/Sidebar-Konfiguration; der SSG baut die Website.
+- Default-Generator ist **`journey`** (DD §O): ein eigenes, pures Astro-Template (ohne Starlight), das journey-zentriert rendert. Ductus schreibt dafür genau **eine** Datendatei `ductus.data.json` in die Site-Wurzel (deterministischer Datenvertrag: Site-Metadaten, Journeys mit Nodes/Edges/Hauptpfad, generiertes Markdown, Violations); das Template liest sie zur Buildzeit.
+- **`starlight`** bleibt als Preset wählbar (MDX-fähiger SSG mit schnellen Builds und eingebauter Suche): Ductus erzeugt MDX + Navigations-/Sidebar-Konfiguration; der SSG baut die Website. **Docusaurus** als Alternative mit Versioning (Phase 2).
 - Der SSG selbst ist eine Peer-Dependency, kein Ductus-Fork.
 
 ### 9.3 Zwischenartefakte (immer)
@@ -370,7 +370,7 @@ output:
   format: mdx                # mdx | website
   dir: docs/
   website:
-    generator: starlight     # starlight | docusaurus
+    generator: journey       # journey | starlight | docusaurus
     diagrams: true
 ```
 

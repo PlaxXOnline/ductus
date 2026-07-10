@@ -3,10 +3,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import type { MdxPage } from '../../src/contracts.js';
+import type { JourneyWebsiteData, MdxPage } from '../../src/contracts.js';
+import { serializeJourneyData } from '../../src/output/journey-data.js';
 import { scaffoldWebsite } from '../../src/output/website.js';
 
 const templateDir = fileURLToPath(new URL('../../../../templates/starlight', import.meta.url));
+const journeyTemplateDir = fileURLToPath(new URL('../../../../templates/journey', import.meta.url));
 
 const pages: MdxPage[] = [
   {
@@ -100,5 +102,107 @@ describe('scaffoldWebsite', () => {
     const second = readFileSync(join(outDir, 'ductus.sidebar.json'), 'utf8');
     expect(second).toBe(first);
     expect(dirname(join(outDir, 'x'))).toBe(outDir); // Pfad-Sanity
+  });
+});
+
+// ─────────────────────── Website-Generator "journey" (DD §O) ─────────────────
+
+/** Minimales, aber vollständiges Datenobjekt gemäß Datenvertrag (dataVersion 1). */
+const journeyData: JourneyWebsiteData = {
+  dataVersion: '1',
+  site: {
+    title: 'MyApp',
+    locale: 'de',
+    ductusVersion: '0.1.0',
+    adapters: [{ name: 'fake', version: '1.0.0' }],
+    violationsTotal: 0,
+  },
+  journeys: [
+    {
+      id: 'auth',
+      slug: 'auth',
+      kind: 'flow',
+      order: 1,
+      title: 'Anmeldung',
+      description: '',
+      startNodeId: 'login',
+      nodes: [
+        { id: 'login', type: 'screen', title: 'Login', description: '', start: true, sourceRef: null },
+      ],
+      edges: [],
+      mainPath: [],
+      markdown: '# Anmeldung\n',
+      violations: [],
+    },
+  ],
+};
+
+describe('scaffoldWebsite (generator journey, DD §O)', () => {
+  it('kopiert das journey-Template und schreibt genau eine ductus.data.json — keine MDX/Sidebar/Site-Dateien', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ductus-site-'));
+    await scaffoldWebsite({
+      templateDir: journeyTemplateDir,
+      outDir,
+      pages,
+      appName: 'MyApp',
+      locale: 'de',
+      generator: 'journey',
+      journeyData,
+    });
+
+    // Templatedateien kopiert; gitignore → .gitignore umbenannt.
+    for (const file of ['package.json', 'astro.config.mjs', '.gitignore', 'README.md']) {
+      expect(existsSync(join(outDir, file)), `${file} fehlt`).toBe(true);
+    }
+    expect(existsSync(join(outDir, 'gitignore'))).toBe(false);
+
+    // Die Daten-Datei ersetzt die Demo-Datei des Templates byte-genau.
+    const written = readFileSync(join(outDir, 'ductus.data.json'), 'utf8');
+    expect(written).toBe(serializeJourneyData(journeyData));
+    expect(written.endsWith('\n')).toBe(true);
+
+    // KEINE MDX-Seiten (obwohl pages übergeben wurden) …
+    expect(existsSync(join(outDir, 'src', 'content', 'docs'))).toBe(false);
+    // … und KEINE Starlight-Konfigurationsdateien.
+    expect(existsSync(join(outDir, 'ductus.sidebar.json'))).toBe(false);
+    expect(existsSync(join(outDir, 'ductus.site.json'))).toBe(false);
+  });
+
+  it('wirft ohne journeyData einen Fehler (Programmierfehler-Guard)', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ductus-site-'));
+    await expect(
+      scaffoldWebsite({
+        templateDir: journeyTemplateDir,
+        outDir,
+        pages: [],
+        appName: 'MyApp',
+        locale: 'de',
+        generator: 'journey',
+      }),
+    ).rejects.toThrowError(/journeyData/);
+  });
+
+  it('ist idempotent (zweiter Lauf liefert byte-identische ductus.data.json, NFR2)', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ductus-site-'));
+    const opts = {
+      templateDir: journeyTemplateDir,
+      outDir,
+      pages: [],
+      appName: 'MyApp',
+      locale: 'de',
+      generator: 'journey' as const,
+      journeyData,
+    };
+    await scaffoldWebsite(opts);
+    const first = readFileSync(join(outDir, 'ductus.data.json'), 'utf8');
+    await scaffoldWebsite(opts);
+    expect(readFileSync(join(outDir, 'ductus.data.json'), 'utf8')).toBe(first);
+  });
+
+  it('Default ohne generator bleibt Starlight-Semantik (keine ductus.data.json)', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ductus-site-'));
+    await scaffoldWebsite({ templateDir, outDir, pages, appName: 'MyApp', locale: 'de' });
+    expect(existsSync(join(outDir, 'ductus.data.json'))).toBe(false);
+    expect(existsSync(join(outDir, 'ductus.sidebar.json'))).toBe(true);
   });
 });

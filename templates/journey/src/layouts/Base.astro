@@ -1,0 +1,189 @@
+---
+/**
+ * Grundgerüst aller Seiten: Fonts, Design-Tokens, Top-Nav und ⌘K-Suchoverlay.
+ * Nur Light-Theme — das Design der Referenz legt sich bewusst fest.
+ */
+import Nav from '../components/Nav.astro';
+import SearchOverlay from '../components/SearchOverlay.astro';
+import { data } from '../lib/data';
+import { uiStrings } from '../lib/strings';
+
+interface Props {
+  /** <title>-Inhalt */
+  pageTitle: string;
+  /** aktiver Nav-Punkt */
+  active: 'home' | 'journeys';
+}
+
+const { pageTitle, active } = Astro.props;
+const t = uiStrings(data.site.locale);
+
+// Favicon als Daten-URI (App-Initial auf Akzent-Kachel) — kein 404, kein Asset.
+const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#3a62c4"/><text x="16" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#fffefb">${initial}</text></svg>`;
+const faviconHref = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+---
+
+<html lang={data.site.locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+    <link rel="icon" href={faviconHref} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="dj-app">
+      <Nav active={active} />
+      <slot />
+    </div>
+    <SearchOverlay />
+  </body>
+</html>
+
+<style is:global>
+  /* ── Design-Tokens (Referenz: ductus-doku-website.dc.html) ─────────────── */
+  :root {
+    --dj-bg: #f6f4ef;
+    --dj-panel: #fffefb;
+    --dj-panel-alt: #faf8f4;
+    --dj-chip: #f0ede5;
+    --dj-chip-alt: #efece4;
+    --dj-text: #232019;
+    --dj-text-2: #6f6a5e;
+    --dj-text-3: #5d5749;
+    --dj-muted: #98917f;
+    --dj-muted-2: #b3ac9c;
+    --dj-muted-3: #c2bbaa;
+    --dj-border: rgba(35, 32, 25, 0.09);
+    --dj-border-2: rgba(35, 32, 25, 0.13);
+    --dj-border-3: rgba(35, 32, 25, 0.16);
+    --dj-accent: #3a62c4;
+    --dj-accent-hover: #2c4d9e;
+    --dj-accent-soft: rgba(58, 98, 196, 0.16);
+    --dj-decision: #b0603a;
+    --dj-success: #3c8a63;
+    --dj-edge: #aaa393;
+    --dj-node-line: rgba(35, 32, 25, 0.22);
+    --dj-font: 'Instrument Sans', system-ui, sans-serif;
+    --dj-mono: 'Spline Sans Mono', ui-monospace, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+  }
+  body {
+    background: var(--dj-bg);
+    color: var(--dj-text);
+    font-family: var(--dj-font);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--dj-accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--dj-accent-hover);
+  }
+  button {
+    font-family: inherit;
+  }
+  input::placeholder {
+    color: #a39c8c;
+  }
+
+  .dj-app {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 660px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .dj-mono {
+    font-family: var(--dj-mono);
+  }
+  .dj-kbd {
+    font-family: var(--dj-mono);
+    font-size: 10px;
+    border: 1px solid var(--dj-border-3);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--dj-text-2);
+    background: var(--dj-bg);
+  }
+
+  @keyframes dj-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes dj-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes dj-pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.94) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes dj-dash-flow {
+    to {
+      stroke-dashoffset: -13;
+    }
+  }
+  @keyframes dj-pulse {
+    0% {
+      box-shadow: 0 0 0 3px rgba(58, 98, 196, 0.4);
+    }
+    100% {
+      box-shadow: 0 0 0 16px rgba(58, 98, 196, 0);
+    }
+  }
+
+  .dj-fade-up {
+    animation: dj-fade-up 0.55s ease both;
+  }
+
+  /* prefers-reduced-motion: Animationen aus, Scroll auto (Design-Vorgabe). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    html {
+      scroll-behavior: auto !important;
+    }
+  }
+</style>

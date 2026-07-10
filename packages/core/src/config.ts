@@ -38,7 +38,7 @@ export interface LoadConfigResult {
 
 const KNOWN_TOP_LEVEL_KEYS = ['app', 'adapters', 'llm', 'style', 'output'] as const;
 
-const LLM_PROVIDERS = ['anthropic', 'openai', 'custom', 'mock'] as const;
+const LLM_PROVIDERS = ['anthropic', 'openai', 'mistral', 'custom', 'mock'] as const;
 const VOICES: readonly Voice[] = ['formal-sie', 'informal-du', 'en-you'];
 const GRANULARITIES: readonly Granularity[] = ['flow', 'screen'];
 const OUTPUT_FORMATS: readonly OutputFormat[] = ['mdx', 'website'];
@@ -387,7 +387,7 @@ export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
     `      deriveFrom: [${deriveFrom.map(yamlScalar).join(', ')}]`,
     '',
     'llm:',
-    '  provider: anthropic        # anthropic | openai | custom | mock',
+    '  provider: anthropic        # anthropic | openai | mistral | custom | mock',
     `  model: ${LLM_DEFAULTS.model}`,
     `  apiKeyEnv: ${LLM_DEFAULTS.apiKeyEnv}`,
     '  temperature: 0.2',

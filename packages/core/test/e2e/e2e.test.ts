@@ -642,12 +642,12 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
 // ────────────────── E2E: TypeScript-Adapter (kein SDK nötig) ─────────────────
 //
 // Läuft immer (reines Node): react_router_demo → `- typescript:`-Auflösung
-// über PATH (node_modules/.bin des Monorepos) → extract/generate.
+// über den PATH → extract/generate.
 describe('E2E: TypeScript-Adapter → Pipeline', () => {
   const TS_DEMO = join(ROOT, 'examples', 'react_router_demo');
-  const BIN_PATH = join(ROOT, 'node_modules', '.bin');
-  const tsEnv = { PATH: `${BIN_PATH}:${process.env['PATH'] ?? ''}` };
+  const TS_CLI = join(ROOT, 'packages', 'adapter-typescript', 'dist', 'cli.js');
 
+  let tsEnv: { PATH: string };
   let tmpTs: string;
 
   beforeAll(() => {
@@ -656,7 +656,17 @@ describe('E2E: TypeScript-Adapter → Pipeline', () => {
     // eigenständig.
     execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
     expect(existsSync(CLI)).toBe(true);
-    expect(existsSync(join(BIN_PATH, 'ductus-adapter-typescript'))).toBe(true);
+    expect(existsSync(TS_CLI)).toBe(true);
+
+    // Eigener PATH-Shim statt node_modules/.bin: in CI läuft npm ci VOR dem
+    // Build, dist/cli.js fehlt beim Install und npm legt den Workspace-
+    // bin-Link dann nicht an.
+    const binDir = makeTmpDir('ductus-e2e-ts-bin-');
+    const shim = join(binDir, 'ductus-adapter-typescript');
+    writeFileSync(shim, `#!/bin/sh\nexec "${process.execPath}" "${TS_CLI}" "$@"\n`, {
+      mode: 0o755,
+    });
+    tsEnv = { PATH: `${binDir}:${process.env['PATH'] ?? ''}` };
 
     tmpTs = makeTmpDir('ductus-e2e-ts-');
     copyProject(TS_DEMO, tmpTs);

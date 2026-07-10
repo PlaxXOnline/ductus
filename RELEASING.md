@@ -124,6 +124,12 @@ selben Commit/PR ihr Changeset** (auch interne Umbauten oder Doku — dann eben
 als `patch` mit einem Einzeiler). Änderungen außerhalb der Pakete (Repo-Doku,
 Beispiele, CI) brauchen keins.
 
+Für das Dart-Paket (kein Changesets-Support) gilt das Analogon über den
+CI-Job **`dart-changelog-check`**: Änderungen unter `dart/ductus/` müssen die
+`dart/ductus/CHANGELOG.md` im selben Diff mitpflegen — der Eintrag wird dort
+manuell geschrieben (Abschnitt 5), das Gate stellt nur sicher, dass er nie
+fehlt.
+
 **Erstveröffentlichung (0.1.0):** Läuft **lokal** (siehe Schritt 3a), nicht
 über den ersten Workflow-Lauf — die Trusted-Publisher-Konfiguration setzt
 existierende Pakete voraus. Ein Changeset ist nicht nötig: Alle Pakete stehen

@@ -38,6 +38,33 @@ jobs:
       - run: npm ci
       - run: npx changeset status --since=origin/main
 
+  # Dart-Pendant zum Changelog-Gate: pub.dev kennt kein Changesets —
+  # Änderungen unter dart/ductus/ müssen die CHANGELOG.md im selben Diff
+  # mitpflegen (Ausnahme: reine CHANGELOG-Änderungen selbst).
+  dart-changelog-check:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Volle Historie: die Prüfung vergleicht gegen origin/main.
+          fetch-depth: 0
+      - name: CHANGELOG.md bei dart/ductus-Änderungen erzwingen
+        run: |
+          changed=$(git diff --name-only origin/main -- 'dart/ductus/' | grep -v '^dart/ductus/CHANGELOG\.md$' || true)
+          if [ -z "$changed" ]; then
+            echo "Keine Änderungen unter dart/ductus/ — nichts zu prüfen."
+            exit 0
+          fi
+          if git diff --name-only origin/main -- 'dart/ductus/CHANGELOG.md' | grep -q .; then
+            echo "dart/ductus/ geändert und CHANGELOG.md mitgepflegt — ok."
+            exit 0
+          fi
+          echo "::error file=dart/ductus/CHANGELOG.md::dart/ductus/ wurde geändert, aber die CHANGELOG.md nicht. Bitte einen Eintrag ergänzen (siehe RELEASING.md §5)."
+          echo "Geänderte Dateien:"
+          echo "$changed"
+          exit 1
+
   dart:
     runs-on: ubuntu-latest
     defaults:

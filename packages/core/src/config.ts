@@ -344,10 +344,20 @@ export function loadConfig(configPath: string): LoadConfigResult {
 
 // ─────────────────────────────── defaultConfigYaml (init) ────────────────────
 
+/** Adapter, für die `ductus init` eine Vorlage erzeugen kann. */
+export type InitAdapterName = 'dart' | 'typescript';
+
+const INIT_DERIVE_DEFAULTS: Record<InitAdapterName, string[]> = {
+  dart: ['go_router', 'auto_route'],
+  typescript: ['react-router', 'next'],
+};
+
 export interface DefaultConfigOptions {
   appName?: string;
   locale?: string;
-  /** Erkannte Ableitungsquellen (go_router/auto_route); Default: beide. */
+  /** Adapter der Vorlage; Default: dart. */
+  adapter?: InitAdapterName;
+  /** Erkannte Ableitungsquellen; Default je Adapter (siehe INIT_DERIVE_DEFAULTS). */
   deriveFrom?: string[];
 }
 
@@ -360,9 +370,10 @@ function yamlScalar(value: string): string {
 export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
   const appName = opts.appName ?? 'MyApp';
   const locale = opts.locale ?? 'de';
+  const adapter = opts.adapter ?? 'dart';
   const deriveFrom = opts.deriveFrom && opts.deriveFrom.length > 0
     ? opts.deriveFrom
-    : ['go_router', 'auto_route'];
+    : INIT_DERIVE_DEFAULTS[adapter];
 
   return [
     '# Ductus-Konfiguration',
@@ -371,7 +382,7 @@ export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
     `  locale: ${yamlScalar(locale)}`,
     '',
     'adapters:',
-    '  - dart:',
+    `  - ${adapter}:`,
     '      project: .',
     `      deriveFrom: [${deriveFrom.map(yamlScalar).join(', ')}]`,
     '',

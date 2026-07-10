@@ -1,12 +1,14 @@
 # Ductus
 
-> **Status:** Phase 1 (OSS-Kern) implementiert — Schema, Core-CLI, Dart-Adapter,
-> LLM-Schicht (BYOK), MDX-/Website-Ausgabe und Beispiel-Apps · MIT-Lizenz
+> **Status:** Phase 1 (OSS-Kern) implementiert — Schema, Core-CLI, Dart- und
+> TypeScript-Adapter, LLM-Schicht (BYOK), MDX-/Website-Ausgabe und
+> Beispiel-Apps · MIT-Lizenz
 
 Endnutzer-Dokumentation veraltet schneller, als sie geschrieben wird: Jede neue
 Route, jeder umbenannte Button macht Anleitungen still und leise falsch. Ductus
-extrahiert deshalb direkt aus dem annotierten Quellcode (Phase 1: Dart/Flutter)
-einen gerichteten Graphen der User-Journey und übersetzt ihn per LLM — mit dem
+extrahiert deshalb direkt aus dem annotierten Quellcode (Dart/Flutter und
+TypeScript/JavaScript) einen gerichteten Graphen der User-Journey und übersetzt
+ihn per LLM — mit dem
 eigenen API-Key (BYOK) — in gepflegte Endnutzer-Doku als MDX-Dateien oder
 statische Website. Graph und Doku werden mit dem Code versioniert; ein
 Faithfulness-Judge stellt sicher, dass der generierte Text nichts behauptet,
@@ -34,6 +36,7 @@ Quellcode ──Adapter──▶ journey-graph.json ──LLM (BYOK)──▶ MD
 | `@ductus/schema` | npm | [packages/schema](https://github.com/PlaxXOnline/ductus/tree/main/packages/schema) | Graph-JSON-Schema + TypeScript-Typen |
 | `@ductus/core` | npm | [packages/core](https://github.com/PlaxXOnline/ductus/tree/main/packages/core) | `ductus`-CLI: Merge/Validierung, LLM-Schicht, MDX-/Website-Export |
 | `@ductus/adapter-dart` | npm | [packages/adapter-dart](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-dart) | Dünner Wrapper, delegiert an das Dart-Adapter-CLI |
+| `@ductus/adapter-typescript` | npm | [packages/adapter-typescript](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) | TypeScript/JavaScript-Adapter: `@journey:`-Kommentare + Ableitung aus react-router/Next.js |
 | `ductus` | pub.dev | [dart/ductus](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) | Dart-Annotationen, Adapter-CLI, build_runner-Builder |
 
 Alle Pakete stehen unter MIT-Lizenz (LICENSE liegt je Paket bei).
@@ -53,6 +56,17 @@ ductus graph --open                # Graph als Mermaid/HTML inspizieren
 ductus graph --journey             # Hauptpfad je Flow als Mermaid-journey
 ```
 
+Im TypeScript/JavaScript-Projekt (z. B. React + react-router) entfällt die
+Dart-Seite komplett:
+
+```bash
+npm install -g @ductus/core @ductus/adapter-typescript
+
+ductus init                        # erkennt package.json, legt ductus.config.yaml an
+ductus extract                     # → journey-graph.json (ohne LLM nutzbar)
+ductus generate                    # → docs/*.mdx (oder Website)
+```
+
 > **Hinweis:** Die von `ductus graph --open` erzeugte HTML-Seite lädt Mermaid
 > beim Öffnen per CDN — das Rendern im Browser braucht also einmalig Netz.
 > `--offline` garantiert „kein Netzzugriff“: `extract`, `check` und `graph`
@@ -62,7 +76,8 @@ ductus graph --journey             # Hauptpfad je Flow als Mermaid-journey
 
 ### Konfiguration
 
-`ductus init` liest die `pubspec.yaml` (App-Name, go_router/auto_route) und
+`ductus init` liest die `pubspec.yaml` (App-Name, go_router/auto_route) —
+bzw. ohne pubspec die `package.json` (App-Name, react-router/Next.js) — und
 legt eine kommentierte `ductus.config.yaml` an:
 
 ```yaml
@@ -92,6 +107,17 @@ output:
   website:
     generator: journey       # journey | starlight | docusaurus
     diagrams: true
+```
+
+In TypeScript/JavaScript-Projekten erzeugt `ductus init` stattdessen den
+passenden Adapter-Eintrag (Details:
+[packages/adapter-typescript](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript)):
+
+```yaml
+adapters:
+  - typescript:
+      project: .
+      deriveFrom: [react-router, next]
 ```
 
 Erwähnenswerte Details:
@@ -130,15 +156,22 @@ Globale Optionen: `-c, --config <pfad>` (Default `./ductus.config.yaml`) und
 
 ## Eingabewege
 
-Vier Wege füllen den Graphen; sie lassen sich frei kombinieren
-(Details und Setup: [dart/ductus](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)):
+Vier Wege füllen den Graphen; sie lassen sich frei kombinieren (Details und
+Setup: [dart/ductus](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)
+für Dart/Flutter,
+[packages/adapter-typescript](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript)
+für TypeScript/JavaScript):
 
-| Weg | Mechanismus | Wofür |
-|---|---|---|
-| **A — Kommentar-Konvention** | `// @journey:screen id="…" title="…"` | Buildfrei, keine Dependency im Zielprojekt |
-| **B — Dart-Annotationen** | `@JourneyScreen`, `@JourneyAction`, `@JourneyDecision`, `@JourneyFlow` | Typsicher; `ductus` als reguläre Dependency |
-| **C — Automatische Ableitung** | go_router/auto_route-Analyse | Gerüst ganz ohne Annotationen |
-| **D — build_runner-Builder** | `journey_builder` → `ductus_builder.g.json` | Löst nicht-literale konstante Annotation-Argumente auf |
+| Weg | Mechanismus | Sprachen | Wofür |
+|---|---|---|---|
+| **A — Kommentar-Konvention** | `// @journey:screen id="…" title="…"` | Dart **und** TypeScript/JavaScript | Buildfrei, keine Dependency im Zielprojekt |
+| **B — Dart-Annotationen** | `@JourneyScreen`, `@JourneyAction`, `@JourneyDecision`, `@JourneyFlow` | nur Dart | Typsicher; `ductus` als reguläre Dependency |
+| **C — Automatische Ableitung** | go_router/auto_route- bzw. react-router/Next.js-Analyse | Dart **und** TypeScript/JavaScript | Gerüst ganz ohne Annotationen |
+| **D — build_runner-Builder** | `journey_builder` → `ductus_builder.g.json` | nur Dart | Löst nicht-literale konstante Annotation-Argumente auf |
+
+In TypeScript/JavaScript gibt es bewusst nur A und C: Typisierte Annotationen
+(B) und einen Builder (D) braucht die Sprache nicht — Weg A ist dort der
+manuelle Weg, Weg C leitet aus react-router bzw. Next.js ab.
 
 Merge-Regel: Manuelle Annotationen überschreiben abgeleitete Werte feldweise
 (gleiche id vorausgesetzt); widersprechen sich zwei **manuelle** Quellen,
@@ -148,8 +181,13 @@ bricht der Lauf fail-fast mit beiden Quellenangaben ab.
 keinerlei Dependency — es genügt eine globale Installation:
 
 ```bash
+# Dart/Flutter:
 dart pub global activate ductus
 npm install -g @ductus/core @ductus/adapter-dart
+ductus extract
+
+# TypeScript/JavaScript (der Adapter arbeitet ohnehin parse-only):
+npm install -g @ductus/core @ductus/adapter-typescript
 ductus extract
 ```
 
@@ -219,7 +257,8 @@ So holt man aus Ductus präzise, graphentreue und günstige Endnutzer-Doku herau
 ### Eingabewege kombinieren
 
 - **Ableitung als Basis, Annotationen zum Nachschärfen.** Die automatische
-  Ableitung aus go_router/auto_route liefert das Gerüst; manuelle Annotationen
+  Ableitung aus go_router/auto_route bzw. react-router/Next.js liefert das
+  Gerüst; manuelle Annotationen
   (Dart-Annotationen oder `@journey:`-Kommentare) überschreiben abgeleitete
   Werte feldweise. Um einen abgeleiteten Node anzureichern, muss die Annotation
   **dieselbe id** verwenden — die abgeleiteten ids stehen nach `ductus extract`
@@ -293,15 +332,17 @@ So holt man aus Ductus präzise, graphentreue und günstige Endnutzer-Doku herau
 ## Repository-Layout
 
 ```
-packages/{schema,core,adapter-dart}   # npm-Pakete (TypeScript)
-dart/ductus                           # pub.dev-Paket (Annotationen + Adapter + Builder)
-templates/                            # Website-Templates (journey = Default, starlight)
-examples/                             # Beispiel-Apps mit Annotationen
+packages/{schema,core,adapter-dart,adapter-typescript}   # npm-Pakete (TypeScript)
+dart/ductus                                              # pub.dev-Paket (Annotationen + Adapter + Builder)
+templates/                                               # Website-Templates (journey = Default, starlight)
+examples/                                                # Beispiel-Apps mit Annotationen
 ```
 
 Die [Beispiel-Apps](https://github.com/PlaxXOnline/ductus/tree/main/examples)
 zeigen die Eingabewege in Aktion: `flutter_go_router_demo` (Ableitung +
-Annotationen) und `flutter_comment_demo` (rein buildfreie Kommentar-Konvention).
+Annotationen), `flutter_comment_demo` (rein buildfreie Kommentar-Konvention)
+und [`react_router_demo`](https://github.com/PlaxXOnline/ductus/tree/main/examples/react_router_demo)
+(React + react-router: Ableitung + `@journey:`-Kommentare).
 
 ## Entwicklung
 

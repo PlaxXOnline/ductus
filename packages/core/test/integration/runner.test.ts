@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -106,6 +106,32 @@ describe('runAdapter', () => {
     await expect(runAdapter(entry, { rootDir: makeRootDir() })).rejects.toThrowError(
       /keine eingebaute Auflösung/,
     );
+  });
+
+  it('typescript: nutzt ductus-adapter-typescript aus node_modules/.bin neben der Config', async () => {
+    // Binary-Stub in node_modules/.bin, der den Fake-Adapter ausführt.
+    const rootDir = makeRootDir();
+    const binDir = join(rootDir, 'node_modules', '.bin');
+    mkdirSync(binDir, { recursive: true });
+    const binary = join(binDir, 'ductus-adapter-typescript');
+    writeFileSync(binary, `#!/bin/sh\nexec node "${FIXTURE}" "$@"\n`, { mode: 0o755 });
+
+    const entry: AdapterConfigEntry = { name: 'typescript', project: '.' };
+    const result = await runAdapter(entry, { rootDir });
+    expect(result.graph.nodes.map((n) => n.id).sort()).toEqual(['dashboard', 'login']);
+  });
+
+  it('typescript: AdapterError mit Installationshinweis, wenn das Binary fehlt', async () => {
+    const entry: AdapterConfigEntry = { name: 'typescript', project: '.' };
+    const previousPath = process.env['PATH'];
+    process.env['PATH'] = '';
+    try {
+      await expect(runAdapter(entry, { rootDir: makeRootDir() })).rejects.toThrowError(
+        /@ductus\/adapter-typescript/,
+      );
+    } finally {
+      process.env['PATH'] = previousPath;
+    }
   });
 });
 

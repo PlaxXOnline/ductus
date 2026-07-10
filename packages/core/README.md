@@ -2,8 +2,9 @@
 
 **Endnutzer-Dokumentation direkt aus dem App-Code — automatisch, geprüft, versionierbar.**
 
-Ductus extrahiert aus annotiertem Quellcode (Phase 1: Dart/Flutter) einen
-User-Journey-Graphen und übersetzt ihn per LLM — mit deinem eigenen API-Key
+Ductus extrahiert aus annotiertem Quellcode (Dart/Flutter und
+TypeScript/JavaScript) einen User-Journey-Graphen und übersetzt ihn per
+LLM — mit deinem eigenen API-Key
 (BYOK) — in gepflegte Endnutzer-Dokumentation: als MDX-Dateien oder als
 statische Website. `@ductus/core` ist das Herzstück: CLI, Orchestrator,
 LLM-Schicht und Ausgabe-Module.
@@ -35,12 +36,20 @@ npm install -g @ductus/adapter-dart
 
 sowie im Flutter-Projekt das Dart-Paket [`ductus`](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) (Annotationen + Extraktor) als Dependency aufnehmen.
 
+Für TypeScript/JavaScript-Projekte (z. B. React mit react-router oder Next.js) genügt:
+
+```bash
+npm install -g @ductus/core @ductus/adapter-typescript
+```
+
+Ein weiteres SDK oder eine Dependency im Zielprojekt ist nicht nötig — der [TypeScript-Adapter](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) parst die Quellen selbst (parse-only, reines Node).
+
 ## Quickstart
 
 ```bash
-cd mein_flutter_projekt
+cd mein_projekt                      # Flutter- oder TS/JS-Projekt
 
-ductus init                          # erkennt pubspec.yaml, legt ductus.config.yaml an
+ductus init                          # erkennt pubspec.yaml bzw. package.json, legt ductus.config.yaml an
 ductus extract                       # → journey-graph.json + ductus-report.json
 
 export DUCTUS_LLM_API_KEY=sk-…       # dein eigener Anthropic-/OpenAI-Key (BYOK)
@@ -63,7 +72,7 @@ Befehle:
 
 | Befehl | Optionen | Beschreibung |
 |---|---|---|
-| `ductus init` | `--force` | Legt eine kommentierte `ductus.config.yaml` an. Erkennt `pubspec.yaml` (`app.name`, `go_router`/`auto_route` ⇒ `deriveFrom`). Überschreibt eine bestehende Config nur mit `--force`. |
+| `ductus init` | `--force` | Legt eine kommentierte `ductus.config.yaml` an. Erkennt `pubspec.yaml` (`app.name`, `go_router`/`auto_route` ⇒ `deriveFrom`) bzw. `package.json` (`app.name`, `react-router`/`react-router-dom`/`next` ⇒ `deriveFrom`); die `pubspec.yaml` hat Vorrang, wenn beide existieren. Überschreibt eine bestehende Config nur mit `--force`. |
 | `ductus extract` | — | Führt alle Adapter aus, merged und validiert den Graphen. Schreibt `journey-graph.json` und `ductus-report.json` neben die Config. Ohne LLM nutzbar. |
 | `ductus generate` | `--build` | Extract + LLM-Generierung → MDX oder Website. `--build` baut die Website nach dem Export zusätzlich (`npm ci`/`install` + `npm run build` im Site-Verzeichnis; nur bei `output.format: website`, nicht mit `--offline` kombinierbar). |
 | `ductus check` | — | Validierung + Faithfulness aus dem Segment-Cache — schreibt keine Dateien, ruft kein LLM auf (CI-tauglich). Noch nicht generierte Segmente werden gemeldet, sind aber kein Fehler. |
@@ -71,7 +80,7 @@ Befehle:
 
 ## Konfiguration: `ductus.config.yaml`
 
-`ductus init` erzeugt genau diese Vorlage (Werte aus der `pubspec.yaml` vorbelegt):
+`ductus init` erzeugt genau diese Vorlage (Werte aus der `pubspec.yaml` bzw. `package.json` vorbelegt):
 
 ```yaml
 # Ductus-Konfiguration
@@ -103,6 +112,15 @@ output:
     diagrams: true
 ```
 
+In TypeScript/JavaScript-Projekten sieht die `adapters:`-Sektion stattdessen so aus:
+
+```yaml
+adapters:
+  - typescript:
+      project: .
+      deriveFrom: [react-router, next]
+```
+
 Weitere optionale Schlüssel (mit Defaults, wo nicht angegeben):
 
 | Schlüssel | Beschreibung |
@@ -110,7 +128,7 @@ Weitere optionale Schlüssel (mit Defaults, wo nicht angegeben):
 | `app.platforms` | Liste der Zielplattformen (rein informativ, landet in den Graph-Metadaten) |
 | `adapters[].project` | Projektverzeichnis relativ zur Config (Default: `.`) |
 | `adapters[].command` | Adapter-Befehl explizit überschreiben |
-| `adapters[].extra` | Zusätzliche Optionen, die 1:1 an den Adapter durchgereicht werden |
+| `adapters[].extra` | Zusätzliche Optionen, die 1:1 an den Adapter durchgereicht werden (z. B. die `include`-Globs des Dart- und des TypeScript-Adapters; unbekannte Schlüssel direkt im Adapter-Eintrag landen ebenfalls dort) |
 | `llm.maxTokens` | Max. Output-Token je LLM-Aufruf (Default: `2048`) |
 | `llm.baseUrl` | Basis-URL des Endpunkts — **Pflicht** bei `provider: custom` |
 | `llm.faithfulnessThreshold` | Erlaubte Faithfulness-Verstöße insgesamt, darüber Exit 2 (Default: `0`) |
@@ -204,6 +222,19 @@ steps:
   - run: ductus check                  # Exit 1 = Graph kaputt, Exit 2 = Faithfulness
 ```
 
+Für TypeScript/JavaScript-Projekte entfällt die SDK-Zeile — der
+TypeScript-Adapter ist reines Node, ein zusätzliches SDK ist nicht nötig:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
+  - run: npm install -g @ductus/core @ductus/adapter-typescript
+  - run: ductus check
+```
+
 ## Hinweis: Mermaid & CDN
 
 Die von `ductus graph --open` erzeugte HTML-Seite lädt Mermaid beim Öffnen
@@ -218,6 +249,7 @@ lesbar. `--offline` selbst wirkt nur auf `generate` (nur mit
 | Paket | Beschreibung |
 |---|---|
 | [`@ductus/adapter-dart`](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-dart) | npm-Wrapper, der das Dart-Adapter-CLI aufrufbar macht |
+| [`@ductus/adapter-typescript`](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) | TypeScript/JavaScript-Adapter: `@journey:`-Kommentare + Ableitung aus react-router/Next.js |
 | [`ductus` (Dart)](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) | pub.dev-Paket: Annotationen, Extraktor und build_runner-Builder für Flutter/Dart |
 | [`@ductus/schema`](https://github.com/PlaxXOnline/ductus/tree/main/packages/schema) | JSON-Schema und TypeScript-Typen des Journey-Graphen |
 

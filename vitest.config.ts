@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       '@ductus/schema': r('./packages/schema/src/index.ts'),
       '@ductus/core': r('./packages/core/src/index.ts'),
+      '@ductus/adapter-typescript': r('./packages/adapter-typescript/src/index.ts'),
     },
   },
   test: {

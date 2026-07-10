@@ -10,7 +10,7 @@ jobs:
   node:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/main' && !startsWith(github.head_ref || github.ref_name, 'changeset-release/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Volle Historie: die Prüfung vergleicht gegen origin/main.
           fetch-depth: 0
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Volle Historie: die Prüfung vergleicht gegen origin/main.
           fetch-depth: 0
@@ -71,7 +71,7 @@ jobs:
       run:
         working-directory: dart/ductus
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1
         with:
           sdk: stable
@@ -90,7 +90,7 @@ jobs:
       run:
         working-directory: ${{ matrix.example }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable

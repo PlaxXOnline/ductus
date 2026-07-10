@@ -243,6 +243,40 @@ describe('ductus init', () => {
     const forced = runCli(['init', '--force'], dir);
     expect(forced.status, forced.stderr).toBe(0);
   });
+
+  it('erkennt package.json (TypeScript-Projekt) und leitet deriveFrom aus den Dependencies ab', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ductus-init-ts-test-'));
+    tmpRoots.push(dir);
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'web-demo-app',
+        dependencies: { react: '^19.0.0', 'react-router-dom': '^7.0.0' },
+      }),
+      'utf8',
+    );
+
+    const result = runCli(['init'], dir);
+    expect(result.status, result.stderr).toBe(0);
+    const written = readFileSync(join(dir, 'ductus.config.yaml'), 'utf8');
+    expect(written).toContain('name: web-demo-app');
+    expect(written).toContain('- typescript:');
+    expect(written).toContain('deriveFrom: [react-router]');
+    expect(result.stdout).toContain('Erkannt aus package.json');
+  });
+
+  it('bevorzugt pubspec.yaml, wenn beide Manifeste existieren', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ductus-init-both-test-'));
+    tmpRoots.push(dir);
+    writeFileSync(join(dir, 'pubspec.yaml'), 'name: flutter_app\n', 'utf8');
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'tooling' }), 'utf8');
+
+    const result = runCli(['init'], dir);
+    expect(result.status, result.stderr).toBe(0);
+    const written = readFileSync(join(dir, 'ductus.config.yaml'), 'utf8');
+    expect(written).toContain('- dart:');
+    expect(written).toContain('name: flutter_app');
+  });
 });
 
 describe('ductus generate (Website-Modus, generator journey — Default)', () => {

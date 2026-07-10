@@ -1,7 +1,8 @@
 # Releasing
 
 Schritt-für-Schritt-Anleitung, um Ductus zu veröffentlichen. Die npm-Pakete
-(`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`) werden über
+(`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`,
+`@ductus/adapter-typescript`) werden über
 [Changesets](https://github.com/changesets/changesets) versioniert und via
 GitHub Actions publiziert; das Dart-Paket `ductus` (in `dart/ductus`) geht
 über einen Tag-getriggerten Workflow nach pub.dev.
@@ -49,11 +50,16 @@ deshalb **lokal**:
 1. `npm login` — die interaktive 2FA/OTP-Abfrage ist hier völlig in Ordnung,
    ein Bypass ist nicht nötig.
 2. Im Repo-Root: `npm run build && npx changeset publish` — publiziert alle
-   drei Pakete in 0.1.0 (noch ohne Provenance; ab dem nächsten CI-Release
-   automatisch mit).
+   npm-Pakete in ihrer Erstversion (noch ohne Provenance; ab dem nächsten
+   CI-Release automatisch mit).
 
-Danach **je Paket** (`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`)
-auf npmjs.com: **Package Settings → Trusted Publisher → GitHub Actions** mit:
+Dasselbe gilt für jedes **später hinzukommende** Paket (so geschehen mit
+`@ductus/adapter-typescript`): Erstveröffentlichung lokal, danach den
+Trusted Publisher für das neue Paket konfigurieren.
+
+Danach **je Paket** (`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`,
+`@ductus/adapter-typescript`) auf npmjs.com:
+**Package Settings → Trusted Publisher → GitHub Actions** mit:
 
 - **Organization or user**: `PlaxXOnline`
 - **Repository**: `ductus`

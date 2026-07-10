@@ -7,8 +7,9 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { delimiter, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import type { JourneyGraph } from '@ductus/schema';
 import { journeyGraphJsonSchema } from '@ductus/schema';
@@ -155,10 +156,48 @@ export function resolveDartInvocation(
 }
 
 /**
+ * Auflösung für den TypeScript-Adapter — der Adapter läuft selbst in Node:
+ *   1. Paket-Auflösung via require.resolve ab Zielprojekt bzw. ab dem
+ *      Config-Verzeichnis (inkl. Parent-node_modules/Hoisting) ⇒ das
+ *      CLI-Modul wird direkt mit dem eigenen Node gestartet — plattformneutral,
+ *      kein Shell-Shim nötig (Windows: die .bin-Shims sind ohne Shell nicht
+ *      spawnbar).
+ *   2. Binary `ductus-adapter-typescript` in node_modules/.bin bzw. im PATH
+ *      (global installiert).
+ */
+export function resolveTypescriptInvocation(
+  rootDir: string,
+  projectDir: string,
+): { argv: string[]; cwd: string } {
+  for (const base of [projectDir, rootDir]) {
+    try {
+      const require_ = createRequire(join(base, 'noop.js'));
+      const mainEntry = require_.resolve('@ductus/adapter-typescript');
+      const cli = join(dirname(mainEntry), 'cli.js');
+      if (existsSync(cli)) {
+        return { argv: [process.execPath, cli], cwd: rootDir };
+      }
+    } catch {
+      // Paket von hier aus nicht auflösbar — nächste Basis bzw. Binary-Suche.
+    }
+  }
+  const binary = findBinary('ductus-adapter-typescript', rootDir);
+  if (binary !== undefined) return { argv: [binary], cwd: rootDir };
+  throw new AdapterError(
+    'Adapter "typescript": `@ductus/adapter-typescript` ist nicht auflösbar — weder als ' +
+      'npm-Paket vom Zielprojekt bzw. vom Verzeichnis der ductus.config.yaml aus, noch als ' +
+      'Binary `ductus-adapter-typescript` im PATH. Optionen: ' +
+      '`npm install -D @ductus/adapter-typescript` im Zielprojekt ODER ' +
+      '`npm install -g @ductus/adapter-typescript`.',
+  );
+}
+
+/**
  * Befehlsauflösung: expliziter entry.command gewinnt (Kette 1); für
  * "dart" gibt es eine eingebaute Auflösung (npm-Wrapper-Binary, sonst die
  * Kette aus resolveDartInvocation — ohne Build-Abhängigkeit im Zielprojekt
- * nutzbar).
+ * nutzbar), für "typescript" die Kette aus resolveTypescriptInvocation
+ * (require.resolve, dann Binary — der Adapter läuft selbst in Node).
  */
 function resolveCommand(
   entry: AdapterConfigEntry,
@@ -172,6 +211,9 @@ function resolveCommand(
     const binary = findBinary('ductus-adapter-dart', rootDir);
     if (binary !== undefined) return { argv: [binary], cwd: rootDir };
     return resolveDartInvocation(projectDir);
+  }
+  if (entry.name === 'typescript') {
+    return resolveTypescriptInvocation(rootDir, projectDir);
   }
   throw new AdapterError(
     `Adapter "${entry.name}": kein "command" konfiguriert und keine eingebaute Auflösung bekannt (NFR6: command angeben).`,

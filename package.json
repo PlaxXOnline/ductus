@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm run build -w @ductus/schema && npm run build -w @ductus/core",
+    "build": "npm run build -w @ductus/schema && npm run build -w @ductus/core && npm run build -w @ductus/adapter-typescript",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "npm run typecheck --workspaces --if-present",

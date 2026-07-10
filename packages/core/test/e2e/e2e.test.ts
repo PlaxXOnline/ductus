@@ -638,3 +638,65 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 });
+
+// ────────────────── E2E: TypeScript-Adapter (kein SDK nötig) ─────────────────
+//
+// Läuft immer (reines Node): react_router_demo → `- typescript:`-Auflösung
+// über PATH (node_modules/.bin des Monorepos) → extract/generate.
+describe('E2E: TypeScript-Adapter → Pipeline', () => {
+  const TS_DEMO = join(ROOT, 'examples', 'react_router_demo');
+  const BIN_PATH = join(ROOT, 'node_modules', '.bin');
+  const tsEnv = { PATH: `${BIN_PATH}:${process.env['PATH'] ?? ''}` };
+
+  let tmpTs: string;
+
+  beforeAll(() => {
+    // Einmal bauen — die CLI-Kette läuft gegen dist/ (bin-Vertrag). Das
+    // beforeAll der Dart-Suite wird ohne SDKs übersprungen, deshalb hier
+    // eigenständig.
+    execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
+    expect(existsSync(CLI)).toBe(true);
+    expect(existsSync(join(BIN_PATH, 'ductus-adapter-typescript'))).toBe(true);
+
+    tmpTs = makeTmpDir('ductus-e2e-ts-');
+    copyProject(TS_DEMO, tmpTs);
+  }, 600_000);
+
+  it(
+    'extract: löst `- typescript:` über den PATH auf und schreibt journey-graph.json byte-stabil',
+    () => {
+      const first = runCli(['extract'], tmpTs, tsEnv);
+      expect(first.status, first.stderr).toBe(0);
+
+      const graphPath = join(tmpTs, 'journey-graph.json');
+      expect(existsSync(graphPath)).toBe(true);
+      const graph = JSON.parse(readFileSync(graphPath, 'utf8')) as JourneyGraph;
+      expect(graph.meta?.adapters?.map((a) => a.name)).toContain('typescript');
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      expect(graph.nodes.some((node) => node.source === 'annotation')).toBe(true);
+      expect(graph.nodes.some((node) => node.source === 'derived')).toBe(true);
+      expect(validateGraph(graph).errors).toEqual([]);
+      expect(existsSync(join(tmpTs, 'ductus-report.json'))).toBe(true);
+
+      // NFR2: zweiter Lauf ⇒ byte-identische Datei.
+      const firstBytes = readFileSync(graphPath);
+      const second = runCli(['extract'], tmpTs, tsEnv);
+      expect(second.status, second.stderr).toBe(0);
+      expect(readFileSync(graphPath).equals(firstBytes)).toBe(true);
+    },
+    240_000,
+  );
+
+  it(
+    'generate --offline (mock): erzeugt MDX aus dem TypeScript-Graphen',
+    () => {
+      const result = runCli(['--offline', 'generate'], tmpTs, tsEnv);
+      expect(result.status, result.stderr).toBe(0);
+      const docsDir = join(tmpTs, 'docs');
+      expect(existsSync(docsDir)).toBe(true);
+      const mdxFiles = readdirSync(docsDir).filter((name) => name.endsWith('.mdx'));
+      expect(mdxFiles.length).toBeGreaterThan(0);
+    },
+    240_000,
+  );
+});

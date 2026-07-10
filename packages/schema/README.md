@@ -135,6 +135,7 @@ Referenz-Implementierungen und Details im Repository:
 
 - Adapter-Runner des Core: [packages/core/src/adapters/runner.ts](https://github.com/PlaxXOnline/ductus/blob/main/packages/core/src/adapters/runner.ts)
 - Dart-Adapter als Vorbild: [dart/ductus](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)
+- TypeScript-Adapter als zweite Referenz-Implementierung: [packages/adapter-typescript](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) — er nutzt dieses Paket direkt (`SCHEMA_VERSION`) und zeigt das Protokoll in derselben Sprache wie der Core.
 
 ## Exporte im Überblick
 

@@ -251,4 +251,18 @@ describe('defaultConfigYaml', () => {
       deriveFrom: ['go_router'],
     });
   });
+
+  it('erzeugt eine typescript-Vorlage mit adapterspezifischen deriveFrom-Defaults', () => {
+    const yaml = defaultConfigYaml({ appName: 'web-app', adapter: 'typescript' });
+    expect(yaml).toContain('- typescript:');
+    expect(yaml).toContain('deriveFrom: [react-router, next]');
+
+    const { config, warnings } = loadConfig(writeConfig(yaml));
+    expect(warnings).toEqual([]);
+    expect(config.adapters[0]).toEqual({
+      name: 'typescript',
+      project: '.',
+      deriveFrom: ['react-router', 'next'],
+    });
+  });
 });

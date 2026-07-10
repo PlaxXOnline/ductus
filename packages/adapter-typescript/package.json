@@ -1,0 +1,52 @@
+{
+  "name": "@ductus/adapter-typescript",
+  "version": "0.1.0",
+  "description": "Ductus adapter for TypeScript/JavaScript projects — extracts a journey graph from annotated source and router configs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlaxXOnline/ductus.git",
+    "directory": "packages/adapter-typescript"
+  },
+  "homepage": "https://github.com/PlaxXOnline/ductus#readme",
+  "keywords": [
+    "ductus",
+    "typescript",
+    "javascript",
+    "react-router",
+    "nextjs",
+    "user-journey",
+    "documentation"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "ductus-adapter-typescript": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ductus/schema": "^0.1.0",
+    "typescript": "^5.5.0"
+  }
+}

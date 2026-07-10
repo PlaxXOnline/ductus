@@ -102,10 +102,10 @@ describe('ductus extract', () => {
     expect(existsSync(join(dir, 'journey-graph.json'))).toBe(false);
   });
 
-  it('lehnt inkompatible Adapter-schemaVersion als V6 mit Exit 1 ab (NFR7, §10.3)', () => {
+  it('lehnt inkompatible Adapter-schemaVersion als V6 mit Exit 1 ab (NFR7)', () => {
     const dir = makeProject('futureversion');
     const result = runCli(['extract'], dir);
-    // Validierungsfehler (Exit 1), NICHT AdapterError (Exit 3) — DD §I.
+    // Klassifiziert als Validierungsfehler (Exit 1), NICHT als AdapterError (Exit 3).
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/V6 Adapter "fake": schemaVersion "2\.0" wird nicht unterstützt/);
     expect(existsSync(join(dir, 'journey-graph.json'))).toBe(false);
@@ -149,7 +149,7 @@ describe('ductus generate / check / graph', () => {
     expect(report.faithfulness).toEqual([]);
   });
 
-  it('generate --offline mit echtem Provider beendet mit Exit 3 (DD §B.9)', () => {
+  it('generate --offline mit echtem Provider beendet mit Exit 3 (nur mock ist netzfrei)', () => {
     const dir = makeProject();
     // provider anthropic statt mock:
     const config = readFileSync(join(dir, 'ductus.config.yaml'), 'utf8');
@@ -245,11 +245,11 @@ describe('ductus init', () => {
   });
 });
 
-describe('ductus generate (Website-Modus, generator journey — DD §O)', () => {
+describe('ductus generate (Website-Modus, generator journey — Default)', () => {
   /**
    * Projekt mit output.format website; ohne generator-Zeile greift der
    * Default 'journey'. Das Template wird über den Repo-Fallback
-   * templates/journey aufgelöst (resolveTemplateDir, §9.2).
+   * templates/journey aufgelöst (resolveTemplateDir).
    */
   function makeJourneyProject(adapterMode?: string, generator?: string): string {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-cli-journey-'));
@@ -393,7 +393,7 @@ describe('ductus generate --build', () => {
         '  format: website',
         '  dir: site/',
         '  website:',
-        // Explizit 'starlight' (Default ist 'journey', DD §O) — diese Tests
+        // Explizit 'starlight' (Default wäre 'journey') — diese Tests
         // prüfen die Build-Kette gegen das Starlight-Preset.
         '    generator: starlight',
         '',

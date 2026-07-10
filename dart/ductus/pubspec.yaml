@@ -12,7 +12,8 @@ environment:
 # Die Annotationen selbst sind abhängigkeitsfrei; analyzer & Co. brauchen nur
 # das Adapter-CLI (bin/adapter.dart) und der build_runner-Builder (Weg D).
 dependencies:
-  # Auf Serie 13 eingeengt (NFR8-Abwägung, DD): build (<14 ab 4.0.6) und
+  # Auf Serie 13 eingeengt (NFR8-Abwägung — Flutter-Kompatibilität schlägt
+  # Range-Breite): build (<14 ab 4.0.6) und
   # source_gen (<14 ab 4.2.3) unterstützen analyzer 14 noch nicht — mit
   # Serie 13 bleiben beide UND das von Flutter stable gepinnte meta
   # (analyzer 13 verlangt meta ^1.18.0) auflösbar. Sobald source_gen/build

@@ -16,11 +16,16 @@ build/
 # Ductus artifacts
 .ductus/
 ductus_graph.g.json
+adapter-err.log
 
 # Werkzeug-Artefakte (lokal)
 .playwright-mcp/
 .claude/
 CLAUDE.md
+
+# Interne Arbeitsdokumente (lokal, nicht Teil des veröffentlichten Repos)
+SPEC.md
+docs/DESIGN-DECISIONS.md
 
 # OS / Editor
 .DS_Store

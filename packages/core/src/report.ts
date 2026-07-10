@@ -1,6 +1,7 @@
 /**
- * ductus-report.json (§9.3, NFR3): Warnungen, Faithfulness-Flags, Cache-Trefferquote,
- * Token-/Kosten-Bericht. Einziges Artefakt mit Zeitstempel (DD §B.1).
+ * ductus-report.json (NFR3): Warnungen, Faithfulness-Flags, Cache-Trefferquote,
+ * Token-/Kosten-Bericht. Einziges Artefakt mit Zeitstempel — journey-graph.json
+ * bleibt zugunsten der Byte-Stabilität (NFR2) zeitstempelfrei.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -15,7 +16,7 @@ export interface BuildReportInput {
   cache?: { hits: number; misses: number };
   estimated?: { inputTokens: number; outputTokens: number };
   usage?: LlmUsage;
-  /** Nur wenn llm.pricing konfiguriert ist (DD §J). */
+  /** Nur wenn llm.pricing konfiguriert ist — ohne Preise wird nur in Token berichtet. */
   costUsd?: number;
   /** Injizierbar für deterministische Tests. */
   now?: Date;
@@ -54,7 +55,7 @@ export function buildReport(input: BuildReportInput): DuctusReport {
   };
 }
 
-/** Objekt-Schlüssel rekursiv lexikographisch sortieren (kanonische Serialisierung, DD §C). */
+/** Objekt-Schlüssel rekursiv lexikographisch sortieren (kanonische, diff-stabile Serialisierung). */
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
   if (value !== null && typeof value === 'object') {

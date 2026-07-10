@@ -79,7 +79,7 @@ String runPipeline({
     builderClassToScreen = goRouter.builderClassToScreen;
   }
 
-  // from-Inferenz für Actions ohne explizites `from` (DD §B.3): umschließende
+  // from-Inferenz für Actions ohne explizites `from`: die umschließende
   // Klasse muss als Screen bekannt sein (Annotation, Kommentar oder
   // builder-/auto_route-Zuordnung).
   for (final action in actions) {

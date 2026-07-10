@@ -1,4 +1,5 @@
-/// Weg A — Kommentar-Konvention `@journey:<typ>` (SPEC §5.1, DD §F).
+/// Weg A — Kommentar-Konvention `@journey:<typ>` in `//`- und
+/// `///`-Kommentaren; inhaltlich gleichwertig zu den Dart-Annotationen (Weg B).
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';

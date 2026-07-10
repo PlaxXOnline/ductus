@@ -1,5 +1,5 @@
 /**
- * `ductus check` (SPEC §10.1, DD §B.8): Validierung + Faithfulness aus dem
+ * `ductus check`: Validierung + Faithfulness aus dem
  * Cache — ohne Neuschreiben, ohne LLM-Aufrufe (CI-tauglich).
  */
 

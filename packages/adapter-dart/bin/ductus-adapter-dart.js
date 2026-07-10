@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 /**
- * Dünner Wrapper um das Dart-Adapter-CLI (SPEC §4.3, §7.3):
+ * Dünner Wrapper um das Dart-Adapter-CLI:
  *
  *   ductus-adapter-dart --project <dir> [--config <file>] [--no-debug-file]
  *
  * Delegiert an `dart run ductus:adapter` — der eigentliche Parsing-Schritt
- * läuft in der Dart-Toolchain. stdout bleibt der Vertrag (§7.1); dieser
- * Wrapper reicht stdout/stderr und Exit-Code unverändert durch.
+ * läuft in der Dart-Toolchain, der npm-Kern bleibt sprachneutral. stdout
+ * bleibt der Adapter-Vertrag (genau ein JSON-Dokument); dieser Wrapper
+ * reicht stdout/stderr und Exit-Code unverändert durch.
  *
  * `dart run ductus:adapter` braucht einen Paketkontext, der `ductus` kennt.
- * Das Zielprojekt selbst braucht dafür KEINE Build-Abhängigkeit (SPEC §5.1) —
- * Auflösungskette (DD §H, identisch im Core-Runner implementiert):
+ * Das Zielprojekt selbst braucht dafür KEINE Build-Abhängigkeit —
+ * Auflösungskette (identisch im Core-Runner implementiert):
  *   2. DUCTUS_DART_ADAPTER_DIR: Verzeichnis mit ductus-Paketkontext ⇒ cwd = dieses Verzeichnis.
  *   3. Zielprojekt deklariert `ductus` in der pubspec.yaml ⇒ cwd = Projekt.
  *   4. Global aktiviertes Paket ⇒ `dart pub global run ductus:adapter`.
@@ -38,7 +39,7 @@ if (!existsSync(projectDir)) {
   process.exit(1);
 }
 
-/** Einfacher YAML-Check (DD §H, Kette 3): pubspec.yaml deklariert `ductus`? */
+/** Einfacher zeilenbasierter YAML-Check (Kette 3): pubspec.yaml deklariert `ductus`? */
 function pubspecDeclaresDuctus(dir) {
   const pubspecPath = join(dir, 'pubspec.yaml');
   if (!existsSync(pubspecPath)) return false;
@@ -59,7 +60,7 @@ function pubspecDeclaresDuctus(dir) {
  * Prüft NUR lesend, ob `ductus` global aktiviert ist (Kette 4). Bei
  * path-Aktivierung liefert pub das Quellverzeichnis mit — dann läuft der
  * Adapter via `dart run` direkt dort (vermeidet pub-Resolutionszeilen
- * auf stdout, die den §7.1-Vertrag verletzen würden).
+ * auf stdout — dort darf nur das eine Graph-JSON stehen).
  */
 function ductusGlobalActivation() {
   const result = spawnSync('dart', ['pub', 'global', 'list'], {
@@ -72,7 +73,7 @@ function ductusGlobalActivation() {
   return { activated: true, path: match[1] };
 }
 
-// Auflösungskette (DD §H) — --project wird weiterhin absolut durchgereicht.
+// Auflösungskette — --project wird weiterhin absolut durchgereicht.
 let dartArgs;
 let cwd;
 const adapterDir = (process.env.DUCTUS_DART_ADAPTER_DIR ?? '').trim();
@@ -110,7 +111,7 @@ if (adapterDir !== '') {
 
 // stdout wird gepuffert statt geerbt: pub kann bei unaufgelösten Dependencies
 // Zeilen wie "Resolving dependencies..." VOR dem Adapter auf stdout schreiben.
-// Der Wrapper hält den §7.1-Vertrag an seiner Grenze ein, indem er solchen
+// Der Wrapper hält den Adapter-Vertrag an seiner Grenze ein, indem er solchen
 // Vorspann (alles vor der ersten mit "{" beginnenden Zeile) nach stderr
 // umleitet — nichts wird verschluckt, stdout bleibt genau ein JSON-Dokument.
 const result = spawnSync('dart', [...dartArgs, ...args], {

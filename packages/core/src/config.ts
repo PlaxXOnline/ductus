@@ -1,5 +1,5 @@
 /**
- * Laden und Validieren der ductus.config.yaml (SPEC §10.2).
+ * Laden und Validieren der ductus.config.yaml.
  *
  * Fehlende Werte werden mit Defaults gefüllt; harte Fehler (kaputtes YAML,
  * fehlende Pflichtfelder, ungültige Enum-Werte) werfen ConfigError mit
@@ -20,7 +20,7 @@ import type {
   WebsiteGenerator,
 } from './contracts.js';
 
-/** Konfigurationsfehler ⇒ Exit-Code 3 (DD §I). */
+/** Konfigurationsfehler ⇒ Exit-Code 3. */
 export class ConfigError extends Error {
   constructor(message: string) {
     super(message);
@@ -30,11 +30,11 @@ export class ConfigError extends Error {
 
 export interface LoadConfigResult {
   config: DuctusConfig;
-  /** Unbekannte Top-Level-Schlüssel u. Ä. — keine Fehler (§5.1-Geist). */
+  /** Unbekannte Top-Level-Schlüssel u. Ä. — keine Fehler (vorwärtskompatibel, nur warnen). */
   warnings: string[];
 }
 
-// ─────────────────────────────── Defaults (§10.2) ────────────────────────────
+// ─────────────────────────────── Defaults ────────────────────────────────────
 
 const KNOWN_TOP_LEVEL_KEYS = ['app', 'adapters', 'llm', 'style', 'output'] as const;
 
@@ -120,7 +120,7 @@ const ADAPTER_KNOWN_KEYS = new Set(['name', 'project', 'deriveFrom', 'command', 
  *
  * Ein literaler `extra:`-Block wird dabei **abgeflacht**: seine Schlüssel
  * landen direkt in `entry.extra` und damit top-level in der temporären
- * `--config`-JSON des Adapters (DD §N, z. B. `extra: { fromBuilder: true }`
+ * `--config`-JSON des Adapters (z. B. `extra: { fromBuilder: true }`
  * ⇒ `{"fromBuilder": true}`) — sonst entstünde eine doppelte Verschachtelung
  * `{"extra": {...}}`, die Adapter stillschweigend ignorieren würden.
  * Unbekannte flache Schlüssel gewinnen bei Gleichheit über den Block.
@@ -356,7 +356,7 @@ function yamlScalar(value: string): string {
   return /^[A-Za-z0-9_.-]+$/.test(value) ? value : JSON.stringify(value);
 }
 
-/** Kommentierte Konfigurationsvorlage im Spec-Format (§10.2) für `ductus init`. */
+/** Kommentierte Konfigurationsvorlage für `ductus init`. */
 export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
   const appName = opts.appName ?? 'MyApp';
   const locale = opts.locale ?? 'de';
@@ -365,7 +365,7 @@ export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
     : ['go_router', 'auto_route'];
 
   return [
-    '# Ductus-Konfiguration (SPEC §10.2)',
+    '# Ductus-Konfiguration',
     'app:',
     `  name: ${yamlScalar(appName)}`,
     `  locale: ${yamlScalar(locale)}`,

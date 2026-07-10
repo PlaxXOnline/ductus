@@ -1,5 +1,5 @@
 /**
- * Pipeline-Orchestrierung: extract → generate → check (SPEC §10.1, DD §B.8–B.10).
+ * Pipeline-Orchestrierung der CLI-Kommandos: extract → generate → check.
  * Verbindet Adapter-Runner, Graph-Pipeline, LLM-Schicht und Ausgabe-Module.
  */
 
@@ -51,7 +51,7 @@ export interface PipelineOptions {
   log?: (message: string) => void;
 }
 
-// ─────────────────────────────── runExtract (§10.1) ─────────────────────────
+// ─────────────────────────────── runExtract ─────────────────────────────────
 
 export interface ExtractResult {
   graph: JourneyGraph;
@@ -78,7 +78,7 @@ async function extractGraph(
     );
   }
 
-  // NFR7/V6 (§10.3): schemaVersion JEDES Adapter-Graphen VOR dem Merge prüfen —
+  // NFR7/V6: schemaVersion JEDES Adapter-Graphen VOR dem Merge prüfen —
   // mergeGraphs normalisiert auf die unterstützte Version und würde eine
   // inkompatible Adapter-Ausgabe sonst stillschweigend maskieren. Die Prüfung
   // liegt bewusst hier (nicht im Runner), damit der Fall als Validierungsfehler
@@ -98,7 +98,8 @@ async function extractGraph(
     return { graph: results[0]!.graph, validation: { errors: versionErrors, warnings: [] } };
   }
 
-  // Die Config ist die maßgebliche Quelle für App-Metadaten (§10.2).
+  // Die Config (app:-Sektion der ductus.config.yaml) ist die maßgebliche
+  // Quelle für App-Metadaten.
   const app: AppInfo = {
     name: config.app.name,
     locale: config.app.locale,
@@ -111,7 +112,8 @@ async function extractGraph(
 /**
  * extract: Adapter → Merge → Validierung; bei 0 Fehlern werden
  * journey-graph.json und ductus-report.json neben die Config geschrieben
- * (DD §B.10). Mit write:false bleibt alles im Speicher (check/graph).
+ * (rootDir; Cache und Graph-HTML liegen dagegen unter .ductus/).
+ * Mit write:false bleibt alles im Speicher (check/graph).
  */
 export async function runExtract(
   config: DuctusConfig,
@@ -134,7 +136,7 @@ export async function runExtract(
   return { graph, validation, adapterInfos, written };
 }
 
-// ─────────────────────────────── runGenerate (§10.1) ─────────────────────────
+// ─────────────────────────────── runGenerate ─────────────────────────────────
 
 export interface GenerateRunResult {
   extract: ExtractResult;
@@ -186,7 +188,7 @@ function corePackageDir(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), '..');
 }
 
-/** Template-Auflösung (§9.2): Config-Pfad → Paket-Assets → Repo-Vorlage. */
+/** Template-Auflösung für den Website-Modus: Config-Pfad → Paket-Assets → Repo-Vorlage. */
 function resolveTemplateDir(config: DuctusConfig, generator: WebsiteGenerator): string {
   if (config.output.website.template !== undefined) {
     const custom = resolve(config.rootDir, config.output.website.template);
@@ -231,11 +233,12 @@ export async function runGenerate(
 ): Promise<GenerateRunResult> {
   const extract = await runExtract(config, opts);
   if (extract.validation.errors.length > 0) {
-    // Abbruch: Der Aufrufer signalisiert Exit-Code 1 (DD §I).
+    // Abbruch: Der Aufrufer signalisiert Exit-Code 1 (Validierungsfehler).
     return { extract, pages: [], writtenDocs: [], violationsTotal: 0 };
   }
 
-  // DD §B.9: --offline erlaubt generate nur mit dem netzfreien mock-Provider.
+  // --offline erlaubt generate nur mit dem netzfreien mock-Provider
+  // (extract/check/graph bleiben uneingeschränkt), sonst Exit 3.
   if (opts.offline === true && config.llm.provider !== 'mock') {
     throw new LlmError(
       `--offline erlaubt "generate" nur mit llm.provider "mock" (konfiguriert: "${config.llm.provider}").`,
@@ -283,7 +286,7 @@ export async function runGenerate(
       appName: config.app.name,
       locale: config.app.locale,
       generator,
-      // journey-Modus (DD §O): statt MDX/Sidebar wird ductus.data.json geschrieben.
+      // journey-Modus: statt MDX/Sidebar wird genau eine ductus.data.json geschrieben.
       ...(generator === 'journey'
         ? {
             journeyData: buildJourneyData({
@@ -326,7 +329,7 @@ export async function runGenerate(
   };
 }
 
-// ─────────────────────────────── runCheck (DD §B.8) ─────────────────────────
+// ─────────────────────────────── runCheck ────────────────────────────────────
 
 export interface CheckResult {
   validation: ValidationResult;

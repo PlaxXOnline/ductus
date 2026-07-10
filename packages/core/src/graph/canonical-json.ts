@@ -1,10 +1,10 @@
 /**
- * Kanonische Serialisierung des Journey-Graphen (SPEC NFR2, DD §C).
+ * Kanonische Serialisierung des Journey-Graphen (NFR2).
  *
  * Byte-Stabilität ist ein Kernversprechen: gleiche Eingabe ⇒ byte-gleiche
  * Ausgabe. Deshalb werden Objekt-Schlüssel rekursiv sortiert, Arrays mit
  * definierter Ordnung (ids, tags, platforms, adapter-Namen) sortiert und
- * `meta.generatedAt` entfernt (DD §B.1).
+ * `meta.generatedAt` entfernt (ein Zeitstempel gehört nur in den Report).
  */
 
 import type {
@@ -74,7 +74,7 @@ function canonicalizeApp(app: AppInfo): AppInfo {
   };
 }
 
-/** Entfernt `generatedAt` (DD §B.1) und sortiert Adapter nach name (dann version). */
+/** Entfernt `generatedAt` (Byte-Stabilität) und sortiert Adapter nach name (dann version). */
 function canonicalizeMeta(meta: GraphMeta): GraphMeta {
   const result: GraphMeta = {};
   if (meta.adapters !== undefined) {
@@ -86,7 +86,7 @@ function canonicalizeMeta(meta: GraphMeta): GraphMeta {
 }
 
 /**
- * Kanonische Form des Graphen (DD §C): flows/nodes/edges nach id, tags und
+ * Kanonische Form des Graphen: flows/nodes/edges nach id, tags und
  * app.platforms sortiert, meta.adapters nach name, kein generatedAt.
  * Die Eingabe wird nicht mutiert.
  */

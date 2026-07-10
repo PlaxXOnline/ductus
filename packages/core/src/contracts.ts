@@ -16,7 +16,7 @@ import type {
   SourceRef,
 } from '@ductus/schema';
 
-// ─────────────────────────────── Konfiguration (§10.2) ───────────────────────
+// ──────────────────── Konfiguration (ductus.config.yaml) ─────────────────────
 
 export interface AdapterConfigEntry {
   /** Adapter-Name, z. B. "dart". */
@@ -110,7 +110,7 @@ export interface MergeConflictSide {
   adapter?: string;
 }
 
-/** Zwei manuelle Quellen für dasselbe Feld (§5.4) — fail-fast. */
+/** Zwei manuelle Quellen für dasselbe Feld — fail-fast statt stiller Mehrdeutigkeit. */
 export interface MergeConflict {
   kind: 'node' | 'edge' | 'flow';
   id: string;
@@ -119,7 +119,7 @@ export interface MergeConflict {
   b: MergeConflictSide;
 }
 
-// ─────────────────────────────── LLM-Schicht (§8) ────────────────────────────
+// ─────────────────────────────── LLM-Schicht ─────────────────────────────────
 
 export interface LlmMessage {
   role: 'user' | 'assistant';
@@ -143,13 +143,13 @@ export interface LlmResponse {
   usage?: LlmUsage;
 }
 
-/** Provider-agnostische Schnittstelle (BYOK, §8.2). */
+/** Provider-agnostische Schnittstelle (BYOK — der Nutzer bringt den eigenen API-Key). */
 export interface LlmProvider {
   readonly name: string;
   complete(request: LlmRequest): Promise<LlmResponse>;
 }
 
-/** Zusammenhängendes Graph-Segment als Generierungseinheit (§8.3 Schritt 1). */
+/** Zusammenhängendes Graph-Segment als Generierungseinheit (Segmentierung statt Monolith-Prompt). */
 export interface GraphSegment {
   /** Eindeutig, deterministisch (Flow-id, Screen-id oder "_misc"). */
   id: string;
@@ -188,7 +188,7 @@ export interface GenerateResult {
   estimated: { inputTokens: number; outputTokens: number };
 }
 
-// ─────────────────────────────── Ausgabe (§9) ────────────────────────────────
+// ─────────────────────────────── Ausgabe ─────────────────────────────────────
 
 export interface MdxPage {
   /** Dateiname ohne Verzeichnis, z. B. "auth.mdx". */
@@ -203,7 +203,7 @@ export interface MdxPage {
   body: string;
 }
 
-// ─────────────── Website-Generator "journey": ductus.data.json (§9.2, DD §O) ──
+// ───────────────── Website-Generator "journey": ductus.data.json ─────────────
 
 /**
  * Node-Eintrag im Datenvertrag: aufgelöste Anzeige-Felder statt optionaler
@@ -289,7 +289,7 @@ export interface JourneyWebsiteData {
   journeys: JourneyWebsiteEntry[];
 }
 
-// ─────────────────────────────── Report (§9.3) ───────────────────────────────
+// ─────────────────────────────── Report (ductus-report.json) ─────────────────
 
 export interface DuctusReport {
   generatedAt: string;
@@ -305,7 +305,7 @@ export interface DuctusReport {
   costUsd?: number;
 }
 
-// ─────────────────────────────── Adapter-Lauf (§7) ───────────────────────────
+// ─────────────────────────────── Adapter-Lauf ────────────────────────────────
 
 export interface AdapterRunResult {
   graph: JourneyGraph;

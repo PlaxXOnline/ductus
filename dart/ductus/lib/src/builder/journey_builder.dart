@@ -69,7 +69,7 @@ class DuctusJourneyBuilder implements Builder {
     //    Hinweis: sichtbar sind nur Assets der build_runner-Target-Sources
     //    (Standard: lib/, test/, web/, …) — Muster außerhalb davon liefern
     //    keine Dateien und würden ohne Warnung stillschweigend vom
-    //    Adapter-CLI abweichen (DD §N).
+    //    Adapter-CLI abweichen.
     final paths = <String>{};
     for (final pattern in config.include) {
       var matched = false;
@@ -84,7 +84,7 @@ class DuctusJourneyBuilder implements Builder {
             'Dateien — liegt der Pfad außerhalb der build_runner-'
             'Target-Sources (Default u. a. lib/)? Dann in der build.yaml '
             'des Zielpakets targets.\$default.sources erweitern oder das '
-            'Adapter-CLI nutzen (DD §N).');
+            'Adapter-CLI nutzen.');
       }
     }
     final sorted = paths.toList()..sort();

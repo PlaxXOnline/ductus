@@ -1,6 +1,7 @@
-/// Weg C — Ableitung aus go_router-Konfigurationen (SPEC §5.3, DD §G).
+/// Weg C — Ableitung aus go_router-Konfigurationen.
 ///
-/// Alles hier ist best effort (R6) und `source: "derived"`.
+/// Alles hier ist best effort und trägt `source: "derived"`; manuelle
+/// Annotationen überschreiben abgeleitete Werte feldweise.
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -9,8 +10,8 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'graph_model.dart';
 import 'scanner.dart';
 
-/// Pfad-Slug nach DD §G: führendes '/' weg, '/'→'-', ':param' entfällt,
-/// leer → 'root'.
+/// Pfad-Slug für abgeleitete Screen-Ids: führendes '/' weg, '/'→'-',
+/// ':param' entfällt, leer → 'root'.
 String slugFromPath(String path) {
   final slug = path
       .split('/')

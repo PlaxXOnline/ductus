@@ -1,4 +1,4 @@
-/** Aktuelle Schema-Version, die dieses Paket beschreibt (§6, NFR7). */
+/** Aktuelle Schema-Version, die dieses Paket beschreibt (semver-gepflegt, NFR7). */
 export const SCHEMA_VERSION = '1.0';
 
 /** Major-Version, die der Core unterstützt. Inkompatible Majors werden abgelehnt (V6). */
@@ -14,8 +14,8 @@ export function parseSchemaVersion(
 }
 
 /**
- * V6/NFR7: Gleiche Major-Version ⇒ kompatibel (Minor-Erweiterungen sind
- * rückwärtskompatibel zu pflegen, §6).
+ * V6/NFR7: Gleiche Major-Version ⇒ kompatibel (Minor-Erweiterungen des
+ * Schemas sind rückwärtskompatibel zu pflegen).
  */
 export function isSupportedSchemaVersion(version: string): boolean {
   const parsed = parseSchemaVersion(version);

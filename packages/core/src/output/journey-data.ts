@@ -1,5 +1,5 @@
 /**
- * Datenvertrag ductus.data.json für den Website-Generator "journey" (§9.2, DD §O).
+ * Datenvertrag ductus.data.json für den Website-Generator "journey".
  *
  * Baut aus einem GenerateResult das vollständige Datenobjekt, das scaffoldWebsite
  * im journey-Modus als einzige Daten-Datei in die Site-Wurzel schreibt; das

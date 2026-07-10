@@ -1,9 +1,9 @@
 /**
- * `ductus generate` (SPEC §10.1): extract + LLM-Generierung → MDX/Website.
+ * `ductus generate`: extract + LLM-Generierung → MDX/Website.
  * Exit 1 bei Validierungsfehlern, Exit 2 bei Faithfulness über Schwellwert
  * (Output wird trotzdem geschrieben, Verstöße stehen im Report), Exit 3 bei
- * Config-/LLM-/Adapterfehlern (DD §I). `--build` baut nach dem Website-Export
- * zusätzlich die Website (npm ci/install + npm run build, DD §M).
+ * Config-/LLM-/Adapterfehlern. `--build` baut nach dem Website-Export
+ * zusätzlich die Website (npm ci/install + npm run build im Site-Verzeichnis).
  */
 
 import { resolve } from 'node:path';
@@ -24,8 +24,8 @@ export function registerGenerate(program: Command): void {
       await runAction(async () => {
         const globals = globalOptions(command);
 
-        // Usage-Fehler (DD §M): --offline garantiert "kein Netz" — npm ci/install
-        // würde das brechen. Kein stiller Fallback, Exit 3 (DD §I).
+        // Usage-Fehler: --offline garantiert "kein Netz" — npm ci/install
+        // würde das brechen. Kein stiller Fallback, Exit 3.
         if (options.build === true && globals.offline === true) {
           process.stderr.write(
             'Fehler: --build kann nicht mit --offline kombiniert werden — --offline garantiert ' +
@@ -36,8 +36,8 @@ export function registerGenerate(program: Command): void {
 
         const config = loadConfigWithWarnings(globals.config);
 
-        // Usage-Fehler (DD §M): --build ist nur im Website-Modus sinnvoll —
-        // kein stiller Fallback, Exit 3 (DD §I).
+        // Usage-Fehler: --build ist nur im Website-Modus sinnvoll —
+        // kein stiller Fallback, Exit 3.
         if (options.build === true && config.output.format !== 'website') {
           process.stderr.write(
             `Fehler: --build erfordert output.format: website (konfiguriert: "${config.output.format}").\n`,
@@ -83,7 +83,7 @@ export function registerGenerate(program: Command): void {
           );
         }
 
-        // Build erst NACH der Faithfulness-Meldung (DD §M): ein erfolgreicher
+        // Build erst NACH der Faithfulness-Meldung: ein erfolgreicher
         // Build maskiert Exit 2 nicht; scheitert der Build, wirft buildWebsite
         // WebsiteBuildError und dessen Exit 3 gewinnt (via runAction).
         if (options.build === true) {

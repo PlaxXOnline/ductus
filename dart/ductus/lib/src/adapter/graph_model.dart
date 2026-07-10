@@ -1,11 +1,11 @@
 /// Internes Graph-Modell des Dart-Adapters + kanonische Serialisierung
-/// (SPEC §6, DD §C).
+/// in das Journey-Graph-JSON.
 library;
 
 import 'dart:collection';
 import 'dart:convert';
 
-/// Muss mit `version:` in pubspec.yaml übereinstimmen (DD §H) — abgesichert
+/// Muss mit `version:` in pubspec.yaml übereinstimmen — abgesichert
 /// durch einen Regressionstest in test/cli_integration_test.dart.
 const String adapterVersion = '0.2.0';
 
@@ -22,23 +22,24 @@ const String builderAdapterName = 'dart-builder';
 /// die das Adapter-CLI bei jedem Scan schreibt.
 const String builderArtifactFileName = 'ductus_builder.g.json';
 
-/// Vom Adapter unterstützte Schema-Major-Version (V6/NFR7, wie im Core).
+/// Vom Adapter unterstützte Schema-Major-Version (Validierungsregel V6,
+/// wie im Core).
 const int supportedSchemaMajor = 1;
 
 /// V6-Logik wie im Core: „major.minor“ mit unterstütztem Major ⇒ kompatibel
-/// (Minor-Erweiterungen sind rückwärtskompatibel zu pflegen, SPEC §6).
+/// (Minor-Erweiterungen des Schemas sind rückwärtskompatibel).
 bool isSupportedSchemaVersion(String version) {
   final match = RegExp(r'^(\d+)\.(\d+)$').firstMatch(version);
   return match != null && int.parse(match.group(1)!) == supportedSchemaMajor;
 }
 
-/// Herkunft eines Graph-Elements (SPEC §6.2).
+/// Herkunft eines Graph-Elements: manuell annotiert oder abgeleitet.
 class SourceKind {
   static const String annotation = 'annotation';
   static const String derived = 'derived';
 }
 
-/// Gültige Trigger-Werte (SPEC §6.3).
+/// Gültige Trigger-Werte einer Transition (entspricht `JourneyTrigger`).
 const Set<String> validTriggers = {
   'tap',
   'submit',
@@ -48,7 +49,7 @@ const Set<String> validTriggers = {
   'system',
 };
 
-/// Rückverweis in den Quellcode (SPEC §6.2). [file] ist immer projekt-relativ
+/// Rückverweis in den Quellcode. [file] ist immer projekt-relativ
 /// mit '/'-Separatoren.
 class SourceRef {
   final String file;
@@ -67,8 +68,8 @@ class SourceRef {
   String toString() => '$file:$line';
 }
 
-/// Screen- oder Decision-Node (der Dart-Adapter emittiert keine Action-Nodes,
-/// DD §B.2).
+/// Screen- oder Decision-Node (der Dart-Adapter emittiert keine Action-Nodes;
+/// Actions werden direkt als Edges abgebildet).
 class GraphNode {
   final String id;
   final String type; // 'screen' | 'decision'
@@ -113,7 +114,7 @@ class GraphNode {
       };
 }
 
-/// Transition (SPEC §6.3). [id] ist bis zur Id-Generierung im Merger optional.
+/// Transition (Edge). [id] ist bis zur Id-Generierung im Merger optional.
 class GraphEdge {
   final String? id;
   final String from;
@@ -147,7 +148,7 @@ class GraphEdge {
       };
 }
 
-/// Benannter Flow (SPEC §6.4). [source]/[sourceRef] sind nur intern für die
+/// Benannter Flow. [source]/[sourceRef] sind nur intern für die
 /// Merge-Präzedenz relevant und werden nicht serialisiert.
 class GraphFlow {
   final String id;
@@ -194,7 +195,7 @@ Object? _canonicalize(Object? value) {
   return value;
 }
 
-/// Kanonisches Graph-JSON nach DD §C: rekursiv sortierte Schlüssel,
+/// Kanonisches, diff-stabiles Graph-JSON: rekursiv sortierte Schlüssel,
 /// 2-Space-Indent, LF, abschließender Zeilenumbruch, kein `generatedAt`.
 ///
 /// [adapterName] ist der meta.adapters-Eintrag: [cliAdapterName] für den

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fake-npm für Integrationstests von `ductus generate --build` (DD §M):
+ * Fake-npm für Integrationstests von `ductus generate --build`:
  * protokolliert jeden Aufruf als "<cwd>\t<argumente>" in die Datei aus
  * $DUCTUS_FAKE_NPM_LOG und scheitert mit Exit 1, wenn $DUCTUS_FAKE_NPM_FAIL
  * dem ersten Argument entspricht (z. B. "ci", "install" oder "run").

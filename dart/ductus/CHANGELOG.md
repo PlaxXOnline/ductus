@@ -2,7 +2,7 @@
 
 ## 0.2.0 (unveröffentlicht)
 
-- build_runner-Builder `journey_builder` (Weg D, DD §N): schreibt den
+- build_runner-Builder `journey_builder` (Weg D): schreibt den
   Journey-Graphen als `ductus_builder.g.json` in den Projekt-Root des
   Zielpakets; via `auto_apply: dependents` automatisch aktiv bei
   `dart run build_runner build`. Import über `package:ductus/builder.dart`
@@ -17,7 +17,8 @@
   `ductus_builder.g.json` byte-identisch mit der stdout-Ausgabe des
   parse-only-Adapters — bis auf genau eine gewollte Ausnahme: das Artefakt
   trägt den `meta.adapters`-Eintrag `{"name": "dart-builder", "version": …}`
-  statt `{"name": "dart", …}` (Provenance, DD §N).
+  statt `{"name": "dart", …}` (Provenance: erkennbar, welcher Zubringer den
+  Graphen erzeugt hat).
 - Builder-Optionen `deriveFrom`/`include` in der `build.yaml` des
   Zielprojekts (gleiche Schlüssel und Defaults wie die `--config`-JSON des
   CLI); `include`-Muster ohne Treffer — z. B. außerhalb der
@@ -40,7 +41,8 @@
   `redirect:` → Decisions, `context.go()/push()/…` → Transitions) und
   `auto_route` (`@RoutePage()` → Screens) — best effort, feldweise durch
   manuelle Annotationen überschreibbar.
-- Adapter-CLI `dart run ductus:adapter` nach dem Ductus-Adapter-Vertrag (SPEC §7.1):
+- Adapter-CLI `dart run ductus:adapter` nach dem Ductus-Adapter-Vertrag
+  (stdout ist genau ein Graph-JSON, Diagnostik auf stderr, Exit 0/≠0):
   parse-only via `package:analyzer`, das Zielprojekt braucht weder `pub get`
   noch einen Build.
 - Kanonische, diff-stabile Graph-Ausgabe (`journey-graph.json`-Form) auf stdout;

@@ -1,4 +1,4 @@
-/// Interne Merge- & Präzedenzregeln (SPEC §5.4, DD §D).
+/// Interne Merge- & Präzedenzregeln des Adapters.
 ///
 /// `annotation` überschreibt `derived` feldweise; zwei manuelle Quellen mit
 /// unterschiedlichen Werten für dasselbe Feld sind ein Fehler (fail-fast) mit
@@ -246,7 +246,7 @@ List<GraphEdge> _mergeEdges(List<GraphEdge> edges, List<String> conflicts) {
   result.addAll(keptDerived);
 
   // Id-Generierung: `e_<from>_<to>`, Kollisionen mit Suffix _2/_3 in
-  // (Datei, Zeile)-Reihenfolge (DD §D). result ist bereits so geordnet, dass
+  // (Datei, Zeile)-Reihenfolge. result ist bereits so geordnet, dass
   // manuelle vor abgeleiteten kommen, jeweils nach (Datei, Zeile).
   final usedIds = <String>{
     for (final e in result)

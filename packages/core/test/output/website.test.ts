@@ -105,7 +105,7 @@ describe('scaffoldWebsite', () => {
   });
 });
 
-// ─────────────────────── Website-Generator "journey" (DD §O) ─────────────────
+// ─────────────────────── Website-Generator "journey" ─────────────────────────
 
 /** Minimales, aber vollständiges Datenobjekt gemäß Datenvertrag (dataVersion 1). */
 const journeyData: JourneyWebsiteData = {
@@ -137,7 +137,7 @@ const journeyData: JourneyWebsiteData = {
   ],
 };
 
-describe('scaffoldWebsite (generator journey, DD §O)', () => {
+describe('scaffoldWebsite (generator journey)', () => {
   it('kopiert das journey-Template und schreibt genau eine ductus.data.json — keine MDX/Sidebar/Site-Dateien', async () => {
     const outDir = mkdtempSync(join(tmpdir(), 'ductus-site-'));
     await scaffoldWebsite({

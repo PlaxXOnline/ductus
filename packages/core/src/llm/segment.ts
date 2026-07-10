@@ -1,5 +1,5 @@
 /**
- * Segmentierung des Graphen in Generierungseinheiten (SPEC §8.3 Schritt 1).
+ * Segmentierung des Graphen in Generierungseinheiten statt eines Monolith-Prompts.
  * Kürzere, geerdete Segmente reduzieren Halluzination und Kosten.
  */
 

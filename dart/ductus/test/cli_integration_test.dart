@@ -5,7 +5,7 @@ import 'package:ductus/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// Integrationstests gegen das echte CLI (DD §H):
+/// Integrationstests gegen das echte CLI:
 /// `dart run ductus:adapter --project <dir>`.
 void main() {
   final packageDir = Directory.current.path;
@@ -138,7 +138,7 @@ void main() {
     expect(nodeIds, unorderedEquals(['login', 'dashboard']));
   });
 
-  test('adapterVersion stimmt mit version: in pubspec.yaml überein (DD §H)',
+  test('adapterVersion stimmt mit version: in pubspec.yaml überein',
       () {
     final pubspec =
         File(p.join(packageDir, 'pubspec.yaml')).readAsStringSync();
@@ -147,8 +147,8 @@ void main() {
     expect(match, isNotNull,
         reason: 'pubspec.yaml enthält keine version:-Zeile.');
     // Die Konstante ist hartkodiert — beim Release-Bump beide nachziehen,
-    // sonst verletzt meta.adapters.version die DD-§N-Zusage
-    // "version: <Paketversion>".
+    // sonst meldet meta.adapters.version nicht mehr die tatsächliche
+    // Paketversion (zugesagt ist "version: <Paketversion>").
     expect(adapterVersion, match!.group(1));
   });
 }

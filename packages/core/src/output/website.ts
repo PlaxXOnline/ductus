@@ -1,13 +1,13 @@
 /**
- * Website-Modus (§9.2, DD §B.7): Template in das Ausgabeverzeichnis kopieren und
- * mit Daten befüllen — generatorabhängig:
+ * Website-Modus: Template in das Ausgabeverzeichnis (output.dir = Wurzel des
+ * SSG-Projekts) kopieren und mit Daten befüllen — generatorabhängig:
  * - "starlight": MDX-Seiten nach src/content/docs/ schreiben und
  *   Sidebar-/Site-Konfiguration (ductus.sidebar.json/ductus.site.json) erzeugen.
- * - "journey" (Default, DD §O): genau eine ductus.data.json in die Site-Wurzel
+ * - "journey" (Default): genau eine ductus.data.json in die Site-Wurzel
  *   schreiben — KEINE MDX-Dateien, KEINE sidebar-/site-Dateien; das Template
  *   liest die Daten zur Buildzeit.
  * Der SSG selbst ist Peer-Dependency des Nutzers — installiert/gebaut wird nur auf
- * ausdrücklichen Wunsch via `ductus generate --build` (buildWebsite, DD §M).
+ * ausdrücklichen Wunsch via `ductus generate --build` (buildWebsite, unten).
  */
 
 import { spawn as nodeSpawn } from 'node:child_process';
@@ -59,7 +59,7 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
     await rename(undottedGitignore, join(outDir, '.gitignore'));
   }
 
-  // journey-Modus (DD §O): einzige Daten-Datei ist ductus.data.json — danach fertig.
+  // journey-Modus: einzige Daten-Datei ist ductus.data.json — danach fertig.
   if (generator === 'journey') {
     if (opts.journeyData === undefined) {
       throw new Error('scaffoldWebsite: generator "journey" erfordert journeyData (ductus.data.json).');
@@ -90,9 +90,9 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
   );
 }
 
-// ─────────────────────── Website-Build (`generate --build`, DD §M) ───────────
+// ─────────────────────── Website-Build (`generate --build`) ──────────────────
 
-/** Fehler beim Website-Build (npm fehlt / Schritt gescheitert) ⇒ Exit-Code 3 (DD §I). */
+/** Fehler beim Website-Build (npm fehlt / Schritt gescheitert) ⇒ Exit-Code 3. */
 export class WebsiteBuildError extends Error {
   constructor(message: string) {
     super(message);
@@ -164,7 +164,7 @@ function runNpmStep(spawnFn: WebsiteBuildSpawn, args: string[], siteDir: string)
 }
 
 /**
- * Baut die exportierte Website (DD §M): `npm ci` bei vorhandener
+ * Baut die exportierte Website: `npm ci` bei vorhandener
  * package-lock.json, sonst `npm install`; danach `npm run build` — beides mit
  * cwd = Site-Verzeichnis. Liefert den Pfad des Build-Outputs (<siteDir>/dist).
  */

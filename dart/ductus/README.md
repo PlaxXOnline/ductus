@@ -1,12 +1,42 @@
-# ductus (Dart)
+# ductus
 
-Journey-Annotationen und Adapter-CLI für [Ductus]: Aus annotiertem Dart/Flutter-Code
-(plus `go_router`/`auto_route`-Konfiguration) entsteht ein User-Journey-Graph, aus dem
-der Ductus-Core Endnutzer-Dokumentation generiert.
+**Endnutzer-Dokumentation direkt aus deinem Flutter-Code.** `ductus` liefert
+Journey-Annotationen und ein Adapter-CLI, die aus deiner App einen
+User-Journey-Graphen extrahieren — die [Ductus-CLI (`@ductus/core`)](https://github.com/PlaxXOnline/ductus/tree/main/packages/core)
+macht daraus per LLM gepflegte Doku als MDX-Dateien oder statische Website,
+versioniert mit deinem Code.
 
-## Annotationen (Weg B)
+- **Vier Eingabewege, frei kombinierbar:** `@journey:`-Kommentare (buildfrei),
+  Dart-Annotationen, automatische Ableitung aus `go_router`/`auto_route`,
+  build_runner-Builder.
+- **Null Laufzeit-Kosten:** Die Annotationen sind reine Marker — kein
+  Laufzeitverhalten, kein zusätzlicher Code in deinem App-Binary.
+- **Kein Build nötig:** Der Adapter analysiert parse-only; das Zielprojekt
+  braucht weder `pub get` noch einen Build.
+- **Deterministisch:** Die Ausgabe ist kanonisches, diff-stabiles JSON —
+  ideal für Code-Review und CI.
 
-Die Annotationen sind reine Marker ohne Laufzeitverhalten und ohne Abhängigkeiten:
+## Installation
+
+Für Annotationen im App-Code (`@JourneyScreen` & Co. in `lib/`):
+
+```bash
+dart pub add ductus
+```
+
+Nur das Adapter-CLI, ohne Annotationen im Code:
+
+```bash
+dart pub add dev:ductus
+```
+
+Komplett ohne Dependency im Projekt (Kommentar-Konvention, siehe unten):
+
+```bash
+dart pub global activate ductus
+```
+
+## Quickstart: annotieren → extrahieren → generieren
 
 ```dart
 import 'package:ductus/ductus.dart';
@@ -31,16 +61,51 @@ class LoginScreen extends StatelessWidget {
 class AuthFlow {}
 ```
 
-- `@JourneyScreen(id, title, {flow, description, tags})` — auf Klassen.
-- `@JourneyAction(label, to, {from, id, trigger, condition})` — auf Methoden,
-  Funktionen und Feldern; erzeugt eine Transition (Edge). Fehlt `from`, gilt die
-  umschließende, als Screen bekannte Klasse.
-- `@JourneyDecision(id, title, {flow, description, tags})` — Verzweigungspunkte.
-- `@JourneyFlow(id, title, start, {description})` — benannte Flows.
+Dann mit der Ductus-CLI (Node.js ≥ 20):
 
-## Kommentar-Konvention (Weg A)
+```bash
+npm install -g @ductus/core @ductus/adapter-dart
 
-Gleichwertig zu den Annotationen, funktioniert in `//`- und `///`-Kommentaren:
+ductus init        # legt ductus.config.yaml an, erkennt pubspec.yaml + Router
+ductus extract     # Graph erzeugen + validieren → journey-graph.json
+ductus generate    # LLM-Doku (BYOK) → docs/*.mdx oder statische Website
+```
+
+Für `generate` genügt ein eigener API-Key (Anthropic, OpenAI oder ein
+kompatibler Endpoint) in der Umgebungsvariable `DUCTUS_LLM_API_KEY`;
+`extract` läuft komplett offline. Zum Ausprobieren ohne Key:
+`llm.provider: mock` in der `ductus.config.yaml`.
+
+Lauffähige Beispiele:
+[flutter_go_router_demo](https://github.com/PlaxXOnline/ductus/tree/main/examples/flutter_go_router_demo)
+(Ableitung + Annotationen) und
+[flutter_comment_demo](https://github.com/PlaxXOnline/ductus/tree/main/examples/flutter_comment_demo)
+(nur Kommentare, keine Dependency).
+
+## Die Annotations-API
+
+Alle Annotationen kommen aus `package:ductus/ductus.dart`:
+
+| Annotation | Parameter (Pflicht **fett**) | Wirkung im Graphen |
+|---|---|---|
+| `@JourneyScreen` | **`id`**, **`title`**, `flow`, `description`, `tags` | Screen-Node; auf Klassen |
+| `@JourneyAction` | **`label`**, **`to`**, `from`, `id`, `trigger`, `condition` | Transition (Edge); auf Methoden, Funktionen und Feldern |
+| `@JourneyDecision` | **`id`**, **`title`**, `flow`, `description`, `tags` | Decision-Node (Verzweigungspunkt) |
+| `@JourneyFlow` | **`id`**, **`title`**, **`start`**, `description` | Benannter Flow; `start` muss die Id eines Screens sein |
+
+- `trigger` ist ein `JourneyTrigger`: `tap` (Default), `submit`, `auto`,
+  `back`, `deeplink`, `system`.
+- Fehlt bei `@JourneyAction` das `from`, gilt die umschließende, als Screen
+  bekannte Klasse.
+- Ohne Action-`id` wird deterministisch `e_<from>_<to>` generiert.
+- Argumente sind String-Literale; wer konstante Referenzen wie
+  `title: MyConstants.title` braucht, nutzt den build_runner-Builder (unten).
+
+## Buildfrei: die `@journey:`-Kommentar-Konvention
+
+Gleichwertig zu den Annotationen, funktioniert in `//`- und
+`///`-Kommentaren — das Projekt braucht `ductus` dann nicht einmal als
+Dependency:
 
 ```dart
 // @journey:screen id="dashboard" title="Übersicht"
@@ -50,62 +115,66 @@ class DashboardScreen { … }
 
 Ein Block beginnt mit `@journey:<screen|action|decision|flow>`, Paare sind
 `key="value"` (`\"` escaped ein Anführungszeichen), Fortsetzung in unmittelbar
-folgenden Kommentarzeilen; er endet an der ersten Nicht-Kommentar-Zeile oder am
-nächsten `@journey:`-Block. Unbekannte Keys werden mit Warnung ignoriert;
-`tags` ist kommasepariert.
+folgenden Kommentarzeilen; er endet an der ersten Nicht-Kommentar-Zeile oder
+am nächsten `@journey:`-Block. Pflichtfelder wie bei den Annotationen;
+unbekannte Keys werden mit Warnung ignoriert, `tags` ist kommasepariert.
 
-## Automatische Ableitung (Weg C)
-
-Ohne jede Annotation leitet der Adapter aus `go_router` ab: `GoRoute` → Screens,
-`ShellRoute` → Flows, `redirect:` → Decisions, `context.go()/push()/goNamed()/…`
-→ Transitions; aus `auto_route`: `@RoutePage()`-Klassen → Screens. Abgeleitete
-Elemente tragen `source: "derived"` und werden von manuellen Annotationen
-feldweise überschrieben. Zwei manuelle Quellen mit widersprüchlichen Werten
-sind ein Fehler mit beiden Quellenangaben.
-
-### auto_route: best effort
-
-Die `auto_route`-Ableitung ist ausdrücklich **best effort** (SPEC R6): Der
-Adapter erkennt nur `@RoutePage()`-Screens und die Pfadtabelle — Navigations-
-Kanten (wer navigiert wohin, unter welcher Bedingung) leitet er daraus nicht
-ab. Ergänze Transitions über `@JourneyAction` bzw. `@journey:action`; die
-Ableitung ist eine Ergänzung, nie Voraussetzung, und manuelle Annotationen
-überschreiben abgeleitete Werte feldweise.
-
-## build_runner-Builder (Weg D)
-
-Für Projekte, die ohnehin `build_runner` fahren: Der Builder `journey_builder`
-läuft als Build-Schritt mit und schreibt den Journey-Graphen als
-`ductus_builder.g.json` in den Projekt-Root. Mehrwert gegenüber dem
-parse-only-Adapter ist **Resolution**: nicht-literale konstante
-Annotation-Argumente (z. B. `title: MyConstants.title`) werden über den
-resolved AST aufgelöst statt als Fehler/Warnung abgelehnt. Was nicht konstant
-auflösbar ist, verhält sich exakt wie beim parse-only-Adapter — gleiche
-Fehler und Warnungen.
-
-Setup: `ductus` als reguläre Dependency (die Annotationen werden in `lib/`
-importiert), `build_runner` als dev_dependency —
-`dart pub add ductus dev:build_runner` ergibt z. B.:
-
-```yaml
-# pubspec.yaml (Ausschnitt)
-dependencies:
-  ductus: ^0.2.0
-dev_dependencies:
-  build_runner: ^2.4.0
-```
-
-Der Builder ist über `auto_apply: dependents` automatisch aktiv, das
-Zielprojekt braucht keine eigene `build.yaml`:
+Setup ganz ohne Projekt-Dependency:
 
 ```bash
+dart pub global activate ductus
+npm install -g @ductus/core @ductus/adapter-dart
+ductus extract
+```
+
+Die Ductus-CLI findet den global aktivierten Adapter über
+`dart pub global run`; alternativ zeigt die Umgebungsvariable
+`DUCTUS_DART_ADAPTER_DIR` auf ein Verzeichnis mit dem Adapter-Paket.
+
+## Automatische Ableitung aus go_router / auto_route
+
+Ohne jede Annotation entsteht schon ein brauchbarer Graph:
+
+| Quelle | wird zu |
+|---|---|
+| `GoRoute` | Screen-Node |
+| `ShellRoute` | Flow |
+| `redirect:` | Decision-Node |
+| `context.go()` / `push()` / `goNamed()` / … mit String-Literal | Transition |
+| `@RoutePage()`-Klassen (auto_route) | Screen-Node |
+
+Abgeleitete Elemente tragen `source: "derived"`; manuelle Annotationen mit
+derselben Id überschreiben abgeleitete Werte feldweise. Zwei manuelle Quellen
+mit widersprüchlichen Werten sind ein Fehler mit beiden Quellenangaben.
+Abgeleitete Ids sind der Routen-`name` bzw. der Pfad-Slug
+(`/users/:id/edit` ⇒ `users-edit`).
+
+Die `auto_route`-Ableitung ist ausdrücklich **best effort**: erkannt werden
+nur `@RoutePage()`-Screens und die Pfadtabelle, keine Navigations-Kanten —
+Transitions ergänzt du über `@JourneyAction` bzw. `@journey:action`.
+
+Welche Ableitungen laufen, steuert `deriveFrom` (Default: beide) — in der
+`ductus.config.yaml` unter `adapters:` oder als `--config`-JSON des
+Adapter-CLI.
+
+## build_runner-Builder
+
+Für Projekte, die ohnehin `build_runner` fahren: Der Builder
+`ductus:journey_builder` läuft als Build-Schritt mit und schreibt den Graphen
+als `ductus_builder.g.json` in den Projekt-Root. Sein Mehrwert ist
+**Resolution**: nicht-literale konstante Annotation-Argumente
+(z. B. `title: MyConstants.title`) werden über den resolved AST aufgelöst,
+statt als Fehler/Warnung abgelehnt zu werden.
+
+```bash
+dart pub add ductus dev:build_runner
 dart run build_runner build
 # → ductus_builder.g.json im Projekt-Root
 ```
 
-Optional lässt sich der Builder in der `build.yaml` des Zielprojekts mit
-`deriveFrom` und `include` konfigurieren (gleiche Schlüssel und Defaults wie
-die `--config`-JSON des Adapter-CLI):
+Der Builder ist über `auto_apply: dependents` automatisch aktiv; eine eigene
+`build.yaml` braucht das Projekt nur für Optionen — unterstützt werden
+`deriveFrom` und `include`, mit denselben Defaults wie beim Adapter-CLI:
 
 ```yaml
 targets:
@@ -117,36 +186,15 @@ targets:
           include: [lib/**]
 ```
 
-**Einschränkung:** Der Builder sieht nur Dateien der build_runner-
-**Target-Sources** (Default u. a. `lib/`). Ein `include`-Muster außerhalb
-davon (z. B. `extra/**`) liefert im Builder keine Dateien — er warnt dann
-pro Muster ohne Treffer; entweder `targets.$default.sources` in der
-`build.yaml` erweitern oder für solche Pfade das Adapter-CLI nutzen. Mit
-dem Default `lib/**` tritt die Abweichung nicht auf.
-
-Empfehlung: `ductus_builder.g.json` in die `.gitignore` der App aufnehmen —
-die Datei ist ein Build-Artefakt (wie `ductus_graph.g.json`, die Debug-Datei
-des Adapter-CLI; die beiden Dateien nicht verwechseln).
-
-Ins Adapter-CLI bzw. in die Ductus-CLI gelangt das Artefakt mit
-`--from-builder`:
+In die Pipeline gelangt das Artefakt mit `--from-builder` — das Adapter-CLI
+prüft dann nur die `schemaVersion` und reicht die Datei durch, es findet kein
+eigener Scan statt:
 
 ```bash
 dart run ductus:adapter --project . --from-builder
 ```
 
-bzw. über die `ductus.config.yaml` — der Core flacht den `extra`-Block ab
-und schreibt seine Schlüssel top-level in die `--config`-JSON des Adapters:
-
-```yaml
-adapters:
-  - dart:
-      project: .
-      extra: { fromBuilder: true }
-```
-
-Gleichwertig ist der flache Schlüssel direkt unter dem Adapter
-(unbekannte Adapter-Schlüssel landen ebenfalls in der `--config`-JSON):
+bzw. in der `ductus.config.yaml`:
 
 ```yaml
 adapters:
@@ -155,109 +203,65 @@ adapters:
       fromBuilder: true
 ```
 
-`--from-builder` (Config-Schlüssel `fromBuilder`; das Flag gewinnt) liest
-`ductus_builder.g.json`, prüft die `schemaVersion` und gibt die Datei nach
-stdout aus — es findet **kein eigener Scan** statt. Fehlt die Datei, bricht
-das CLI mit einem Hinweis auf `dart run build_runner build` und Exit ≠ 0 ab.
+Zu beachten:
 
-**Aktualität:** `ductus_builder.g.json` ist so aktuell wie der letzte
-build_runner-Lauf — vor `ductus extract` also `dart run build_runner build`
-ausführen (oder `dart run build_runner watch` laufen lassen).
+- `ductus_builder.g.json` ist so aktuell wie der letzte build_runner-Lauf —
+  vor `ductus extract` also `dart run build_runner build` ausführen (oder
+  `watch` laufen lassen). Fehlt die Datei, bricht `--from-builder` mit einem
+  Hinweis ab.
+- Der Builder sieht nur Dateien der build_runner-Target-Sources (Default
+  u. a. `lib/`); `include`-Muster außerhalb davon liefern eine Warnung ohne
+  Treffer — dann `targets.$default.sources` erweitern oder das Adapter-CLI
+  nutzen.
+- Bei rein literalen Annotationen ist das Ergebnis byte-identisch mit dem
+  Adapter-CLI — bis auf den `meta.adapters`-Namen (`dart-builder` statt
+  `dart`).
+- `ductus_builder.g.json` gehört in die `.gitignore` (Build-Artefakt) —
+  nicht zu verwechseln mit `ductus_graph.g.json`, der Debug-Datei des
+  Adapter-CLI.
 
-**Parität:** Nutzen die Annotationen ausschließlich String-Literale, ist
-`ductus_builder.g.json` byte-identisch mit der stdout-Ausgabe des
-parse-only-Adapters — bis auf genau eine gewollte Ausnahme: der
-`meta.adapters`-Name ist `dart-builder` statt `dart` (Provenance).
-Inhaltlich (`flows`/`nodes`/`edges`) ändert Weg D das Ergebnis nur dort,
-wo Resolution zusätzliche Werte liefert (DD §N).
-
-## Buildfreie Nutzung (Kommentar-Konvention)
-
-Mit der Kommentar-Konvention (Weg A) braucht das Zielprojekt `ductus` nicht
-einmal als Dependency — es genügt eine globale Installation des Adapters:
-
-```bash
-dart pub global activate ductus
-npm install -g @ductus/core @ductus/adapter-dart
-ductus extract
-```
-
-Die Ductus-CLI findet den global aktivierten Adapter über
-`dart pub global run`; alternativ zeigt die Umgebungsvariable
-`DUCTUS_DART_ADAPTER_DIR` auf ein Verzeichnis mit dem Adapter-Paket
-(z. B. einen Checkout dieses Repos).
-
-## Best Practices
-
-- **Annotationen nur mit konstanten String-Literalen.** Der Adapter liest
-  parse-only, ohne Resolution. Ein Argument, das kein String-Literal ist
-  (Const-Referenz, Interpolation), ist bei Pflichtfeldern (`id`, `title`,
-  `label`, `to`, `start`) und bei explizit gesetztem `from` ein Adapter-Fehler;
-  optionale Felder (`flow`, `description`, `condition`, Action-`id`, `tags`)
-  entfallen mit Warnung auf stderr, ein nicht lesbarer `trigger` fällt mit
-  Warnung auf `tap` zurück. Wer konstante Referenzen braucht, nutzt den
-  build_runner-Builder (Weg D) — der löst sie per Resolution auf.
-- **Weg D statt parse-only, wenn build_runner ohnehin läuft — oder
-  Annotationen nicht-literale Konstanten brauchen.** Der Builder löst
-  konstante Referenzen (`title: MyConstants.title`) über den resolved AST
-  auf und liefert bei rein literalen Annotationen ein bis auf den
-  `meta.adapters`-Namen (`dart-builder` statt `dart`) byte-identisches
-  Ergebnis (siehe „build_runner-Builder (Weg D)"). In allen anderen Fällen
-  bleibt parse-only die erste Wahl: schneller, kein Build und kein `pub get`
-  im Zielprojekt nötig — und `--from-builder` liefert immer nur den Stand
-  des letzten build_runner-Laufs.
-- **`@journey:`-Blöcke direkt an die zugehörige Klasse schreiben.**
-  `screen`/`decision`-Blöcke werden der umschließenden bzw. der nächsten
-  darauf folgenden Klasse zugeordnet; eine `action` ohne `from` braucht eine
-  umschließende, als Screen bekannte Klasse — sonst bricht der Adapter mit
-  Fehler ab. Die Grammatik ist strikt `key="value"`: fehlende Pflichtfelder
-  sind ein Fehler, unbekannte Keys und Typen nur eine Warnung (der Block bzw.
-  Key wird ignoriert).
-- **Dependency nur für Annotationen (Weg B).** Wer `@JourneyScreen` & Co. in
-  `lib/` importiert, deklariert `ductus` als reguläre Dependency (so die
-  Beispiel-App `examples/flutter_go_router_demo`) — die Annotationen sind
-  reine Marker ohne Laufzeitverhalten und ohne Abhängigkeiten. Mit der
-  Kommentar-Konvention (Weg A) bleibt das Projekt komplett dependency-frei,
-  siehe „Buildfreie Nutzung".
-- **`deriveFrom` auf die genutzte Router-Bibliothek beschränken.** Default sind
-  beide Ableitungen aktiv; wer nur go_router einsetzt, konfiguriert in der
-  `ductus.config.yaml` unter `adapters:` z. B. `deriveFrom: [go_router]`.
-- **Navigationsaufrufe mit Literal-Argument schreiben.** Nur
-  `context.go('/settings')` u. Ä. mit String-Literal werden als
-  Transition-Kandidaten erkannt — und nur, wenn die umschließende
-  Widget-Klasse einem Screen zuordenbar ist (annotiert oder über den
-  `builder:` einer Route); andernfalls verwirft der Adapter den Aufruf mit
-  einem stderr-Hinweis.
-- **Abgeleitete Nodes über dieselbe id anreichern.** Abgeleitete ids sind der
-  Routen-`name` bzw. der Pfad-Slug (`/users/:id/edit` ⇒ `users-edit`); sie
-  stehen nach `ductus extract` in `journey-graph.json`. Eine Annotation mit
-  derselben id
-  überschreibt abgeleitete Werte feldweise (`title`, `description`, `flow`,
-  …); zwei manuelle Quellen mit widersprüchlichen Werten sind ein Fehler mit
-  beiden Quellenangaben.
-
-Werkzeugweite Best Practices (Graph-Qualität, Arbeitsablauf, LLM & Kosten)
-stehen im [Repo-README](https://github.com/PlaxXOnline/ductus#best-practices).
-
-## Adapter-Aufruf
+## Das Adapter-CLI
 
 ```
-dart run ductus:adapter --project <dir> [--config <json>] [--no-debug-file] [--from-builder]
+dart run ductus:adapter --project <dir> [--config <json-datei>] [--no-debug-file] [--from-builder]
 ```
 
-- stdout: genau ein kanonisches Graph-JSON (deterministisch, diff-stabil).
-- stderr: Warnungen und Hinweise; Exit 0 Erfolg / ≠0 Fehler.
-- Schreibt zusätzlich `ductus_graph.g.json` ins Projektverzeichnis
-  (abschaltbar mit `--no-debug-file`).
-- `--config`: JSON wie `{"deriveFrom": ["go_router", "auto_route"], "include": ["lib/**"]}`
-  (Defaults: beide Ableitungen an, `lib/**`).
-- `--from-builder` (bzw. Config-Schlüssel `"fromBuilder": true`; das Flag
-  gewinnt): kein eigener Scan — emittiert die vom build_runner-Builder
-  erzeugte `ductus_builder.g.json` nach `schemaVersion`-Prüfung auf stdout;
-  fehlt die Datei, Fehler mit Hinweis auf `dart run build_runner build`.
+| Option | Bedeutung |
+|---|---|
+| `--project <dir>` | Projektverzeichnis (Pflicht) |
+| `--config <datei>` | JSON-Konfigurationsdatei, z. B. `{"deriveFrom": ["go_router"], "include": ["lib/**"]}` (Defaults: beide Ableitungen an, `lib/**`) |
+| `--no-debug-file` | Unterdrückt die Debug-Datei `ductus_graph.g.json` im Projektverzeichnis |
+| `--from-builder` | Reicht `ductus_builder.g.json` durch statt selbst zu scannen (äquivalent: Config-Key `"fromBuilder": true`; das Flag gewinnt) |
 
-Das Zielprojekt braucht dafür weder `pub get` noch einen Build — die Analyse
-ist parse-only. Einzig `--from-builder` setzt einen vorherigen
-build_runner-Lauf voraus (Weg D, siehe oben).
+Verhalten: stdout ist genau ein kanonisches Graph-JSON (deterministisch,
+diff-stabil), Warnungen und Hinweise gehen auf stderr; Exit 0 bei Erfolg,
+≠ 0 bei Fehlern. Die Analyse ist parse-only — das Zielprojekt braucht weder
+`pub get` noch einen Build; einzig `--from-builder` setzt einen vorherigen
+build_runner-Lauf voraus.
 
-[Ductus]: https://github.com/PlaxXOnline/ductus
+Wichtig für die parse-only-Wege (Kommentare, Annotationen, Ableitung):
+Pflichtfelder (`id`, `title`, `label`, `to`, `start`) und ein explizites
+`from` müssen String-Literale sein — sonst bricht der Adapter mit Fehler ab.
+Nicht literal lesbare optionale Felder entfallen mit Warnung, ein nicht
+lesbarer `trigger` fällt mit Warnung auf `tap` zurück. Navigationsaufrufe
+werden nur mit String-Literal-Argument (`context.go('/settings')`) als
+Transition-Kandidaten erkannt.
+
+## Zusammenspiel mit der Ductus-CLI
+
+Die Node-Seite orchestriert den Adapter und macht aus dem Graphen Doku:
+
+| Befehl (`@ductus/core`) | Zweck |
+|---|---|
+| `ductus init` | Legt `ductus.config.yaml` an; erkennt `pubspec.yaml` (App-Name, go_router/auto_route) |
+| `ductus extract` | Ruft den Dart-Adapter auf, validiert und schreibt `journey-graph.json` |
+| `ductus generate` | Erzeugt per LLM (BYOK) MDX-Dateien oder eine statische Website; inkl. Faithfulness-Check |
+| `ductus check` | Prüft Graph-Validität und Faithfulness, ohne Dateien zu schreiben (CI) |
+| `ductus graph` | Gibt den Graphen als Mermaid aus; `--open` rendert ihn als HTML im Browser |
+
+Mehr dazu im [Repo-README](https://github.com/PlaxXOnline/ductus) und in der
+[Dokumentation von `@ductus/core`](https://github.com/PlaxXOnline/ductus/tree/main/packages/core).
+
+## Lizenz
+
+MIT — siehe [LICENSE](https://github.com/PlaxXOnline/ductus/blob/main/dart/ductus/LICENSE).

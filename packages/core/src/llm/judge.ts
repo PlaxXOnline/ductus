@@ -1,6 +1,7 @@
 /**
- * Faithfulness-Judge (SPEC §8.3 Schritt 4): zweiter LLM-Aufruf, der die
- * generierte Prosa gegen das Graph-Segment prüft.
+ * Faithfulness-Judge: zweiter LLM-Aufruf, der die generierte Prosa gegen das
+ * Graph-Segment prüft (behauptet der Text Schritte/Elemente, die nicht im
+ * Graphen stehen?).
  */
 
 import type { FaithfulnessViolation, GraphSegment, LlmProvider, LlmUsage } from '../contracts.js';

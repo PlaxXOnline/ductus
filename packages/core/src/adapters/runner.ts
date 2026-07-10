@@ -1,7 +1,7 @@
 /**
- * Adapter-Runner (SPEC §7.1, DD §H): führt einen Adapter-Befehl aus,
- * sammelt stdout (Graph-JSON) und stderr (Diagnostik) und prüft die
- * Ausgabe syntaktisch gegen das Graph-Schema (A3).
+ * Adapter-Runner: führt einen Adapter-Befehl nach dem Adapter-Vertrag aus
+ * (stdout = genau ein Graph-JSON, stderr = Diagnostik, Exit 0/≠0), sammelt
+ * beides ein und prüft die Ausgabe syntaktisch gegen das Graph-Schema (A3).
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -14,7 +14,7 @@ import type { JourneyGraph } from '@ductus/schema';
 import { journeyGraphJsonSchema } from '@ductus/schema';
 import type { AdapterConfigEntry, AdapterRunResult } from '../contracts.js';
 
-/** Adapterfehler ⇒ Exit-Code 3 (DD §I). */
+/** Adapterfehler ⇒ Exit-Code 3 (wie LLM-/Konfigurationsfehler). */
 export class AdapterError extends Error {
   constructor(message: string) {
     super(message);
@@ -58,7 +58,7 @@ function findBinary(name: string, rootDir: string): string | undefined {
 }
 
 /**
- * Einfacher YAML-Check (DD §H, Kette 3): deklariert die pubspec.yaml des
+ * Einfacher YAML-Check (Kette 3 der Auflösung): deklariert die pubspec.yaml des
  * Zielprojekts `ductus` unter dependencies/dev_dependencies? Ein Zeilen-Scan
  * genügt — es geht nur um die Frage "ist das Paket auflösbar?", nicht um
  * vollständiges YAML-Parsing.
@@ -112,7 +112,8 @@ export interface DartResolutionOptions {
 
 /**
  * Auflösungskette für `dart run ductus:adapter` OHNE Build-Abhängigkeit im
- * Zielprojekt (SPEC §5.1, DD §H) — identisch im npm-Wrapper implementiert:
+ * Zielprojekt (der Kommentar-Weg soll buildfrei bleiben) — identisch im
+ * npm-Wrapper implementiert:
  *   2. DUCTUS_DART_ADAPTER_DIR: Paketkontext, der `ductus` kennt ⇒ cwd = dieses Verzeichnis.
  *   3. Zielprojekt deklariert `ductus` in der pubspec.yaml ⇒ cwd = Projekt.
  *   4. Global aktiviertes Paket: bei path-Aktivierung `dart run` mit cwd =
@@ -154,9 +155,10 @@ export function resolveDartInvocation(
 }
 
 /**
- * Befehlsauflösung (DD §H): expliziter entry.command gewinnt (Kette 1); für
+ * Befehlsauflösung: expliziter entry.command gewinnt (Kette 1); für
  * "dart" gibt es eine eingebaute Auflösung (npm-Wrapper-Binary, sonst die
- * Kette aus resolveDartInvocation — buildfrei nutzbar, SPEC §5.1).
+ * Kette aus resolveDartInvocation — ohne Build-Abhängigkeit im Zielprojekt
+ * nutzbar).
  */
 function resolveCommand(
   entry: AdapterConfigEntry,
@@ -218,7 +220,7 @@ function runCommand(
     });
 
     child.on('close', (code, signal) => {
-      // Diagnostik immer durchreichen — nie verschlucken (§7.1).
+      // stderr-Diagnostik des Adapters immer durchreichen — nie verschlucken.
       if (log !== undefined) {
         for (const line of diagnostics.split('\n')) {
           if (line.trim() !== '') log(`[${adapterName}] ${line}`);
@@ -250,8 +252,8 @@ function runCommand(
  *
  * `dart run`/`dart pub global run` schreiben bei unaufgelösten Dependencies
  * Zeilen wie "Resolving dependencies..." auf stdout, BEVOR das Adapter-Programm
- * läuft — dagegen kann der Adapter selbst nichts tun (§7.1 gilt für ihn ab
- * Programmstart). Abgeschnitten wird ausschließlich Vorspann bis zur ersten
+ * läuft — dagegen kann der Adapter selbst nichts tun (sein stdout-Vertrag
+ * gilt für ihn ab Programmstart). Abgeschnitten wird ausschließlich Vorspann bis zur ersten
  * Zeile, die mit "{" beginnt; der Vorspann wird als Diagnostik zurückgegeben,
  * damit nichts verschluckt wird. Parst der Rest nicht, greift weiterhin der
  * strikte A3-Fehler mit dem Original-stdout.
@@ -276,7 +278,7 @@ function formatSchemaErrors(): string {
 }
 
 /**
- * Führt einen Adapter aus (SPEC §7.1): --project <absolut> --config <tmpfile>,
+ * Führt einen Adapter aus: --project <absolut> --config <tmpfile>,
  * stdout = Graph-JSON (Ajv-geprüft, A3), stderr = Diagnostik. Die temporäre
  * Config-Datei (deriveFrom/extra) wird nach dem Lauf aufgeräumt.
  */
@@ -287,7 +289,8 @@ export async function runAdapter(
   const projectDir = resolve(opts.rootDir, entry.project);
   const { argv, cwd } = resolveCommand(entry, opts.rootDir, projectDir);
 
-  // Adapter-Konfiguration (DD §H): deriveFrom + adapterspezifische extra-Schlüssel.
+  // Adapter-Konfiguration aus der adapters:-Sektion der ductus.config.yaml:
+  // deriveFrom + adapterspezifische extra-Schlüssel (abgeflacht auf top-level).
   const adapterConfig: Record<string, unknown> = {
     ...(entry.deriveFrom !== undefined ? { deriveFrom: entry.deriveFrom } : {}),
     ...(entry.extra ?? {}),

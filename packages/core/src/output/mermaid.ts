@@ -1,5 +1,5 @@
 /**
- * Mermaid-Rendering von Graph-Segmenten und ganzen Graphen (§9.1, §10.1 `ductus graph`):
+ * Mermaid-Rendering von Graph-Segmenten und ganzen Graphen (MDX-Diagramme, `ductus graph`):
  * flowchart für die Struktur, journey für den Hauptpfad eines Flows.
  * Ausgabe ist deterministisch sortiert (NFR2).
  */
@@ -178,7 +178,7 @@ export interface MainPath {
 const EMPTY_MAIN_PATH: MainPath = { nodes: [], edges: [] };
 
 /**
- * Deterministische Hauptpfad-Ableitung eines Flow-Segments (NFR2, DD §L):
+ * Deterministische Hauptpfad-Ableitung eines Flow-Segments (NFR2):
  * ab flow.start wird pro Schritt genau eine ausgehende Kante innerhalb des
  * Segments gewählt (compareMainPathEdges); besuchte Nodes werden nie wiederholt,
  * Zyklen terminieren also. Liefert einen leeren Pfad für screen-/misc-Segmente

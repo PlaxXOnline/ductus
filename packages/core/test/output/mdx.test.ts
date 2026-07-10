@@ -135,7 +135,7 @@ describe('buildMdxPages', () => {
     expect(pages.some((p) => p.fileName === 'misc.mdx')).toBe(true);
   });
 
-  // SPEC §8.3 Schritt 4: Judge-Treffer ⇒ „Markierung im Output" (R1: sichtbare Warnflags).
+  // Judge-Treffer ⇒ „Markierung im Output": sichtbare Warnflags für den Reviewer.
   it('markiert Seiten mit Faithfulness-Violations durch einen Warnblock vor dem Body', () => {
     const withViolations = makeResult([
       {

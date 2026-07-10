@@ -1,8 +1,8 @@
 /**
- * End-to-End-Verifikation der realen Pipeline auf den Beispiel-Apps
- * (SPEC §12 Phase 1, M9): Dart-Adapter direkt, komplette CLI-Kette
+ * End-to-End-Verifikation der realen Phase-1-Pipeline auf den Beispiel-Apps:
+ * Dart-Adapter direkt, komplette CLI-Kette
  * (extract/generate/check/graph), Website-Modus, NFR1/NFR2-Smoke und
- * der negative Adapter-Vertragsfall (§7.1).
+ * der negative Adapter-Vertragsfall (stdout muss genau ein Graph-JSON sein).
  *
  * Voraussetzungen: Dart- und Flutter-SDK im PATH (im CI/Dev vorhanden);
  * ohne sie wird die Suite übersprungen. Alle Artefakte landen in
@@ -47,7 +47,7 @@ interface RunResult {
   stderr: string;
 }
 
-/** Adapter-Direktaufruf (DD §H) aus dem Paketkontext dart/ductus heraus. */
+/** Adapter-Direktaufruf aus dem Paketkontext dart/ductus heraus. */
 function runDartAdapter(projectDir: string, extraArgs: string[] = []): RunResult {
   const result = spawnSync(
     'dart',
@@ -107,14 +107,14 @@ const CONFIG_WEBSITE = [
   '  format: website',
   '  dir: site/',
   '  website:',
-  // Explizit 'starlight' (Default ist 'journey', DD §O) — dieser E2E-Fall
+  // Explizit 'starlight' (Default wäre 'journey') — dieser E2E-Fall
   // prüft weiterhin das Starlight-Scaffold (MDX + Sidebar + Site-Konfig).
   '    generator: starlight',
   '',
 ].join('\n');
 
 /** Config für die buildfreie Nutzung (Weg A): KEIN command-Override — die
- *  Auflösungskette (DD §H) muss den Adapter über DUCTUS_DART_ADAPTER_DIR finden. */
+ *  Auflösungskette muss den Adapter über DUCTUS_DART_ADAPTER_DIR finden. */
 const CONFIG_COMMENT = [
   'app:',
   '  name: CommentDemo',
@@ -173,7 +173,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
 
     // Temp-Kopie des comment-Demos: pubspec.yaml bleibt unangetastet (KEINE
     // ductus-Dependency, kein pub get) — genau das ist das Versprechen von
-    // Weg A (SPEC §5.1: keine Build-Abhängigkeit).
+    // Weg A (Kommentar-Konvention: keine Build-Abhängigkeit).
     tmpComment = makeTmpDir('ductus-e2e-comment-');
     copyProject(COMMENT_DEMO, tmpComment);
     writeFileSync(join(tmpComment, 'ductus.config.yaml'), CONFIG_COMMENT, 'utf8');
@@ -183,7 +183,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     for (const dir of tmpRoots) rmSync(dir, { recursive: true, force: true });
   });
 
-  // ───────────────────────── Adapter direkt (§7.1, DD §H) ─────────────────────
+  // ───────────────────────── Adapter direkt (Vertrags-Smoke) ──────────────────
 
   describe('Dart-Adapter direkt', () => {
     it(
@@ -195,7 +195,8 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         const graph = JSON.parse(first.stdout) as JourneyGraph;
 
         // Alle vier Screens vorhanden; dashboard/settings rein abgeleitet (Weg C),
-        // login/register durch Annotationen angereichert (Weg B, §5.4).
+        // login/register durch Annotationen angereichert (Weg B überschreibt
+        // abgeleitete Werte feldweise).
         const byId = new Map(graph.nodes.map((node) => [node.id, node]));
         for (const id of ['login', 'register', 'dashboard', 'settings']) {
           expect(byId.has(id), `Screen "${id}" fehlt`).toBe(true);
@@ -261,7 +262,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ─────────────────── CLI-Kette auf der Temp-Kopie (§10.1) ───────────────────
+  // ─────────────────── CLI-Kette auf der Temp-Kopie ───────────────────────────
 
   describe('CLI-Kette (extract → generate → check → graph)', () => {
     it(
@@ -294,7 +295,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'generate --offline: MDX mit Frontmatter + Diagramm, Report mit cache/tokens; 2. Lauf nur Cache-Treffer (§8.5)',
+      'generate --offline: MDX mit Frontmatter + Diagramm, Report mit cache/tokens; 2. Lauf nur Cache-Treffer',
       () => {
         const first = runCli(['--offline', 'generate'], tmpGo);
         expect(first.status, first.stderr).toBe(0);
@@ -305,7 +306,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(files).toContain('auth.mdx');
         for (const name of files) {
           const content = readFileSync(join(docsDir, name), 'utf8');
-          // YAML-Frontmatter mit title/order/sourceRefs (§9.1).
+          // YAML-Frontmatter mit title/order/sourceRefs (Rückverfolgbarkeit).
           expect(content.startsWith('---\n')).toBe(true);
           const frontmatter = content.split('---\n')[1] ?? '';
           expect(frontmatter).toMatch(/^title: /m);
@@ -314,7 +315,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
           expect(content).toContain('## Ablaufdiagramm');
         }
 
-        // Report (§9.3): Cache-Trefferquote und Token-Bericht vorhanden.
+        // Report (ductus-report.json): Cache-Trefferquote und Token-Bericht vorhanden.
         const reportPath = join(tmpGo, 'ductus-report.json');
         const report1 = JSON.parse(readFileSync(reportPath, 'utf8')) as {
           cache?: { hits: number; misses: number; hitRate: number };
@@ -340,7 +341,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'check: Exit 0 nach generate (Cache vorhanden, keine Verstöße; DD §B.8)',
+      'check: Exit 0 nach generate (Cache vorhanden, keine Verstöße, kein LLM-Aufruf)',
       () => {
         const result = runCli(['check'], tmpGo);
         expect(result.status, `stdout: ${result.stdout}\nstderr: ${result.stderr}`).toBe(0);
@@ -363,7 +364,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'Website-Modus: Starlight-Scaffold mit MDX, Sidebar (sortiert) und Site-Konfig (§9.2, DD §B.7)',
+      'Website-Modus: Starlight-Scaffold mit MDX unter src/content/docs/, Sidebar (sortiert) und Site-Konfig',
       () => {
         const result = runCli(['-c', 'ductus.website.yaml', '--offline', 'generate'], tmpGo);
         expect(result.status, result.stderr).toBe(0);
@@ -396,10 +397,10 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ───────── CLI-Kette buildfrei (Weg A, §5.1): Auflösung über DD §H ──────────
+  // ───────── CLI-Kette buildfrei (Weg A): Adapter über die Auflösungskette ────
 
   describe('CLI-Kette buildfrei (comment_demo ohne ductus-Dependency)', () => {
-    // Kette 2 der Auflösung (DD §H): Paketkontext via Umgebungsvariable —
+    // Kette 2 der Auflösung: Paketkontext via Umgebungsvariable —
     // das Zielprojekt selbst kennt `ductus` NICHT.
     const ADAPTER_ENV = { DUCTUS_DART_ADAPTER_DIR: DART_PKG };
 
@@ -425,7 +426,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
           graph.nodes.filter((node) => node.type === 'decision').map((node) => node.id),
         ).toEqual(['save-check']);
 
-        // Bedingte Edges der Decision (§5.1: condition aus @journey:action).
+        // Bedingte Edges der Decision (condition aus @journey:action).
         const conditionByPair = new Map(
           graph.edges.map((edge) => [`${edge.from}→${edge.to}`, edge.condition]),
         );
@@ -458,7 +459,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
   describe('CLI-Kette Weg D (fromBuilder über den extra:-Block)', () => {
     const ADAPTER_ENV = { DUCTUS_DART_ADAPTER_DIR: DART_PKG };
 
-    /** Minimal valides Builder-Artefakt (kanonische Form, DD §N). */
+    /** Minimal valides Builder-Artefakt (kanonische Form: sortierte Schlüssel, LF). */
     const BUILDER_ARTIFACT = `${JSON.stringify(
       {
         edges: [],
@@ -528,7 +529,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(existsSync(graphPath)).toBe(true);
         const graph = JSON.parse(readFileSync(graphPath, 'utf8')) as JourneyGraph;
         expect(validateGraph(graph).errors).toEqual([]);
-        // Provenance des Builder-Artefakts, nicht des Scan-Wegs (DD §N).
+        // Provenance des Builder-Artefakts ("dart-builder"), nicht des Scan-Wegs ("dart").
         expect(graph.meta?.adapters?.[0]?.name).toBe('dart-builder');
         expect(graph.nodes.map((node) => node.id)).toEqual(['login']);
         // Kein Scan ⇒ auch keine Debug-Datei des Scan-Wegs.
@@ -538,7 +539,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ──────────────── Adapter-Vertrag §7.1 negativ (fail-fast, §5.4) ────────────
+  // ──────────────── Adapter-Vertrag negativ (fail-fast bei Konflikt) ──────────
 
   describe('Adapter-Vertrag: widersprüchliche manuelle Annotationen', () => {
     /** Legt ein Temp-Projekt mit zwei manuellen Quellen für denselben Node an. */
@@ -569,7 +570,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     }
 
     it(
-      'Adapter direkt: Exit ungleich 0, stderr nennt beide Quellen (§5.4 fail-fast)',
+      'Adapter direkt: Exit ungleich 0, stderr nennt beide Quellen (fail-fast statt stiller Mehrdeutigkeit)',
       () => {
         const dir = makeConflictProject();
         const result = runDartAdapter(dir);
@@ -582,7 +583,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'CLI extract: AdapterError ⇒ Exit 3 (DD §I)',
+      'CLI extract: AdapterError ⇒ Exit 3',
       () => {
         const dir = makeConflictProject();
         // Eigenständiger Paketkontext, damit `dart run ductus:adapter` auflösbar ist.
@@ -618,7 +619,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ─────────────────────────── npm-Wrapper-Smoke (§4.3) ───────────────────────
+  // ─────────────────────────── npm-Wrapper-Smoke ──────────────────────────────
 
   describe('npm-Wrapper ductus-adapter-dart', () => {
     it(

@@ -5,7 +5,7 @@ import 'test_util.dart';
 
 void main() {
   group('slugFromPath', () {
-    test('nach DD §G', () {
+    test('führendes / weg, / zu -, :param entfällt, leer ergibt root', () {
       expect(slugFromPath('/'), 'root');
       expect(slugFromPath(''), 'root');
       expect(slugFromPath('/login'), 'login');

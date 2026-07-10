@@ -1,11 +1,12 @@
-/// Ductus-Annotationen (SPEC §5.2, API fixiert in docs/DESIGN-DECISIONS.md §E).
+/// Ductus-Annotationen: markieren Screens, Actions, Decisions und Flows,
+/// aus denen der Adapter den User-Journey-Graphen extrahiert.
 ///
 /// Diese Klassen sind reine Marker für die statische Analyse durch das
 /// Adapter-CLI (`dart run ductus:adapter`) — sie haben keinerlei
 /// Laufzeitverhalten und keine Abhängigkeiten.
 library;
 
-/// Auslöser einer Transition (SPEC §6.3).
+/// Auslöser einer Transition (Edge im Journey-Graphen).
 enum JourneyTrigger { tap, submit, auto, back, deeplink, system }
 
 /// Markiert einen für den Nutzer sichtbaren Bildschirm (Screen-Node).
@@ -79,7 +80,8 @@ class JourneyDecision {
 
 /// Deklariert einen benannten Flow (zusammenhängende Teilmenge des Graphen).
 ///
-/// [start] muss die Id eines Screen-Nodes sein (Validierungsregel V3).
+/// [start] muss die Id eines Screen-Nodes sein — sonst schlägt die
+/// Graph-Validierung fehl (Regel V3 der Ductus-CLI).
 class JourneyFlow {
   final String id;
   final String title;

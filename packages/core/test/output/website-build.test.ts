@@ -1,5 +1,5 @@
 /**
- * Tests für buildWebsite (`ductus generate --build`, DD §M) mit injiziertem
+ * Tests für buildWebsite (`ductus generate --build`) mit injiziertem
  * spawn — es wird nie ein echtes npm gestartet (offline, NFR-tauglich).
  */
 

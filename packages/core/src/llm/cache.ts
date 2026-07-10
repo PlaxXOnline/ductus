@@ -1,6 +1,6 @@
 /**
- * Segment-Cache (SPEC §8.5, DD §J): unveränderte Segmente werden nicht neu
- * generiert — spart Kosten und stabilisiert Diffs.
+ * Segment-Cache (Ablage .ductus/cache/<hash>.json): unveränderte Segmente
+ * werden nicht neu generiert — spart Kosten und stabilisiert Diffs.
  */
 
 import { createHash } from 'node:crypto';

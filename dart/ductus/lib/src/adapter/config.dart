@@ -1,4 +1,4 @@
-/// Adapter-Konfiguration aus `--config <json-file>` (DD §H).
+/// Adapter-Konfiguration aus `--config <json-file>`.
 library;
 
 import 'dart:convert';

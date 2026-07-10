@@ -22,7 +22,7 @@ afterAll(() => {
 const MINIMAL = ['app:', '  name: MiniApp', 'adapters:', '  - dart:', ''].join('\n');
 
 describe('loadConfig', () => {
-  it('parst das Vollbeispiel aus SPEC §10.2 korrekt', () => {
+  it('parst ein Vollbeispiel mit allen Sektionen (app/adapters/llm/style/output) korrekt', () => {
     const path = writeConfig(
       [
         'app:',
@@ -93,7 +93,7 @@ describe('loadConfig', () => {
     expect(config.output).toEqual({
       format: 'mdx',
       dir: 'docs/',
-      // Default-Generator ist 'journey' (DD §O); 'starlight' bleibt wählbar.
+      // Default-Generator ist 'journey'; 'starlight' bleibt wählbar.
       website: { generator: 'journey', diagrams: true },
     });
   });
@@ -144,7 +144,8 @@ describe('loadConfig', () => {
     );
 
     // Keine doppelte Verschachtelung { extra: { fromBuilder } } — der Adapter
-    // liest den Schlüssel top-level aus der --config-JSON (DD §N).
+    // liest den Schlüssel top-level aus der --config-JSON; ein verschachteltes
+    // {"extra": {...}} würde er stillschweigend ignorieren.
     expect(config.adapters).toEqual([
       { name: 'dart', project: '.', extra: { fromBuilder: true } },
     ]);
@@ -203,13 +204,13 @@ describe('loadConfig', () => {
   });
 
   it('akzeptiert alle Website-Generator-Enum-Werte und lehnt unbekannte ab', () => {
-    // 'starlight' bleibt neben dem Default 'journey' wählbar (DD §O) …
+    // 'starlight' bleibt neben dem Default 'journey' wählbar …
     for (const generator of ['journey', 'starlight', 'docusaurus'] as const) {
       const { config } = loadConfig(
         writeConfig(`${MINIMAL}output:\n  format: website\n  website:\n    generator: ${generator}\n`),
       );
       // … 'docusaurus' passiert die Config-Ebene, wird aber erst von der
-      // Pipeline abgelehnt (Phase-1-Guard in runGenerate, DD §O).
+      // Pipeline abgelehnt (Phase-1-Guard in runGenerate, Exit 3).
       expect(config.output.website.generator).toBe(generator);
     }
 

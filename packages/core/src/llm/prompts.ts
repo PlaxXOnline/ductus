@@ -1,8 +1,9 @@
 /**
- * Prompt-Bau für Generierung und Faithfulness-Judge (SPEC §8.3/§8.4).
+ * Prompt-Bau für Generierung und Faithfulness-Judge: Graph-Segment als
+ * strukturierte Daten + injizierter Styleguide + Few-Shot-Beispiel.
  *
  * Das Segment wird mit stabiler Serialisierung (sortierte Schlüssel) in den
- * Prompt eingebettet; derselbe String ist die Grundlage des Cache-Keys (DD §J).
+ * Prompt eingebettet; derselbe String ist die Grundlage des Cache-Keys.
  */
 
 import type { GraphSegment, LlmMessage, Voice } from '../contracts.js';
@@ -34,7 +35,7 @@ export function serializeSegment(segment: GraphSegment): string {
   return JSON.stringify(sortKeysDeep(segment), null, 2);
 }
 
-// ───────────────────────── Few-Shot-Beispiel (angelehnt an SPEC §15) ─────────
+// ─────────── Few-Shot-Beispiel (minimaler Login→Dashboard-Auth-Flow) ─────────
 
 const EXAMPLE_SEGMENT: GraphSegment = {
   id: 'auth',
@@ -95,7 +96,7 @@ const EXAMPLE_MARKDOWN: Record<Voice, string> = {
   ].join('\n'),
 };
 
-// ───────────────────────── System-Prompt (Styleguide, SPEC §8.4) ─────────────
+// ───────────────────────── System-Prompt (Styleguide) ────────────────────────
 
 function buildSystem(voice: Voice, locale: string, appName?: string): string {
   if (voice === 'en-you') {

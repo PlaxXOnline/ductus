@@ -1,7 +1,8 @@
 /**
  * Gemeinsame CLI-Bausteine: globale Optionen, Config-Laden mit Warnungs-Ausgabe,
  * Ausgabe von Validierungs-Issues und zentrale Fehler-→-Exit-Code-Abbildung
- * (SPEC §10.3, DD §I). NFR4: API-Key-Werte erscheinen in keiner Ausgabe —
+ * (1 Validierung/Merge-Konflikt, 3 LLM/Config/Adapter/Build).
+ * NFR4: API-Key-Werte erscheinen in keiner Ausgabe —
  * alle Meldungen stammen aus Modulen, die Keys nie in Fehlertexte aufnehmen.
  */
 
@@ -48,7 +49,7 @@ export function printIssues(issues: ValidationIssue[]): void {
   }
 }
 
-/** Exit-Code-Abbildung (DD §I). */
+/** Exit-Code-Abbildung: Merge-Konflikt ⇒ 1, alle übrigen Fehlerklassen ⇒ 3. */
 function exitCodeFor(error: unknown): number {
   if (error instanceof MergeError) return 1;
   if (

@@ -1,6 +1,6 @@
-/// Adapter-CLI (SPEC §7, DD §H):
+/// Adapter-CLI des Ductus-Dart-Adapters:
 ///
-///     dart run ductus:adapter --project <dir> [--config <json>]
+///     dart run ductus:adapter --project <dir> [--config <json-datei>]
 ///         [--no-debug-file] [--from-builder]
 ///
 /// stdout: genau ein kanonisches Graph-JSON; Diagnostik auf stderr;

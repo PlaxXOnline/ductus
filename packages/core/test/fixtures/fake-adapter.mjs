@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fake-Adapter für Integrationstests (SPEC §7.1): emittiert einen festen,
+ * Fake-Adapter für Integrationstests des Adapter-Vertrags: emittiert einen festen,
  * validen Graphen auf stdout. Modus über ein zusätzliches Argument VOR den
  * vom Runner angehängten Optionen:
  *   fail          → Exit 1 mit stderr-Diagnostik

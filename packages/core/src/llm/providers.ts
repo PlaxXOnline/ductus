@@ -1,5 +1,5 @@
 /**
- * BYOK-LLM-Provider (SPEC §8.2, DD §B.4): Anthropic, OpenAI, OpenAI-kompatible
+ * BYOK-LLM-Provider: Anthropic, OpenAI, OpenAI-kompatible
  * Endpunkte (custom) und ein deterministischer Mock — über natives fetch, ohne SDKs.
  *
  * NFR4: Der API-Key stammt aus der Umgebungsvariable `config.apiKeyEnv` und darf

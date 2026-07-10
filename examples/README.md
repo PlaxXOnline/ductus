@@ -1,7 +1,8 @@
 # Ductus — Beispiel-Apps
 
-Zwei minimale Flutter-Apps, die die drei Eingabewege von Ductus (SPEC §5)
-demonstrieren. Beide erzeugen mit `ductus extract` einen validierten
+Zwei minimale Flutter-Apps, die drei der vier Eingabewege von Ductus
+demonstrieren (Weg A: Kommentar-Konvention, Weg B: Dart-Annotationen,
+Weg C: automatische Routing-Ableitung). Beide erzeugen mit `ductus extract` einen validierten
 `journey-graph.json` und mit `ductus generate` (BYOK) Endnutzer-Doku als MDX.
 
 | Demo | Zeigt | Kern-Punkt |

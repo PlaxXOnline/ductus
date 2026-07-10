@@ -1,4 +1,4 @@
-# Weg D — build_runner-Builder (DD): läuft via auto_apply automatisch in
+# Weg D — build_runner-Builder: läuft via auto_apply automatisch in
 # Paketen, die direkt von `ductus` abhängen, und schreibt das Artefakt
 # ductus_builder.g.json in den Projekt-Root (build_to: source).
 # Der synthetische Input `$package$` macht den Builder aggregierend:

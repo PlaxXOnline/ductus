@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'astro/config';
 
 /**
- * Journey-Template (§9.2, DD §B.7): pures Astro ohne Starlight.
+ * Journey-Template des Website-Modus: pures Astro ohne Starlight.
  *
  * Von Ductus generierte Daten einlesen (ductus.data.json in der Site-Wurzel).
  * Fehlt die Datei oder ist sie kein gültiges JSON (z. B. direkt nach dem

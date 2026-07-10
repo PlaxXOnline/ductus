@@ -22,11 +22,11 @@ export { toSlug } from './output/slug.js';
 export { buildWebsite, scaffoldWebsite, WebsiteBuildError } from './output/website.js';
 export type { BuildWebsiteOptions, ScaffoldWebsiteOptions, WebsiteBuildSpawn } from './output/website.js';
 
-// Report (§9.3).
+// Report (ductus-report.json).
 export { buildReport, writeReport } from './report.js';
 export type { BuildReportInput } from './report.js';
 
-// Konfiguration (§10.2).
+// Konfiguration (ductus.config.yaml).
 export { ConfigError, defaultConfigYaml, loadConfig } from './config.js';
 export type { DefaultConfigOptions, LoadConfigResult } from './config.js';
 
@@ -39,6 +39,6 @@ export type {
   PipelineOptions,
 } from './pipeline.js';
 
-// Adapter-Runner (§7).
+// Adapter-Runner.
 export { AdapterError, runAdapter } from './adapters/runner.js';
 export type { RunAdapterOptions } from './adapters/runner.js';

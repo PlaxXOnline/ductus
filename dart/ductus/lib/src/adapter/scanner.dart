@@ -1,5 +1,5 @@
-/// Sammelt und parst die .dart-Dateien des Zielprojekts (parse-only,
-/// DD §B.5 — kein `pub get` im Zielprojekt nötig).
+/// Sammelt und parst die .dart-Dateien des Zielprojekts (parse-only, ohne
+/// Resolution — dadurch ist kein `pub get` im Zielprojekt nötig).
 library;
 
 import 'dart:io';

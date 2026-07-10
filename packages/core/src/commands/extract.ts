@@ -1,6 +1,6 @@
 /**
- * `ductus extract` (SPEC §10.1): Graph erzeugen + validieren →
- * journey-graph.json und ductus-report.json (DD §B.10).
+ * `ductus extract`: Graph erzeugen + validieren →
+ * journey-graph.json und ductus-report.json neben der Config (rootDir).
  */
 
 import type { Command } from 'commander';

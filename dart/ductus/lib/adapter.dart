@@ -1,4 +1,5 @@
-/// Programmatischer Zugriff auf den Ductus-Dart-Adapter (SPEC §7).
+/// Programmatischer Zugriff auf den Ductus-Dart-Adapter (dieselbe Analyse,
+/// die auch das Adapter-CLI `dart run ductus:adapter` ausführt).
 ///
 /// Bewusst getrennt von `package:ductus/ductus.dart`: Die Annotationen
 /// bleiben abhängigkeitsfrei; nur diese Bibliothek zieht analyzer & Co.

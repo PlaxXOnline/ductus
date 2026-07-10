@@ -25,7 +25,8 @@ reichern nur dort an, wo Semantik fehlt.
   Bedingung der Transitionen (`login → dashboard`, `register → login`).
 - `@JourneyFlow(id: 'auth', …)` bündelt den Anmelde-Flow mit Start `login`.
 
-Manuelle Werte überschreiben abgeleitete feldweise (SPEC §5.4).
+Manuelle Werte überschreiben abgeleitete feldweise (Präzedenzregel:
+Annotation schlägt Ableitung, pro Feld).
 
 ## Ausprobieren
 

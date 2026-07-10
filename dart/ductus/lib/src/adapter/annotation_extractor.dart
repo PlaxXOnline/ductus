@@ -1,7 +1,7 @@
-/// Weg B — native Dart-Annotationen `@JourneyScreen` etc. (SPEC §5.2, DD §E).
+/// Weg B — native Dart-Annotationen `@JourneyScreen` etc.
 ///
 /// Parse-only: Const-Argumente werden literal aus dem AST gelesen, ohne
-/// Resolution (DD §B.5). Der build_runner-Builder (Weg D) kann über
+/// Resolution. Der build_runner-Builder (Weg D) kann über
 /// [AnnotationResolution] zusätzlich nicht-literale konstante Argumente
 /// auflösen — literale Argumente bleiben davon unberührt (Paritätsgarantie).
 library;
@@ -79,8 +79,8 @@ ManualExtraction extractAnnotations(
     final args = _namedArgs(annotation);
 
     /// Liest ein benanntes String-Argument. Ist das Argument zwar vorhanden,
-    /// aber parse-only nicht literal lesbar (z. B. eine Const-Referenz,
-    /// DD §B.5), versucht zuerst [resolution] (Weg D) die konstante
+    /// aber parse-only nicht literal lesbar (z. B. eine Const-Referenz),
+    /// versucht zuerst [resolution] (Weg D) die konstante
     /// Auflösung; scheitert auch die, wird das diagnostiziert statt
     /// stillschweigend verworfen: Warnung für optionale Felder, Fehler bei
     /// [errorIfUnreadable].

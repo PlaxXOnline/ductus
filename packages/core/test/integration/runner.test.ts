@@ -109,11 +109,11 @@ describe('runAdapter', () => {
   });
 });
 
-// ─────────── Auflösungskette für den Dart-Aufruf (SPEC §5.1, DD §H) ───────────
+// ──── Auflösungskette für den Dart-Aufruf (buildfrei, ohne pub get im Ziel) ───
 //
 // Kette 4 (`dart pub global run`) wird hier ausschließlich über die injizierbare
 // Prüfung simuliert — der globale pub-Zustand wird in Tests NIE verändert.
-describe('resolveDartInvocation (DD §H)', () => {
+describe('resolveDartInvocation (Auflösungskette)', () => {
   /** Schreibt eine pubspec.yaml in ein frisches Temp-Projekt. */
   function makeProjectWithPubspec(pubspec: string | undefined): string {
     const dir = makeRootDir();
@@ -182,7 +182,8 @@ describe('resolveDartInvocation (DD §H)', () => {
 
   it('Kette 4 (simuliert): path-Aktivierung ⇒ dart run mit cwd = Quellverzeichnis', () => {
     // Bei `dart pub global activate --source path` würde `dart pub global run`
-    // pub-Resolutionszeilen auf stdout schreiben (§7.1-Verletzung) — deshalb
+    // pub-Resolutionszeilen auf stdout schreiben (Vertragsverletzung: dort
+    // darf nur das eine Graph-JSON stehen) — deshalb
     // läuft der Adapter direkt im aktivierten Quellverzeichnis.
     const activatedPath = makeRootDir();
     const projectDir = makeProjectWithPubspec('name: demo\n');

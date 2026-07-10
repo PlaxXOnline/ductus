@@ -1,5 +1,5 @@
 /**
- * TypeScript-Typen für das Ductus-Graph-Schema (SPEC §6).
+ * TypeScript-Typen für das Ductus-Graph-Schema.
  * Das Schema ist die einzige Vertragsfläche zwischen Adaptern und Core.
  */
 
@@ -9,14 +9,14 @@ export type TriggerType = 'tap' | 'submit' | 'auto' | 'back' | 'deeplink' | 'sys
 
 export type SourceType = 'annotation' | 'derived';
 
-/** Rückverweis in den Quellcode (§6.2). */
+/** Rückverweis in den Quellcode (für Diffs/Review). */
 export interface SourceRef {
   file: string;
   line?: number;
   symbol?: string;
 }
 
-/** Screen-, Action- oder Decision-Node (§6.2). */
+/** Screen-, Action- oder Decision-Node. */
 export interface JourneyNode {
   id: string;
   type: NodeType;
@@ -31,7 +31,7 @@ export interface JourneyNode {
   tags?: string[];
 }
 
-/** Gerichtete Transition zwischen Nodes (§6.3). */
+/** Gerichtete Transition zwischen Nodes, ausgelöst durch einen Trigger. */
 export interface JourneyEdge {
   id: string;
   from: string;
@@ -43,7 +43,7 @@ export interface JourneyEdge {
   sourceRef?: SourceRef;
 }
 
-/** Benannte Teilmenge des Graphen (§6.4). */
+/** Benannte, zusammenhängende Teilmenge des Graphen (z. B. „Onboarding"). */
 export interface JourneyFlow {
   id: string;
   title: string;
@@ -72,7 +72,7 @@ export interface GraphMeta {
   adapters?: AdapterInfo[];
 }
 
-/** Top-Level-Dokument (§6.1). */
+/** Top-Level-Dokument des Journey-Graphen. */
 export interface JourneyGraph {
   schemaVersion: string;
   app?: AppInfo;

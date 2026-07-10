@@ -1,6 +1,6 @@
 /**
  * Kopiert alle Website-Templates (templates/*) in die Paket-Assets,
- * damit sie im publizierten @ductus/core enthalten sind (§9.2).
+ * damit sie im publizierten @ductus/core enthalten sind (Website-Modus).
  *
  * Hinweis: Die .gitignore der Templates liegt bewusst als "gitignore" (ohne
  * Punkt) vor — npm schließt Dateien namens .gitignore IMMER vom Tarball aus.

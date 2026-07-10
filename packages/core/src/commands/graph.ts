@@ -1,5 +1,5 @@
 /**
- * `ductus graph [--open] [--out <pfad>] [--journey]` (SPEC §10.1): Extract im Speicher,
+ * `ductus graph [--open] [--out <pfad>] [--journey]`: Extract im Speicher,
  * Mermaid auf stdout bzw. eigenständiges HTML unter .ductus/graph.html.
  * --journey gibt statt des Flowcharts die journey-Diagramme der Flow-Hauptpfade aus;
  * das --open-HTML zeigt immer beides.

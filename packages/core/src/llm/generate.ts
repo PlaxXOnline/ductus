@@ -1,6 +1,6 @@
 /**
- * Generierungs-Pipeline (SPEC §8.3): Segmentierung → Kostenschätzung (NFR3) →
- * sequenzielle Generierung mit Cache (§8.5) und Faithfulness-Judge (§8.3.4).
+ * Generierungs-Pipeline: Segmentierung → Kostenschätzung (NFR3) →
+ * sequenzielle Generierung mit Segment-Cache und Faithfulness-Judge.
  */
 
 import type { JourneyGraph } from '@ductus/schema';

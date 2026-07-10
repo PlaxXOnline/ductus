@@ -1,12 +1,13 @@
 /**
- * JSON Schema (Draft 2020-12) für das Ductus-Graph-Schema (SPEC §6).
+ * JSON Schema (Draft 2020-12) für das Ductus-Graph-Schema — die einzige
+ * Vertragsfläche zwischen Adaptern und Core.
  *
  * Quelle der Wahrheit für die Struktur-Validierung. Die eingecheckte Datei
  * `schema/journey-graph.schema.json` wird hieraus generiert (`npm run gen:schema`);
  * ein Test stellt sicher, dass beide synchron sind.
  *
  * `additionalProperties` bleibt erlaubt: unbekannte Felder sind vorwärtskompatibel
- * (§5.1, NFR7) und werden vom Core nur als Warnung behandelt, nie als Fehler.
+ * (NFR7) und werden vom Core nur als Warnung behandelt, nie als Fehler.
  */
 
 const sourceRef = {
@@ -77,12 +78,12 @@ export const journeyGraphJsonSchema = {
       },
       allOf: [
         {
-          // V4: title Pflicht für screen/decision (§6.2)
+          // V4: title Pflicht für screen/decision
           if: { properties: { type: { enum: ['screen', 'decision'] } } },
           then: { required: ['title'] },
         },
         {
-          // V4: label Pflicht für action (§6.2)
+          // V4: label Pflicht für action
           if: { properties: { type: { const: 'action' } } },
           then: { required: ['label'] },
         },

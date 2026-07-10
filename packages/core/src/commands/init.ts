@@ -1,5 +1,5 @@
 /**
- * `ductus init` (SPEC §10.1): legt eine kommentierte ductus.config.yaml an.
+ * `ductus init`: legt eine kommentierte ductus.config.yaml an.
  * Erkennt pubspec.yaml (app.name, go_router/auto_route ⇒ deriveFrom) und
  * überschreibt eine bestehende Config nie stillschweigend (nur mit --force).
  */

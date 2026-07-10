@@ -1,5 +1,5 @@
 /**
- * Slug-Bildung für Dateinamen und Sidebar-Links (§9).
+ * Slug-Bildung für Dateinamen und Sidebar-Links der Ausgabe-Module.
  * Deterministisch: gleiche Eingabe ⇒ gleiche Ausgabe (NFR2).
  */
 

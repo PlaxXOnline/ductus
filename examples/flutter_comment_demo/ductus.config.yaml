@@ -1,4 +1,4 @@
-# Ductus-Konfiguration (SPEC §10.2)
+# Ductus-Konfiguration
 app:
   name: comment_demo
   locale: de

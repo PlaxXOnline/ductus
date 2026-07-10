@@ -90,7 +90,7 @@ describe('canonicalizeGraph', () => {
     expect(canonical.meta?.adapters?.map((a) => a.name)).toEqual(['dart', 'typescript']);
   });
 
-  it('entfernt meta.generatedAt (DD §B.1)', () => {
+  it('entfernt meta.generatedAt (Byte-Stabilität: kein Zeitstempel im Graphen)', () => {
     const canonical = canonicalizeGraph(sampleGraph());
     expect(canonical.meta?.generatedAt).toBeUndefined();
     expect('generatedAt' in (canonical.meta ?? {})).toBe(false);

@@ -42,7 +42,7 @@ describe('serializeSegment', () => {
   });
 });
 
-describe('buildGenerationPrompt — System-Prompt (Styleguide §8.4)', () => {
+describe('buildGenerationPrompt — System-Prompt (in den Prompt injizierter Styleguide)', () => {
   it('enthält die Kernregeln: nichts erfinden, Lücken kennzeichnen, kein Frontmatter/H1', () => {
     const { system } = buildGenerationPrompt(segment, { voice: 'formal-sie', locale: 'de' });
     expect(system).toContain('Erfinde keine UI-Elemente');

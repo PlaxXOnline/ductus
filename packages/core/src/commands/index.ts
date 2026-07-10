@@ -1,5 +1,5 @@
 /**
- * Registrierung aller CLI-Kommandos (SPEC §10.1).
+ * Registrierung aller CLI-Kommandos.
  */
 
 export { registerCheck } from './check.js';

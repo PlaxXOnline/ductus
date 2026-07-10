@@ -1,5 +1,6 @@
-/// Weg C — Ableitung aus auto_route (SPEC §5.3, DD §G). Best effort (R6),
-/// `source: "derived"`.
+/// Weg C — Ableitung aus auto_route. Ausdrücklich best effort (nur
+/// `@RoutePage()`-Screens und die Pfadtabelle, keine Navigations-Kanten);
+/// alle Elemente tragen `source: "derived"`.
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';

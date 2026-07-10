@@ -1,5 +1,5 @@
 /**
- * Öffentliche Oberfläche der LLM-Schicht (SPEC §8).
+ * Öffentliche Oberfläche der LLM-Schicht.
  */
 
 export { SegmentCache } from './cache.js';

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * ductus-CLI (SPEC §10.1): init | extract | generate | check | graph.
- * Exit-Codes nach §10.3/DD §I; API-Keys erscheinen in keiner Ausgabe (NFR4).
+ * ductus-CLI: init | extract | generate | check | graph.
+ * Exit-Codes: 0 ok, 1 Validierungsfehler/Merge-Konflikt, 2 Faithfulness über
+ * Schwellwert, 3 LLM-/Konfigurations-/Adapterfehler; API-Keys erscheinen in
+ * keiner Ausgabe (NFR4).
  */
 
 import { Command } from 'commander';

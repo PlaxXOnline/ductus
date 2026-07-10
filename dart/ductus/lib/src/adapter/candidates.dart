@@ -5,7 +5,7 @@ library;
 import 'graph_model.dart';
 
 /// Eine `@journey:action` / `@JourneyAction`, deren `from` ggf. erst nach dem
-/// Scan aller Dateien über die umschließende Klasse aufgelöst wird (DD §B.3).
+/// Scan aller Dateien über die umschließende Klasse aufgelöst wird.
 class ActionCandidate {
   final String? id;
   final String label;

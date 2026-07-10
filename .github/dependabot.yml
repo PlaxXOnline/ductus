@@ -2,15 +2,21 @@
 # Ökosysteme des Repos. Security-Updates laufen unabhängig davon sofort.
 version: 2
 updates:
-  # npm-Workspaces (Root-Lockfile deckt packages/* ab)
+  # npm-Workspaces (Root-Lockfile deckt packages/* ab).
+  # Nur Minor/Patch werden gruppiert — Major-Bumps kommen als einzelne PRs,
+  # damit Breaking Changes (z. B. TypeScript-Majors) bewusst und isoliert
+  # geprüft werden können statt eine Sammel-Pipeline rot zu färben.
   - package-ecosystem: npm
     directory: "/"
     schedule:
       interval: weekly
     groups:
-      npm-abhaengigkeiten:
+      npm-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - minor
+          - patch
 
   # Dart-Paket
   - package-ecosystem: pub

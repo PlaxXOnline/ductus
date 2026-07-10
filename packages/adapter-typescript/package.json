@@ -1,6 +1,6 @@
 {
   "name": "@ductus/adapter-typescript",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ductus adapter for TypeScript/JavaScript projects — extracts a journey graph from annotated source and router configs",
   "license": "MIT",
   "repository": {
@@ -46,7 +46,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ductus/schema": "^0.1.0",
+    "@ductus/schema": "^0.2.0",
     "typescript": "^5.5.0"
   }
 }

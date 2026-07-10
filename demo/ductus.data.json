@@ -1,0 +1,175 @@
+{
+  "dataVersion": "1",
+  "site": {
+    "title": "comment_demo",
+    "locale": "de",
+    "ductusVersion": "0.2.0",
+    "adapters": [
+      {
+        "name": "dart",
+        "version": "0.2.0"
+      }
+    ],
+    "violationsTotal": 1
+  },
+  "journeys": [
+    {
+      "id": "notes",
+      "slug": "notes",
+      "kind": "flow",
+      "order": 1,
+      "title": "Notizen verwalten",
+      "description": "Notizen anlegen, lesen, bearbeiten und die App einstellen.",
+      "startNodeId": "note-list",
+      "nodes": [
+        {
+          "id": "note-detail",
+          "type": "screen",
+          "title": "Notiz-Detail",
+          "description": "Zeigt den vollständigen Inhalt einer einzelnen Notiz an.",
+          "start": false,
+          "sourceRef": {
+            "file": "lib/screens/note_detail_screen.dart",
+            "line": 5,
+            "symbol": "NoteDetailScreen"
+          }
+        },
+        {
+          "id": "note-editor",
+          "type": "screen",
+          "title": "Notiz-Editor",
+          "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+          "start": false,
+          "sourceRef": {
+            "file": "lib/screens/note_editor_screen.dart",
+            "line": 3,
+            "symbol": "NoteEditorScreen"
+          }
+        },
+        {
+          "id": "note-list",
+          "type": "screen",
+          "title": "Notizliste",
+          "description": "Startbildschirm mit allen gespeicherten Notizen in einer Liste.",
+          "start": true,
+          "sourceRef": {
+            "file": "lib/screens/note_list_screen.dart",
+            "line": 7,
+            "symbol": "NoteListScreen"
+          }
+        },
+        {
+          "id": "save-check",
+          "type": "decision",
+          "title": "Eingaben gültig?",
+          "description": "Beim Speichern wird geprüft, ob die Notiz einen Titel hat.",
+          "start": false,
+          "sourceRef": {
+            "file": "lib/screens/note_editor_screen.dart",
+            "line": 8,
+            "symbol": "NoteEditorScreen"
+          }
+        },
+        {
+          "id": "settings",
+          "type": "screen",
+          "title": "Einstellungen",
+          "description": "Einstellungen der App, z. B. das Farbschema.",
+          "start": false,
+          "sourceRef": {
+            "file": "lib/screens/settings_screen.dart",
+            "line": 3,
+            "symbol": "SettingsScreen"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_note-detail_note-editor",
+          "from": "note-detail",
+          "to": "note-editor",
+          "label": "Notiz bearbeiten",
+          "trigger": "tap",
+          "condition": null,
+          "main": 1
+        },
+        {
+          "id": "e_note-editor_save-check",
+          "from": "note-editor",
+          "to": "save-check",
+          "label": "Speichern",
+          "trigger": "submit",
+          "condition": null,
+          "main": 2
+        },
+        {
+          "id": "e_note-list_note-detail",
+          "from": "note-list",
+          "to": "note-detail",
+          "label": "Notiz öffnen",
+          "trigger": "tap",
+          "condition": null,
+          "main": 0
+        },
+        {
+          "id": "e_note-list_note-editor",
+          "from": "note-list",
+          "to": "note-editor",
+          "label": "Neue Notiz",
+          "trigger": "tap",
+          "condition": null,
+          "main": null
+        },
+        {
+          "id": "e_note-list_settings",
+          "from": "note-list",
+          "to": "settings",
+          "label": "Einstellungen öffnen",
+          "trigger": "tap",
+          "condition": null,
+          "main": null
+        },
+        {
+          "id": "e_save-check_note-editor",
+          "from": "save-check",
+          "to": "note-editor",
+          "label": "Fehlerhinweis anzeigen",
+          "trigger": "auto",
+          "condition": "Titel fehlt",
+          "main": null
+        },
+        {
+          "id": "e_save-check_note-list",
+          "from": "save-check",
+          "to": "note-list",
+          "label": "Zurück zur Liste",
+          "trigger": "auto",
+          "condition": "Titel vorhanden",
+          "main": null
+        },
+        {
+          "id": "e_settings_note-list",
+          "from": "settings",
+          "to": "note-list",
+          "label": "Zurück",
+          "trigger": "back",
+          "condition": null,
+          "main": null
+        }
+      ],
+      "mainPath": [
+        "note-list",
+        "note-detail",
+        "note-editor",
+        "save-check"
+      ],
+      "markdown": "Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.\n\n---\n\n## Notizliste öffnen\n1. Starten Sie die **comment_demo**-App.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Neue Notiz erstellen\n1. Tippen Sie auf **Notizliste**.\n   *Voraussetzung: Sie befinden sich auf der Notizliste.*\n2. Tippen Sie auf **Neue Notiz**.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Notiz öffnen\n1. Tippen Sie auf **Notizliste**.\n   *Voraussetzung: Sie befinden sich auf der Notizliste.*\n2. Wählen Sie eine Notiz aus und tippen Sie auf **Notiz öffnen**.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Notiz bearbeiten\n1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.\n   *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*\n2. Bearbeiten Sie den Titel und den Inhalt der Notiz.\n   *Hierzu liegen keine weiteren Informationen vor.*\n3. Tippen Sie auf **Speichern**.\n   *Voraussetzung: Titel vorhanden.*\n\n---\n\n## Speichern prüfen\n1. Nach dem Tippen auf **Speichern** wird geprüft, ob der Titel der Notiz vorhanden ist.\n   *Voraussetzung: Titel fehlt.*\n   - Hier erscheint eine **Fehlerhinweis**, dass der Titel fehlt.\n     *Hierzu liegen keine weiteren Anleitungen vor.*\n\n2. Nach erfolgreicher Titelprüfung gelangen Sie zur **Notizliste**.\n   *Voraussetzung: Titel vorhanden.*\n\n---\n\n## Einstellungen öffnen\n1. Tippen Sie auf **Notizliste**.\n   *Voraussetzung: Sie befinden sich auf der Notizliste.*\n2. Tippen Sie auf **Einstellungen öffnen**.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Zurück zur Notizliste\n1. Öffnen Sie die **Einstellungen**.\n   *Voraussetzung: Sie befinden sich auf der Einstellungen-Seite.*\n2. Tippen Sie auf **Zurück**.\n   *Hierzu liegen keine weiteren Informationen vor.*",
+      "violations": [
+        {
+          "claim": "(Judge-Antwort unparsebar)",
+          "reason": "Die Judge-Antwort war kein gültiges JSON mit \"violations\"-Array."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+# Baut die Live-Demo aus dem journey-Template und den committeten Demo-Daten
+# (demo/ductus.data.json) und deployt sie nach GitHub Pages. Trailing Slash am
+# --base ist Pflicht: das Template konkateniert `${base}journeys/…`.
+name: Deploy Demo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - templates/journey/**
+      - demo/**
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Site aus Template + Demo-Daten zusammensetzen
+        run: |
+          cp -R templates/journey site
+          cp demo/ductus.data.json site/ductus.data.json
+      # Kein Lockfile im Template — daher npm install statt npm ci.
+      - run: npm install
+        working-directory: site
+      - run: npx astro build --site https://plaxxonline.github.io --base /ductus/
+        working-directory: site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

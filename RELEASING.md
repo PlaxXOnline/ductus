@@ -98,7 +98,7 @@ und braucht die Option nicht — jedes Folge-Release über den Workflow schon.
 
 ## 4. Release-Ablauf npm (Changesets)
 
-Die drei npm-Pakete sind in `.changeset/config.json` als `fixed` gruppiert —
+Die npm-Pakete sind in `.changeset/config.json` als `fixed` gruppiert —
 sie tragen immer dieselbe Version.
 
 Pro Änderung:
@@ -109,6 +109,20 @@ Pro Änderung:
    **„Version Packages"** an bzw. aktualisiert ihn (Versionen + CHANGELOGs).
 3. Den „Version Packages"-PR mergen → der Workflow publiziert die Pakete
    automatisch nach npm (`npm run release`) und erzeugt GitHub-Releases/Tags.
+
+### Changelog-Pflege ist erzwungen
+
+Die `CHANGELOG.md`-Dateien der Pakete werden **nie von Hand** geschrieben —
+sie entstehen vollständig aus den Changesets, wenn die Version-PR erzeugt
+wird. Damit dabei nichts verloren geht, prüft der CI-Job **`changeset-check`**
+bei jedem Push/PR (außer auf `main` und den Bot-Version-PRs) per
+`npx changeset status --since=origin/main`, ob für alle seit dem letzten
+Release geänderten Pakete ein Changeset vorliegt — fehlt eins, ist CI rot.
+
+Daraus folgt als Arbeitsregel: **Jede Änderung unter `packages/*` bekommt im
+selben Commit/PR ihr Changeset** (auch interne Umbauten oder Doku — dann eben
+als `patch` mit einem Einzeiler). Änderungen außerhalb der Pakete (Repo-Doku,
+Beispiele, CI) brauchen keins.
 
 **Erstveröffentlichung (0.1.0):** Läuft **lokal** (siehe Schritt 3a), nicht
 über den ersten Workflow-Lauf — die Trusted-Publisher-Konfiguration setzt

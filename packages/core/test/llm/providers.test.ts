@@ -110,6 +110,38 @@ describe('createProvider — openai', () => {
   });
 });
 
+describe('createProvider — mistral', () => {
+  it('ruft die Mistral-Chat-API (OpenAI-kompatibel) mit Bearer-Auth auf', async () => {
+    const fetchMock = stubFetch(
+      jsonResponse({
+        choices: [{ message: { role: 'assistant', content: 'Antworttext' } }],
+        usage: { prompt_tokens: 5, completion_tokens: 2 },
+      }),
+    );
+    const provider = createProvider({ ...baseConfig, provider: 'mistral' }, { [KEY_ENV]: SECRET });
+    const result = await provider.complete(request);
+
+    expect(result.text).toBe('Antworttext');
+    expect(result.usage).toEqual({ inputTokens: 5, outputTokens: 2 });
+
+    const { url, init } = callArgs(fetchMock);
+    expect(url).toBe('https://api.mistral.ai/v1/chat/completions');
+    expect(headersOf(init)['Authorization']).toBe(`Bearer ${SECRET}`);
+    const body = bodyOf(init);
+    expect(body['model']).toBe('test-model');
+    expect(body['messages']).toEqual([
+      { role: 'system', content: 'System-Anweisung' },
+      { role: 'user', content: 'Hallo' },
+    ]);
+  });
+
+  it('meldet unerwartete Antwortformate mit dem Provider-Namen', async () => {
+    stubFetch(jsonResponse({ choices: [] }));
+    const provider = createProvider({ ...baseConfig, provider: 'mistral' }, { [KEY_ENV]: SECRET });
+    await expect(provider.complete(request)).rejects.toThrow('LLM-Provider "mistral"');
+  });
+});
+
 describe('createProvider — custom', () => {
   it('nutzt baseUrl (Slash toleriert) und erlaubt fehlenden API-Key ohne Authorization-Header', async () => {
     const fetchMock = stubFetch(
@@ -141,7 +173,7 @@ describe('createProvider — custom', () => {
 
 describe('NFR4 — Key-Sicherheit', () => {
   it('nennt bei fehlendem Key nur den Variablennamen', () => {
-    for (const provider of ['anthropic', 'openai'] as const) {
+    for (const provider of ['anthropic', 'openai', 'mistral'] as const) {
       expect(() => createProvider({ ...baseConfig, provider }, {})).toThrow(KEY_ENV);
     }
   });

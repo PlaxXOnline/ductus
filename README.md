@@ -19,7 +19,7 @@ Quellcode ──Adapter──▶ journey-graph.json ──LLM (BYOK)──▶ MD
 ```
 
 - **Kein Backend, kein Konto:** Alles läuft lokal über die CLI. Als
-  LLM-Provider dienen `anthropic`, `openai`, ein OpenAI-kompatibler Endpoint
+  LLM-Provider dienen `anthropic`, `openai`, `mistral`, ein OpenAI-kompatibler Endpoint
   (`custom` + `baseUrl`) oder `mock` (deterministisch, netzfrei — für Tests/CI).
 - **Graph-geerdete Generierung:** Das LLM übersetzt nur den validierten
   Graphen; der Faithfulness-Judge prüft die Ausgabe dagegen und markiert
@@ -91,7 +91,7 @@ adapters:
       deriveFrom: [go_router, auto_route]
 
 llm:
-  provider: anthropic        # anthropic | openai | custom | mock
+  provider: anthropic        # anthropic | openai | mistral | custom | mock
   model: claude-sonnet-4-5
   apiKeyEnv: DUCTUS_LLM_API_KEY
   temperature: 0.2

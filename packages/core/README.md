@@ -10,7 +10,7 @@ statische Website. `@ductus/core` ist das Herzstück: CLI, Orchestrator,
 LLM-Schicht und Ausgabe-Module.
 
 - **Graph statt Prosa als Quelle** — Adapter lesen Routen und Annotationen aus dem Code, `ductus extract` merged und validiert sie zu `journey-graph.json`. Ohne LLM nutzbar.
-- **BYOK-LLM-Übersetzung** — Anthropic, OpenAI, jeder OpenAI-kompatible Endpunkt (`custom`, z. B. lokal) oder ein deterministischer `mock`-Provider für Tests. Keine SDK-Abhängigkeiten, der Key bleibt in deiner Umgebungsvariable.
+- **BYOK-LLM-Übersetzung** — Anthropic, OpenAI, Mistral, jeder OpenAI-kompatible Endpunkt (`custom`, z. B. lokal) oder ein deterministischer `mock`-Provider für Tests. Keine SDK-Abhängigkeiten, der Key bleibt in deiner Umgebungsvariable.
 - **Faithfulness-Judge** — ein zweiter LLM-Durchlauf prüft, ob der generierte Text durch den Graphen gedeckt ist. Verstöße landen sichtbar im Output und im Report; über dem Schwellwert schlägt der Lauf fehl (Exit 2).
 - **Kosten im Griff** — Token-/Kostenschätzung vor dem ersten LLM-Aufruf, Segment-Cache unter `.ductus/cache` (unveränderte Segmente kosten nichts erneut).
 - **Zwei Output-Modi** — MDX-Dateien für deine bestehende Doku-Pipeline oder eine fertige statische Website (interaktive Journey-Site oder Starlight).
@@ -94,7 +94,7 @@ adapters:
       deriveFrom: [go_router, auto_route]
 
 llm:
-  provider: anthropic        # anthropic | openai | custom | mock
+  provider: anthropic        # anthropic | openai | mistral | custom | mock
   model: claude-sonnet-4-5
   apiKeyEnv: DUCTUS_LLM_API_KEY
   temperature: 0.2
@@ -171,6 +171,7 @@ keiner Ausgabe oder Fehlermeldung auf.
 |---|---|
 | `anthropic` | Anthropic Messages API; Key erforderlich |
 | `openai` | OpenAI Chat Completions; Key erforderlich |
+| `mistral` | Mistral Chat Completions (OpenAI-kompatibel, api.mistral.ai); Key erforderlich — `model` explizit setzen, z. B. `mistral-large-latest` |
 | `custom` | Jeder OpenAI-kompatible Endpunkt via `llm.baseUrl` (z. B. lokale Modelle) — ohne gesetzten Key wird schlicht kein Authorization-Header gesendet |
 | `mock` | Deterministisch, ohne Netz — für Tests, CI und `--offline` |
 

@@ -1,5 +1,5 @@
 /**
- * BYOK-LLM-Provider: Anthropic, OpenAI, OpenAI-kompatible
+ * BYOK-LLM-Provider: Anthropic, OpenAI, Mistral, OpenAI-kompatible
  * Endpunkte (custom) und ein deterministischer Mock — über natives fetch, ohne SDKs.
  *
  * NFR4: Der API-Key stammt aus der Umgebungsvariable `config.apiKeyEnv` und darf
@@ -12,6 +12,8 @@ import { JUDGE_MARKER } from './prompts.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+// Mistrals Chat-API ist OpenAI-kompatibel (Bearer-Auth, choices/usage).
+const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions';
 
 /** 429/5xx: bis zu 2 Wiederholungen mit kurzem Backoff. */
 const RETRY_DELAYS_MS = [200, 400];
@@ -100,7 +102,7 @@ function anthropicProvider(config: LlmConfig, apiKey: string): LlmProvider {
   };
 }
 
-// ─────────────────────── OpenAI & OpenAI-kompatibel (custom) ─────────────────
+// ──────────────── OpenAI, Mistral & OpenAI-kompatibel (custom) ───────────────
 
 function openAiCompatibleProvider(
   name: string,
@@ -236,6 +238,8 @@ export function createProvider(config: LlmConfig, env: NodeJS.ProcessEnv = proce
       return anthropicProvider(config, requireApiKey(config, env));
     case 'openai':
       return openAiCompatibleProvider('openai', OPENAI_URL, config, requireApiKey(config, env));
+    case 'mistral':
+      return openAiCompatibleProvider('mistral', MISTRAL_URL, config, requireApiKey(config, env));
     case 'custom': {
       const base = (config.baseUrl ?? '').replace(/\/+$/, '');
       if (!base) throw new Error('LLM-Provider "custom": baseUrl fehlt in der Konfiguration.');

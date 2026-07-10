@@ -200,7 +200,15 @@ describe('loadConfig', () => {
 
   it('wirft ConfigError bei ungültigen Enum-Werten mit präziser Meldung', () => {
     const path = writeConfig(`${MINIMAL}llm:\n  provider: gpt5\n`);
-    expect(() => loadConfig(path)).toThrowError(/llm\.provider.*anthropic \| openai \| custom \| mock/);
+    expect(() => loadConfig(path)).toThrowError(/llm\.provider.*anthropic \| openai \| mistral \| custom \| mock/);
+  });
+
+  it('akzeptiert alle LLM-Provider-Enum-Werte', () => {
+    for (const provider of ['anthropic', 'openai', 'mistral', 'custom', 'mock'] as const) {
+      const baseUrl = provider === 'custom' ? '\n  baseUrl: http://localhost:8080/v1' : '';
+      const { config } = loadConfig(writeConfig(`${MINIMAL}llm:\n  provider: ${provider}${baseUrl}\n`));
+      expect(config.llm.provider).toBe(provider);
+    }
   });
 
   it('akzeptiert alle Website-Generator-Enum-Werte und lehnt unbekannte ab', () => {
@@ -238,7 +246,7 @@ describe('loadConfig', () => {
 describe('defaultConfigYaml', () => {
   it('erzeugt eine kommentierte Vorlage, die loadConfig akzeptiert', () => {
     const yaml = defaultConfigYaml({ appName: 'DemoApp', deriveFrom: ['go_router'] });
-    expect(yaml).toContain('# anthropic | openai | custom | mock');
+    expect(yaml).toContain('# anthropic | openai | mistral | custom | mock');
     expect(yaml).toContain('name: DemoApp');
     expect(yaml).toContain('deriveFrom: [go_router]');
 

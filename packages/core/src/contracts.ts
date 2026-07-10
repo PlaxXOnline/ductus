@@ -39,7 +39,7 @@ export interface LlmPricing {
 }
 
 export interface LlmConfig {
-  provider: 'anthropic' | 'openai' | 'custom' | 'mock';
+  provider: 'anthropic' | 'openai' | 'mistral' | 'custom' | 'mock';
   model: string;
   /** Name der Umgebungsvariable mit dem API-Key (NFR4: nie loggen/persistieren). */
   apiKeyEnv: string;

@@ -9,7 +9,7 @@ adapters:
       deriveFrom: [go_router, auto_route]
 
 llm:
-  provider: mock        # anthropic | openai | custom | mock
+  provider: mock        # anthropic | openai | mistral | custom | mock
   model: claude-sonnet-4-5
   apiKeyEnv: DUCTUS_LLM_API_KEY
   temperature: 0.2

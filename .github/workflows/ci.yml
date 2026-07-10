@@ -19,6 +19,25 @@ jobs:
       - run: npm run build
       - run: npx vitest run
 
+  # Changelog-Gate: Änderungen unter packages/* brauchen ein Changeset —
+  # daraus schreibt die Version-PR die CHANGELOG.md-Einträge automatisch.
+  # Übersprungen auf main (Vergleichsbasis der Prüfung) und auf den
+  # Version-PRs des Changesets-Bots (die konsumieren Changesets absichtlich).
+  changeset-check:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main' && !startsWith(github.head_ref || github.ref_name, 'changeset-release/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Volle Historie: die Prüfung vergleicht gegen origin/main.
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx changeset status --since=origin/main
+
   dart:
     runs-on: ubuntu-latest
     defaults:

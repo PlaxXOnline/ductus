@@ -53,6 +53,9 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     align-items: center;
     gap: 10px;
     color: var(--dj-text);
+    /* Lange App-Namen: Brand schrumpft (Titel-Ellipsis), statt Tabs und
+       Suche aus der Nav zu schieben — .dj-app clippt, die Nav scrollt nie. */
+    min-width: 0;
   }
   .dj-nav-brand:hover {
     color: var(--dj-text);
@@ -73,6 +76,9 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     font-size: 15px;
     font-weight: 650;
     letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .dj-nav-title-suffix {
     font-weight: 450;
@@ -89,6 +95,7 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     border-radius: 8px;
     color: var(--dj-text-2);
     transition: all 0.2s;
+    white-space: nowrap;
   }
   .dj-nav-link:hover {
     background: rgba(35, 32, 25, 0.07);
@@ -155,5 +162,27 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     transform: rotate(45deg);
     transform-origin: 0 50%;
     display: block;
+  }
+
+  /* Mobil (Design: mob = vw < 760): kompakte Nav, Suchfeld schrumpft auf die
+     Lupe, „Handbuch“-Suffix und ⌘K-Tasten entfallen, Tabs als Touch-Targets. */
+  @media (max-width: 759.98px) {
+    .dj-nav {
+      gap: 10px;
+      padding: 0 14px;
+    }
+    .dj-nav-title-suffix {
+      display: none;
+    }
+    .dj-nav-link {
+      padding: 9px 11px;
+    }
+    .dj-nav-search {
+      min-width: 0;
+    }
+    .dj-nav-search-label,
+    .dj-nav-search-keys {
+      display: none;
+    }
   }
 </style>

@@ -28,6 +28,7 @@ export interface UiStrings {
   warningsChip: (n: number) => string;
   graphTitle: string;
   graphHint: string;
+  graphHintStacked: string;
   stepBadge: (i: number, n: number) => string;
   legendScreen: string;
   legendDecision: string;
@@ -128,6 +129,7 @@ const de: UiStrings = {
   warningsChip: (n) => `${n === 0 ? '✓ ' : ''}${n} ${n === 1 ? 'Warnung' : 'Warnungen'}`,
   graphTitle: 'ABLAUF — INTERAKTIV',
   graphHint: 'Knoten anklicken — rechts springt der passende Schritt auf.',
+  graphHintStacked: 'Knoten antippen — unten springt der passende Schritt auf.',
   stepBadge: (i, n) => `SCHRITT ${i} / ${n}`,
   legendScreen: 'Screen',
   legendDecision: 'Entscheidung',
@@ -195,6 +197,7 @@ const en: UiStrings = {
   warningsChip: (n) => `${n === 0 ? '✓ ' : ''}${n} ${n === 1 ? 'warning' : 'warnings'}`,
   graphTitle: 'FLOW — INTERACTIVE',
   graphHint: 'Click a node — the matching step lights up on the right.',
+  graphHintStacked: 'Tap a node — the matching step lights up below.',
   stepBadge: (i, n) => `STEP ${i} / ${n}`,
   legendScreen: 'Screen',
   legendDecision: 'Decision',

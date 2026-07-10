@@ -120,6 +120,10 @@ const pageData = {
   const scroller = document.getElementById('dj-step-scroll');
   const badge = document.getElementById('dj-step-badge');
   const playBtn = document.getElementById('dj-play-btn');
+  const split = document.querySelector<HTMLElement>('.dj-journey-split');
+  // Gestapelter Modus (Design: stacked = vw < 1080) — Query identisch zum CSS,
+  // damit Scroll-Logik und Layout nie auseinanderlaufen.
+  const stackedMq = window.matchMedia('(max-width: 1079.98px)');
 
   let sel: string | null = null;
   let play = -1;
@@ -229,10 +233,16 @@ const pageData = {
     playBtn?.classList.toggle('is-playing', play >= 0);
   }
 
+  /** Aktiver Scroll-Container: gestapelt scrollt der Split, sonst die Schrittliste. */
+  function activeScroller(): HTMLElement | null {
+    return stackedMq.matches ? (split ?? scroller) : (scroller ?? split);
+  }
+
   function scrollToCard(card: HTMLElement): void {
-    if (!scroller) return;
-    const top = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 14;
-    scroller.scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' });
+    const container = activeScroller();
+    if (!container) return;
+    const top = card.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 14;
+    container.scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' });
   }
 
   /** Ziel-Karte eines Nodes: Hauptpfad-Schritt vor Aktionskarte (Design: AMAP). */
@@ -307,12 +317,20 @@ const pageData = {
     }
     if (MAIN.length === 0) return;
     const ms = reduced ? 350 : PLAY_MS;
+    // Gestapelt: einmal zum Graphen hochscrollen, statt jedem Schritt zu
+    // folgen — der Pfad spielt im sichtbaren Graphen ab (Design: aPlay).
+    const stacked = stackedMq.matches;
+    if (stacked) split?.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
     const step = (i: number): void => {
       play = i;
       sel = null;
       render();
-      const card = stepCards.find((c) => Number(c.dataset.stepIndex) - 1 === i);
-      if (card) scrollToCard(card);
+      if (!stacked) {
+        const card = stepCards.find((c) => Number(c.dataset.stepIndex) - 1 === i);
+        if (card) scrollToCard(card);
+      } else {
+        scrollGraphToNode(MAIN[i]);
+      }
       spawnDot(i);
       timer = window.setTimeout(() => {
         if (i < MAIN.length - 1) step(i + 1);
@@ -405,7 +423,39 @@ const pageData = {
     });
   }
 
+  // ── Responsiv: Graph-Skalierung im gestapelten Modus (Design: mGScale —
+  //    g = min(1, max(0.8, (Breite − 24) / Canvas-Breite))). Das CSS rechnet
+  //    Fit-Box und transform aus der Custom Property --dj-graph-scale. ───────
+  const graphFit = document.getElementById('dj-graph-fit');
+  const graphScroll = graphFit?.parentElement ?? null;
+
+  function updateGraphScale(): void {
+    if (!graphFit || !graphScroll) return;
+    if (!stackedMq.matches) {
+      graphFit.style.removeProperty('--dj-graph-scale');
+      return;
+    }
+    const width = Number(graphFit.style.getPropertyValue('--dj-graph-w'));
+    if (!Number.isFinite(width) || width <= 0) return;
+    const scale = Math.min(1, Math.max(0.8, (graphScroll.clientWidth - 24) / width));
+    graphFit.style.setProperty('--dj-graph-scale', scale.toFixed(3));
+  }
+  window.addEventListener('resize', updateGraphScale);
+
+  /** Gestapelt: aktiven Node während des Plays horizontal ins Bild holen —
+      bei breiten Graphen liefe die Animation sonst außerhalb des Ausschnitts. */
+  function scrollGraphToNode(id: string): void {
+    if (!graphScroll || !stackedMq.matches) return;
+    const node = nodes.find((n) => n.dataset.nodeId === id);
+    if (!node) return;
+    const nodeRect = node.getBoundingClientRect();
+    const scrollRect = graphScroll.getBoundingClientRect();
+    const left = graphScroll.scrollLeft + (nodeRect.left + nodeRect.right) / 2 - scrollRect.left - graphScroll.clientWidth / 2;
+    graphScroll.scrollTo({ left: Math.max(0, left), behavior: reduced ? 'auto' : 'smooth' });
+  }
+
   render();
+  updateGraphScale();
   intro();
   applyHash();
 </script>
@@ -505,6 +555,7 @@ const pageData = {
     cursor: pointer;
     transition: all 0.25s;
     box-shadow: 0 4px 14px rgba(58, 98, 196, 0.3);
+    white-space: nowrap;
   }
   .dj-play:hover {
     transform: translateY(-1px);
@@ -524,5 +575,35 @@ const pageData = {
     flex: 1;
     display: flex;
     min-height: 0;
+  }
+
+  /* Gestapelt (Design: stacked = vw < 1080): Graph über der Schrittliste,
+     der Split wird zum gemeinsamen Scroll-Container. */
+  @media (max-width: 1079.98px) {
+    .dj-journey-split {
+      flex-direction: column;
+      overflow: auto;
+    }
+  }
+
+  /* Mobil (Design: mob = vw < 760): kompakte Kopfzeile — Beschreibung und
+     Stat-Chips entfallen, der Play-Button rückt näher an den Titel. */
+  @media (max-width: 759.98px) {
+    .dj-journey-head {
+      gap: 10px;
+      padding: 11px 14px;
+    }
+    .dj-journey-title {
+      font-size: 16px;
+    }
+    .dj-journey-desc {
+      display: none;
+    }
+    .dj-journey-chips {
+      display: none;
+    }
+    .dj-play {
+      padding: 10px 13px;
+    }
   }
 </style>

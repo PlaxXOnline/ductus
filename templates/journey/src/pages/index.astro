@@ -125,6 +125,9 @@ const chips = frequentEdgeLabels(data);
     text-align: left;
     font-size: 15.5px;
     color: #a39c8c;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .dj-hero-search-keys {
     display: flex;
@@ -170,6 +173,7 @@ const chips = frequentEdgeLabels(data);
     align-items: baseline;
     gap: 12px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
   }
   .dj-journeys-title {
     font-size: 18px;
@@ -183,7 +187,41 @@ const chips = frequentEdgeLabels(data);
   }
   .dj-journeys-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    /* Design-Spalten: die erste Karte bekommt etwas mehr Raum. */
+    grid-template-columns: 1.25fr 1fr 1fr;
     gap: 18px;
+  }
+
+  /* Zwischenbreite (Design: 760 ≤ vw < 1120): zwei gleichbreite Spalten. */
+  @media (max-width: 1119.98px) {
+    .dj-journeys-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Mobil (Design: mob = vw < 760): kompakter Hero, einspaltiges Grid,
+     ⌘K-Tasten entfallen, Chips als Touch-Targets. */
+  @media (max-width: 759.98px) {
+    .dj-hero {
+      padding: 46px 20px 26px;
+    }
+    .dj-hero-title {
+      font-size: 30px;
+    }
+    .dj-hero-search {
+      padding: 14px 14px;
+    }
+    .dj-hero-search-keys {
+      display: none;
+    }
+    .dj-hero-chip {
+      padding: 8px 14px;
+    }
+    .dj-journeys {
+      padding: 6px 20px 26px;
+    }
+    .dj-journeys-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

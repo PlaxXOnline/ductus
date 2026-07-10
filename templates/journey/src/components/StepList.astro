@@ -152,6 +152,14 @@ const warnings = journey.violations.length;
     background: var(--dj-panel-alt);
     min-width: 0;
   }
+  /* Gestapelt (Design: stacked = vw < 1080): kein eigener Scrollbereich mehr —
+     die ganze Seite scrollt über .dj-journey-split. */
+  @media (max-width: 1079.98px) {
+    .dj-steps {
+      flex: none;
+      overflow: visible;
+    }
+  }
   .dj-steps-inner {
     max-width: 760px;
     padding: 0 10px 0 6px;

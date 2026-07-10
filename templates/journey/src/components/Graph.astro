@@ -39,9 +39,17 @@ const chipEdges = journey.edges.filter(
   }
   <div class="dj-graph-head">
     <div class="dj-graph-head-title">{t.graphTitle}</div>
-    <div class="dj-graph-head-hint">{t.graphHint}</div>
+    <div class="dj-graph-head-hint">
+      <span class="dj-graph-hint-wide">{t.graphHint}</span>
+      <span class="dj-graph-hint-stacked">{t.graphHintStacked}</span>
+    </div>
   </div>
 
+  {/* Scroll-/Fit-Wrapper: hält den Graphen im gestapelten Modus (vw < 1080)
+      per transform-Skalierung im Viewport (Design: mGScale/mGInnerW/mGWrapH);
+      auf Desktop sind beide unsichtbare Durchreicher. */}
+  <div class="dj-graph-scroll">
+  <div class="dj-graph-fit" id="dj-graph-fit" style={`--dj-graph-w:${layout.width};--dj-graph-h:${layout.height}`}>
   <div class="dj-graph-canvas" style={`width:${layout.width}px;height:${layout.height}px`}>
     <svg
       class="dj-graph-svg"
@@ -149,6 +157,8 @@ const chipEdges = journey.edges.filter(
       })
     }
   </div>
+  </div>
+  </div>
 
   <div class="dj-graph-legend">
     <span><span class="dj-legend-screen"></span>{t.legendScreen}</span>
@@ -187,6 +197,10 @@ const chipEdges = journey.edges.filter(
     color: var(--dj-muted-2);
     margin-top: 2px;
   }
+  /* Zwei Hinweistexte (Design: mGHint) — CSS blendet je Layoutmodus einen ein. */
+  .dj-graph-hint-stacked {
+    display: none;
+  }
   .dj-graph-badge-wrap {
     position: sticky;
     top: 16px;
@@ -211,6 +225,12 @@ const chipEdges = journey.edges.filter(
   }
   .dj-graph-badge.is-visible {
     opacity: 1;
+  }
+  .dj-graph-fit {
+    position: relative;
+    /* Breite explizit inkl. der 30px Luft rechts: Inline-Margins tiefer
+       verschachtelter Boxen zählen nicht zur Scroll-Fläche des Panels. */
+    width: calc(var(--dj-graph-w) * 1px + 60px);
   }
   .dj-graph-canvas {
     position: relative;
@@ -489,5 +509,66 @@ const chipEdges = journey.edges.filter(
     background: var(--dj-accent);
     border-radius: 2px;
     display: block;
+  }
+
+  /* ── Gestapelt (Design: stacked = vw < 1080): Graph über der Schrittliste,
+     volle Breite, Canvas per transform auf Viewportbreite skaliert (min. 0.8,
+     darunter horizontal scrollbar); Kopf/Legende statisch statt sticky, das
+     Schritt-Badge liegt oben rechts neben dem Kopf (Design-Headerzeile). ──── */
+  @media (max-width: 1079.98px) {
+    .dj-graph {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid var(--dj-border);
+      overflow: visible;
+    }
+    .dj-graph-hint-wide {
+      display: none;
+    }
+    .dj-graph-hint-stacked {
+      display: inline;
+    }
+    .dj-graph-head {
+      position: static;
+      margin: 15px 20px 0;
+    }
+    .dj-graph-badge-wrap + .dj-graph-head {
+      margin-right: 130px;
+    }
+    .dj-graph-badge-wrap {
+      position: static;
+    }
+    .dj-graph-badge {
+      top: 15px;
+    }
+    .dj-graph-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      width: 100%;
+    }
+    .dj-graph-fit {
+      /* --dj-graph-w/-h: unskalierte Canvas-Maße (Zahlen), --dj-graph-scale
+         setzt das Seiten-Skript aus der Viewportbreite (Design: mGScale).
+         20px Headroom oben: Label-Chips oben herumgeführter Rück-Kanten
+         ragen bis ~16px über die Canvas hinaus (overflow-y ist hidden). */
+      width: calc(var(--dj-graph-w) * var(--dj-graph-scale, 1) * 1px + 24px);
+      height: calc(var(--dj-graph-h) * var(--dj-graph-scale, 1) * 1px + 28px);
+      margin: 0 auto;
+    }
+    .dj-graph-canvas {
+      position: absolute;
+      left: 12px;
+      top: 20px;
+      margin: 0;
+      transform: scale(var(--dj-graph-scale, 1));
+      transform-origin: 0 0;
+    }
+    .dj-graph-legend {
+      position: static;
+      width: auto;
+      margin: 0;
+      padding: 4px 20px 14px;
+      flex-wrap: wrap;
+    }
   }
 </style>

@@ -24,9 +24,11 @@ const index = buildSearchIndex(data, t, base);
     </div>
     <div class="dj-search-results" id="dj-search-results" data-empty-text={t.searchEmpty}></div>
     <div class="dj-search-foot dj-mono">
-      <span>{t.searchSelect}</span><span>{t.searchOpen}</span><span>{t.searchClose}</span>
+      <span class="dj-search-foot-keys">
+        <span>{t.searchSelect}</span><span>{t.searchOpen}</span><span>{t.searchClose}</span>
+      </span>
       <span class="dj-search-foot-spacer"></span>
-      <span>{index.summary}</span>
+      <span class="dj-search-foot-summary">{index.summary}</span>
     </div>
   </div>
 </div>
@@ -246,6 +248,7 @@ const index = buildSearchIndex(data, t, base);
   }
   #dj-search-input {
     flex: 1;
+    min-width: 0;
     border: none;
     outline: none;
     background: transparent;
@@ -292,6 +295,9 @@ const index = buildSearchIndex(data, t, base);
     letter-spacing: 0.06em;
     padding: 3.5px 0;
     border-radius: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .dj-search-badge.is-j {
     background: rgba(58, 98, 196, 0.13);
@@ -345,7 +351,37 @@ const index = buildSearchIndex(data, t, base);
     font-size: 9.5px;
     color: var(--dj-muted-2);
   }
+  .dj-search-foot-keys {
+    display: flex;
+    gap: 14px;
+  }
+  .dj-search-foot-summary {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .dj-search-foot-spacer {
     flex: 1;
+  }
+
+  /* Mobil (Design: mob = vw < 760): Overlay fast vollflächig direkt unter dem
+     oberen Rand, Tastatur-Hinweise entfallen, schmalere Typ-Badges. */
+  @media (max-width: 759.98px) {
+    .dj-search-overlay {
+      padding-top: 14px;
+    }
+    .dj-search-panel {
+      max-width: calc(100% - 20px);
+      max-height: calc(100% - 28px);
+    }
+    .dj-search-esc {
+      display: none;
+    }
+    .dj-search-foot-keys {
+      display: none;
+    }
+    .dj-search-badge {
+      width: 78px;
+    }
   }
 </style>

@@ -18,8 +18,18 @@ build/
 ductus_graph.g.json
 adapter-err.log
 
+# Generierte Ductus-Outputs in den Beispiel-Apps (lokale Experimente)
+examples/*/journey-graph.json
+examples/*/ductus-report.json
+examples/*/docs/
+
 # Werkzeug-Artefakte (lokal)
 .playwright-mcp/
+# Playwright-Screenshots landen im Repo-Root (nur Top-Level ignorieren —
+# Bilder in Unterordnern, z. B. künftige Doku-Assets, bleiben trackbar)
+/*.png
+/*.jpg
+/*.jpeg
 .claude/
 CLAUDE.md
 

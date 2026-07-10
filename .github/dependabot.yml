@@ -1,0 +1,25 @@
+# Dependabot: wöchentliche, gruppierte Dependency-Updates für alle drei
+# Ökosysteme des Repos. Security-Updates laufen unabhängig davon sofort.
+version: 2
+updates:
+  # npm-Workspaces (Root-Lockfile deckt packages/* ab)
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      npm-abhaengigkeiten:
+        patterns:
+          - "*"
+
+  # Dart-Paket
+  - package-ecosystem: pub
+    directory: "/dart/ductus"
+    schedule:
+      interval: weekly
+
+  # GitHub Actions (hält auch die SHA-Pins aktuell)
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

@@ -1,6 +1,6 @@
 {
   "name": "@ductus/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Ductus core — orchestrator, CLI, LLM layer (BYOK), MDX/website output",
   "license": "MIT",
   "repository": {
@@ -45,7 +45,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ductus/schema": "^0.2.0",
+    "@ductus/schema": "^0.3.0",
     "ajv": "^8.17.0",
     "commander": "^14.0.0",
     "yaml": "^2.6.0"

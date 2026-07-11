@@ -17,6 +17,7 @@ import type {
 import { SegmentCache, type CacheEntry } from './cache.js';
 import { estimateTokens } from './cost.js';
 import { judgeParseFailed, runFaithfulnessCheck } from './judge.js';
+import { checkLexicon } from './lexicon.js';
 import { buildGenerationPrompt, buildJudgePrompt, PROMPT_VERSION, serializeSegment } from './prompts.js';
 import { segmentGraph } from './segment.js';
 
@@ -95,6 +96,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
         markdown: cached.markdown,
         fromCache: true,
         violations: cached.violations,
+        hints: cached.hints ?? [],
       });
       continue;
     }
@@ -111,13 +113,25 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     addUsage(response.usage);
     let segmentUsage: LlmUsage | undefined = response.usage;
 
-    let violations: FaithfulnessViolation[] = [];
+    // Deterministischer Vokabular-Check — läuft immer (kostenlos, kein LLM).
+    const lexicon = checkLexicon(response.text, segment, {
+      ...(opts.appName !== undefined ? { appName: opts.appName } : {}),
+    });
+    const violations: FaithfulnessViolation[] = [...lexicon.violations];
+    const hints: FaithfulnessViolation[] = [...lexicon.hints];
     if (opts.llm.faithfulnessCheck) {
       const judged = await runFaithfulnessCheck(opts.provider, segment, response.text, {
         maxTokens: opts.llm.maxTokens,
         temperature: opts.llm.temperature,
+        ...(opts.appName !== undefined ? { appName: opts.appName } : {}),
       });
-      violations = judged.violations;
+      violations.push(...judged.violations);
+      hints.push(...judged.hints);
+      if (judged.refuted > 0) {
+        opts.log?.(
+          `Segment "${segment.id}": ${judged.refuted} Judge-Finding(s) mechanisch widerlegt und verworfen`,
+        );
+      }
       addUsage(judged.usage);
       if (judged.usage) {
         segmentUsage = segmentUsage
@@ -138,6 +152,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
         markdown: response.text,
         ...(segmentUsage ? { usage: segmentUsage } : {}),
         violations,
+        hints,
       };
       cache.set(key, entry);
     }
@@ -147,6 +162,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
       fromCache: false,
       ...(segmentUsage ? { usage: segmentUsage } : {}),
       violations,
+      hints,
     });
   }
 

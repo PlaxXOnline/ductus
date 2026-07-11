@@ -202,10 +202,16 @@ stehen.
 
 ### Und wenn das LLM halluziniert?
 
-Nach jeder Generierung prüft ein zweiter LLM-Aufruf — der
-**Faithfulness-Judge** — ob der Text Schritte, Bedingungen oder UI-Elemente
-behauptet, die nicht im Graph-Segment stehen. Treffer landen sichtbar im
-Output und im Report:
+Zwei Prüfebenen sichern den generierten Text ab. Ein **deterministischer
+Vokabular-Check** (ohne LLM) vergleicht jedes als UI-Element ausgezeichnete
+`**Bold**`-Element in Schrittzeilen mit dem Graph-Vokabular — ein erfundener
+Button fällt damit garantiert auf. Zusätzlich prüft ein zweiter LLM-Aufruf —
+der **Faithfulness-Judge** — ob der Text Schritte, Bedingungen oder
+UI-Elemente behauptet, die nicht im Graph-Segment stehen. Dem Judge wird
+dabei nicht geglaubt: Jedes Finding muss die Passage wörtlich zitieren und
+das fehlende Element benennen; beides wird maschinell verifiziert, widerlegte
+Findings werden verworfen und Grenzfälle nur als Hinweis geführt. Bestätigte
+Treffer landen sichtbar im Output und im Report:
 
 ```mdx
 :::caution[Faithfulness-Warnung]

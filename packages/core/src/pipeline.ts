@@ -335,6 +335,8 @@ export interface CheckResult {
   validation: ValidationResult;
   /** Faithfulness-Verstöße aus den Cache-Einträgen der aktuellen Segmente. */
   faithfulnessViolations: Array<{ segmentId: string; violations: FaithfulnessViolation[] }>;
+  /** Unbestätigte Judge-/Lexikon-Hinweise — informativ, zählen nicht gegen den Schwellwert. */
+  faithfulnessHints: Array<{ segmentId: string; hints: FaithfulnessViolation[] }>;
   /** Segmente ohne Cache-Eintrag — „noch nicht generiert". */
   notGenerated: string[];
 }
@@ -347,20 +349,26 @@ export interface CheckResult {
 export async function runCheck(config: DuctusConfig, opts: PipelineOptions = {}): Promise<CheckResult> {
   const { graph, validation } = await extractGraph(config, opts);
   if (validation.errors.length > 0) {
-    return { validation, faithfulnessViolations: [], notGenerated: [] };
+    return { validation, faithfulnessViolations: [], faithfulnessHints: [], notGenerated: [] };
   }
 
   const segments = segmentGraph(graph, config.style.granularity);
   const cacheDir = join(config.rootDir, '.ductus', 'cache');
   if (!existsSync(cacheDir)) {
     // Kein Cache ⇒ nichts generiert; Verzeichnis NICHT anlegen (B.8: nichts schreiben).
-    return { validation, faithfulnessViolations: [], notGenerated: segments.map((s) => s.id) };
+    return {
+      validation,
+      faithfulnessViolations: [],
+      faithfulnessHints: [],
+      notGenerated: segments.map((s) => s.id),
+    };
   }
 
   const cache = new SegmentCache(cacheDir);
   // Cache-Key exakt wie in generateDocs (llm/generate.ts): PROMPT_VERSION, model, voice|locale.
   const styleKey = `${config.style.voice}|${config.app.locale}`;
   const faithfulnessViolations: CheckResult['faithfulnessViolations'] = [];
+  const faithfulnessHints: CheckResult['faithfulnessHints'] = [];
   const notGenerated: string[] = [];
 
   for (const segment of segments) {
@@ -373,10 +381,16 @@ export async function runCheck(config: DuctusConfig, opts: PipelineOptions = {})
     const entry = cache.get(key);
     if (entry === undefined) {
       notGenerated.push(segment.id);
-    } else if (entry.violations.length > 0) {
+      continue;
+    }
+    if (entry.violations.length > 0) {
       faithfulnessViolations.push({ segmentId: segment.id, violations: entry.violations });
+    }
+    const hints = entry.hints ?? [];
+    if (hints.length > 0) {
+      faithfulnessHints.push({ segmentId: segment.id, hints });
     }
   }
 
-  return { validation, faithfulnessViolations, notGenerated };
+  return { validation, faithfulnessViolations, faithfulnessHints, notGenerated };
 }

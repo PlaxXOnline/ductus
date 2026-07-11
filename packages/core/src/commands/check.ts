@@ -42,6 +42,12 @@ export function registerCheck(program: Command): void {
             );
           }
         }
+        // Unbestätigte Hinweise: informativ, ohne Einfluss auf den Schwellwert.
+        for (const entry of result.faithfulnessHints) {
+          for (const hint of entry.hints) {
+            process.stdout.write(`Hinweis "${entry.segmentId}": ${hint.claim} — ${hint.reason}\n`);
+          }
+        }
 
         if (violationsTotal > config.llm.faithfulnessThreshold) {
           process.stdout.write(

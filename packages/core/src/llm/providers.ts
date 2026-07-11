@@ -86,23 +86,60 @@ function anthropicProvider(config: LlmConfig, apiKey: string): LlmProvider {
           temperature: request.temperature,
           system: request.system,
           messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
+          // Structured Output: erzwungener Tool-Aufruf — die API garantiert
+          // schema-konformes JSON im tool_use-Block.
+          ...(request.responseFormat
+            ? {
+                tools: [
+                  {
+                    name: request.responseFormat.name,
+                    description: 'Strukturierte Antwort im vorgegebenen Schema.',
+                    input_schema: request.responseFormat.schema,
+                  },
+                ],
+                tool_choice: { type: 'tool', name: request.responseFormat.name },
+              }
+            : {}),
         },
         apiKey,
       )) as {
-        content?: Array<{ text?: unknown }>;
+        content?: Array<{ type?: unknown; text?: unknown; input?: unknown }>;
         usage?: { input_tokens?: unknown; output_tokens?: unknown };
       };
+      const usage = readUsage(data.usage?.input_tokens, data.usage?.output_tokens);
+      if (request.responseFormat) {
+        const toolUse = data.content?.find((block) => block.type === 'tool_use');
+        if (toolUse?.input !== undefined) {
+          return { text: JSON.stringify(toolUse.input), ...(usage ? { usage } : {}) };
+        }
+      }
       const text = data.content?.[0]?.text;
       if (typeof text !== 'string') {
         throw new Error('LLM-Provider "anthropic": unerwartetes Antwortformat (content[0].text fehlt)');
       }
-      const usage = readUsage(data.usage?.input_tokens, data.usage?.output_tokens);
       return { text, ...(usage ? { usage } : {}) };
     },
   };
 }
 
 // ──────────────── OpenAI, Mistral & OpenAI-kompatibel (custom) ───────────────
+
+/**
+ * response_format-Baustein: OpenAI und Mistral garantieren mit json_schema
+ * (strict) schema-konformes JSON; bei custom-Endpunkten ist json_schema nicht
+ * verlässlich verbreitet — dort konservativ json_object (Parser fängt den Rest).
+ */
+function responseFormatBody(name: string, format: { name: string; schema: Record<string, unknown> }): Record<string, unknown> {
+  if (name === 'openai' || name === 'mistral') {
+    return {
+      response_format: {
+        type: 'json_schema',
+        json_schema: { name: format.name, schema: format.schema, strict: true },
+      },
+    };
+  }
+  return { response_format: { type: 'json_object' } };
+}
 
 function openAiCompatibleProvider(
   name: string,
@@ -127,6 +164,7 @@ function openAiCompatibleProvider(
             { role: 'system', content: request.system },
             ...request.messages.map((m) => ({ role: m.role, content: m.content })),
           ],
+          ...(request.responseFormat ? responseFormatBody(name, request.responseFormat) : {}),
         },
         apiKey,
       )) as {

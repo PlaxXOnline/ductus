@@ -20,7 +20,7 @@ const segment: GraphSegment = {
 
 describe('PROMPT_VERSION', () => {
   it('ist exportiert und gesetzt', () => {
-    expect(PROMPT_VERSION).toBe('1');
+    expect(PROMPT_VERSION).toBe('2');
   });
 });
 
@@ -96,7 +96,8 @@ describe('buildJudgePrompt', () => {
     expect(system).toContain(JUDGE_MARKER);
     expect(system).toContain('FAITHFULNESS-JUDGE');
     expect(system).toContain('NICHT im Graph-Segment');
-    expect(system).toContain('{"violations":[{"claim":"…","reason":"…"}]}');
+    expect(system).toContain('{"violations":[{"quote":"…","element":"…","reason":"…"}]}');
+    expect(system).toContain('maschinell verifiziert');
     expect(messages[0]!.content).toContain(serializeSegment(segment));
     expect(messages[0]!.content).toContain('## Doku');
   });

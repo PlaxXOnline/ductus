@@ -12,6 +12,8 @@ export interface CacheEntry {
   markdown: string;
   usage?: LlmUsage;
   violations: FaithfulnessViolation[];
+  /** Unbestätigte Judge-/Lexikon-Hinweise; fehlt in Alt-Einträgen (⇒ []). */
+  hints?: FaithfulnessViolation[];
 }
 
 export interface CacheKeyParts {

@@ -23,12 +23,13 @@ export interface BuildReportInput {
 }
 
 export function buildReport(input: BuildReportInput): DuctusReport {
-  // Nur Segmente mit tatsächlichen Verstößen aufnehmen — der Report bleibt lesbar.
+  // Nur Segmente mit Verstößen oder Hinweisen aufnehmen — der Report bleibt lesbar.
   const faithfulness = (input.segments ?? [])
-    .filter((generated) => generated.violations.length > 0)
+    .filter((generated) => generated.violations.length > 0 || generated.hints.length > 0)
     .map((generated) => ({
       segmentId: generated.segment.id,
       violations: generated.violations,
+      ...(generated.hints.length > 0 ? { hints: generated.hints } : {}),
     }));
 
   const cache = input.cache;

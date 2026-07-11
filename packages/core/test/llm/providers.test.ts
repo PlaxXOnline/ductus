@@ -171,6 +171,70 @@ describe('createProvider — custom', () => {
   });
 });
 
+describe('Structured Output (responseFormat)', () => {
+  const responseFormat = {
+    name: 'faithfulness_violations',
+    schema: { type: 'object', properties: { violations: { type: 'array' } }, required: ['violations'] },
+  };
+  const structuredRequest: LlmRequest = { ...request, responseFormat };
+
+  it('anthropic: erzwingt einen Tool-Aufruf und liefert dessen Input als JSON-Text', async () => {
+    const fetchMock = stubFetch(
+      jsonResponse({
+        content: [{ type: 'tool_use', input: { violations: [] } }],
+        usage: { input_tokens: 4, output_tokens: 2 },
+      }),
+    );
+    const provider = createProvider(baseConfig, { [KEY_ENV]: SECRET });
+    const result = await provider.complete(structuredRequest);
+
+    expect(JSON.parse(result.text)).toEqual({ violations: [] });
+    const body = bodyOf(callArgs(fetchMock).init);
+    expect(body['tools']).toEqual([
+      {
+        name: 'faithfulness_violations',
+        description: 'Strukturierte Antwort im vorgegebenen Schema.',
+        input_schema: responseFormat.schema,
+      },
+    ]);
+    expect(body['tool_choice']).toEqual({ type: 'tool', name: 'faithfulness_violations' });
+  });
+
+  it('openai/mistral: setzen response_format auf json_schema (strict)', async () => {
+    for (const providerName of ['openai', 'mistral'] as const) {
+      const fetchMock = stubFetch(
+        jsonResponse({ choices: [{ message: { content: '{"violations": []}' } }] }),
+      );
+      const provider = createProvider({ ...baseConfig, provider: providerName }, { [KEY_ENV]: SECRET });
+      await provider.complete(structuredRequest);
+      expect(bodyOf(callArgs(fetchMock).init)['response_format']).toEqual({
+        type: 'json_schema',
+        json_schema: { name: 'faithfulness_violations', schema: responseFormat.schema, strict: true },
+      });
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('custom: fällt konservativ auf json_object zurück', async () => {
+    const fetchMock = stubFetch(jsonResponse({ choices: [{ message: { content: '{}' } }] }));
+    const provider = createProvider(
+      { ...baseConfig, provider: 'custom', baseUrl: 'http://localhost:8080/v1' },
+      {},
+    );
+    await provider.complete(structuredRequest);
+    expect(bodyOf(callArgs(fetchMock).init)['response_format']).toEqual({ type: 'json_object' });
+  });
+
+  it('ohne responseFormat bleiben die Bodies unverändert (kein response_format/tools)', async () => {
+    const fetchMock = stubFetch(jsonResponse({ content: [{ text: 'x' }] }));
+    const provider = createProvider(baseConfig, { [KEY_ENV]: SECRET });
+    await provider.complete(request);
+    const body = bodyOf(callArgs(fetchMock).init);
+    expect(body).not.toHaveProperty('tools');
+    expect(body).not.toHaveProperty('response_format');
+  });
+});
+
 describe('NFR4 — Key-Sicherheit', () => {
   it('nennt bei fehlendem Key nur den Variablennamen', () => {
     for (const provider of ['anthropic', 'openai', 'mistral'] as const) {

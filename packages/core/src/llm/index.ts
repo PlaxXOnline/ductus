@@ -7,7 +7,16 @@ export type { CacheEntry, CacheKeyParts } from './cache.js';
 export { estimateCostUsd, estimateTokens } from './cost.js';
 export { generateDocs } from './generate.js';
 export type { GenerateDocsOptions } from './generate.js';
-export { judgeParseFailed, parseJudgeResponse, runFaithfulnessCheck } from './judge.js';
+export {
+  JUDGE_RESPONSE_FORMAT,
+  judgeParseFailed,
+  parseJudgeFindings,
+  runFaithfulnessCheck,
+  verifyJudgeFindings,
+} from './judge.js';
+export type { VerifiedJudgeResult } from './judge.js';
+export { buildVocabulary, checkLexicon, normalizeTerm, termCoverage } from './lexicon.js';
+export type { LexiconResult, SegmentVocabulary } from './lexicon.js';
 export {
   buildGenerationPrompt,
   buildJudgePrompt,

@@ -9,7 +9,7 @@
 import type { GraphSegment, LlmMessage, Voice } from '../contracts.js';
 
 /** Bei jeder inhaltlichen Prompt-Änderung erhöhen — invalidiert den Cache. */
-export const PROMPT_VERSION = '1';
+export const PROMPT_VERSION = '2';
 
 /** Marker, an dem Provider (insb. mock) einen Judge-Aufruf erkennen. */
 export const JUDGE_MARKER = 'FAITHFULNESS-JUDGE';
@@ -165,7 +165,11 @@ export function buildJudgePrompt(segment: GraphSegment, markdown: string): Promp
   const system = [
     `${JUDGE_MARKER}: Du prüfst generierte Endnutzer-Dokumentation gegen das zugrunde liegende Graph-Segment.`,
     'Prüfe, ob der Text Schritte, Bedingungen oder UI-Elemente behauptet, die NICHT im Graph-Segment stehen.',
-    'Antworte AUSSCHLIESSLICH mit JSON der Form {"violations":[{"claim":"…","reason":"…"}]}.',
+    'Antworte AUSSCHLIESSLICH mit JSON der Form {"violations":[{"quote":"…","element":"…","reason":"…"}]}.',
+    '"quote": wörtliches, unverändertes Zitat der beanstandeten Passage aus dem generierten Text.',
+    '"element": das behauptete UI-Element, der Schritt oder die Bedingung, die im Graph-Segment fehlt.',
+    '"reason": kurze Begründung.',
+    'Deine Angaben werden maschinell verifiziert: Ein quote, das nicht wörtlich im Text steht, oder ein element, das doch im Segment vorkommt, wird verworfen.',
     'Keine Verstöße ⇒ {"violations": []}. Keine weiteren Erklärungen, kein Markdown.',
   ].join('\n');
   const user = [

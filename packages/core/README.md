@@ -186,12 +186,29 @@ geschlüsselt über Segment-Inhalt, Prompt-Version, Modell und Stil
 (`voice`/`locale`). Unveränderte Segmente verursachen bei erneuten Läufen
 keine LLM-Kosten; `generate` meldet Treffer und Neu-Generierungen.
 
-**Faithfulness-Check.** Mit `llm.faithfulnessCheck: true` (Default) prüft
-ein Judge-Durchlauf jedes generierte Segment gegen den Graphen. Verstöße
-werden als Warnbox in den Output geschrieben und im Report gelistet.
-Liegt die Gesamtzahl über `llm.faithfulnessThreshold` (Default: `0`),
-endet der Lauf mit Exit-Code 2 — der Output wird trotzdem geschrieben,
-damit du die Stellen prüfen kannst.
+**Faithfulness-Check.** Zwei Ebenen sichern den generierten Text ab —
+LLM-Aussagen werden dabei nie ungeprüft übernommen:
+
+1. **Deterministischer Vokabular-Check** (immer aktiv, ohne LLM): Alle in
+   Schrittzeilen als UI-Element ausgezeichneten `**Bold**`-Terme werden gegen
+   das Vokabular des Graph-Segments geprüft (Node-Titel, Edge-Labels,
+   Conditions, App-Name). Ein erfundenes UI-Element fällt damit garantiert
+   auf — unabhängig von Modell und Judge.
+2. **Faithfulness-Judge** (`llm.faithfulnessCheck: true`, Default): Ein
+   zweiter LLM-Aufruf sucht semantische Abweichungen. Dem Judge wird nicht
+   geglaubt, er wird verifiziert: Jedes Finding muss die beanstandete Passage
+   wörtlich zitieren und das angeblich fehlende Element benennen; Code prüft
+   beides mechanisch. Widerlegte Findings (Zitat nicht im Text oder Element
+   doch im Graphen) werden verworfen, Grenzfälle als **Hinweise** (`hints`)
+   geführt — nur bestätigte Findings zählen als Verstoß. Bei `anthropic`,
+   `openai` und `mistral` erzwingt zusätzlich Structured Output (Tool-Use
+   bzw. `json_schema`) API-seitig gültiges JSON.
+
+Verstöße werden als Warnbox in den Output geschrieben und im Report
+gelistet; Hinweise erscheinen dort getrennt und zählen **nicht** gegen den
+Schwellwert. Liegt die Zahl der Verstöße über `llm.faithfulnessThreshold`
+(Default: `0`), endet der Lauf mit Exit-Code 2 — der Output wird trotzdem
+geschrieben, damit du die Stellen prüfen kannst.
 
 ## Exit-Codes
 

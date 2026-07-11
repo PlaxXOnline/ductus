@@ -11,12 +11,16 @@ function makeSegment(id: string): GraphSegment {
   return { id, kind: 'flow', title: id, order: 0, nodes: [], edges: [], exits: [] };
 }
 
-function makeGenerated(id: string, violations: GeneratedSegment['violations']): GeneratedSegment {
-  return { segment: makeSegment(id), markdown: '# x', fromCache: false, violations };
+function makeGenerated(
+  id: string,
+  violations: GeneratedSegment['violations'],
+  hints: GeneratedSegment['hints'] = [],
+): GeneratedSegment {
+  return { segment: makeSegment(id), markdown: '# x', fromCache: false, violations, hints };
 }
 
 describe('buildReport', () => {
-  it('nimmt nur Segmente MIT Violations in faithfulness auf', () => {
+  it('nimmt nur Segmente MIT Violations oder Hinweisen in faithfulness auf', () => {
     const report = buildReport({
       adapters,
       warnings: [],
@@ -29,6 +33,23 @@ describe('buildReport', () => {
       {
         segmentId: 'dirty',
         violations: [{ claim: 'Es gibt einen Zurück-Button', reason: 'nicht im Graph' }],
+      },
+    ]);
+  });
+
+  it('führt unbestätigte Hinweise getrennt von Violations auf', () => {
+    const report = buildReport({
+      adapters,
+      warnings: [],
+      segments: [
+        makeGenerated('hinted', [], [{ claim: 'Grenzfall', reason: 'nur lexikalisch verwandt' }]),
+      ],
+    });
+    expect(report.faithfulness).toEqual([
+      {
+        segmentId: 'hinted',
+        violations: [],
+        hints: [{ claim: 'Grenzfall', reason: 'nur lexikalisch verwandt' }],
       },
     ]);
   });

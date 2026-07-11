@@ -131,11 +131,25 @@ export interface LlmUsage {
   outputTokens: number;
 }
 
+/**
+ * Erzwungenes Antwortformat (Structured Output): Anthropic setzt es per
+ * Tool-Use um, OpenAI/Mistral per response_format json_schema, custom
+ * (OpenAI-kompatibel) konservativ per json_object.
+ */
+export interface LlmResponseFormat {
+  /** Schema-Name (Anthropic-Tool-Name bzw. json_schema.name). */
+  name: string;
+  /** JSON-Schema der erwarteten Antwort. */
+  schema: Record<string, unknown>;
+}
+
 export interface LlmRequest {
   system: string;
   messages: LlmMessage[];
   maxTokens: number;
   temperature: number;
+  /** Optional: Provider soll schema-konformes JSON garantieren. */
+  responseFormat?: LlmResponseFormat;
 }
 
 export interface LlmResponse {
@@ -176,7 +190,10 @@ export interface GeneratedSegment {
   markdown: string;
   fromCache: boolean;
   usage?: LlmUsage;
+  /** Mechanisch bestätigte Verstöße (deterministischer Vokabular-Check + verifizierte Judge-Findings). */
   violations: FaithfulnessViolation[];
+  /** Unbestätigte Judge-Findings — Hinweise zum manuellen Nachprüfen, zählen nicht gegen den Schwellwert. */
+  hints: FaithfulnessViolation[];
 }
 
 export interface GenerateResult {
@@ -295,7 +312,12 @@ export interface DuctusReport {
   generatedAt: string;
   adapters: AdapterInfo[];
   warnings: ValidationIssue[];
-  faithfulness: Array<{ segmentId: string; violations: FaithfulnessViolation[] }>;
+  faithfulness: Array<{
+    segmentId: string;
+    violations: FaithfulnessViolation[];
+    /** Nur vorhanden, wenn es unbestätigte Judge-Hinweise gibt. */
+    hints?: FaithfulnessViolation[];
+  }>;
   cache?: { hits: number; misses: number; hitRate: number };
   tokens?: {
     estimated: { inputTokens: number; outputTokens: number };

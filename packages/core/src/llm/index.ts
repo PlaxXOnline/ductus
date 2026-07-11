@@ -7,7 +7,7 @@ export type { CacheEntry, CacheKeyParts } from './cache.js';
 export { estimateCostUsd, estimateTokens } from './cost.js';
 export { generateDocs } from './generate.js';
 export type { GenerateDocsOptions } from './generate.js';
-export { parseJudgeResponse, runFaithfulnessCheck } from './judge.js';
+export { judgeParseFailed, parseJudgeResponse, runFaithfulnessCheck } from './judge.js';
 export {
   buildGenerationPrompt,
   buildJudgePrompt,

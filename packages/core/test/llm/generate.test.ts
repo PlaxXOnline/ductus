@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { JourneyGraph } from '@ductus/schema';
-import type { LlmConfig } from '../../src/contracts.js';
+import type { LlmConfig, LlmProvider } from '../../src/contracts.js';
 import { generateDocs } from '../../src/llm/generate.js';
+import { JUDGE_MARKER } from '../../src/llm/prompts.js';
 import { createProvider } from '../../src/llm/providers.js';
 
 const graph: JourneyGraph = {
@@ -84,6 +85,34 @@ describe('generateDocs', () => {
     expect(withoutCheck.estimated.inputTokens).toBeLessThan(withCheck.estimated.inputTokens);
     expect(withoutCheck.estimated.outputTokens).toBeLessThan(withCheck.estimated.outputTokens);
     expect(withoutCheck.segments.every((s) => s.violations.length === 0)).toBe(true);
+  });
+
+  it('cacht Segmente nicht, deren Judge-Antwort unparsebar war', async () => {
+    const cacheDir = mkdtempSync(join(tmpdir(), 'ductus-generate-test-'));
+    let judgeCalls = 0;
+    const flakyJudgeProvider: LlmProvider = {
+      name: 'flaky-judge',
+      complete: (request) => {
+        if (request.system.includes(JUDGE_MARKER)) {
+          judgeCalls += 1;
+          // Erster Judge-Aufruf liefert Prosa statt JSON, danach gültiges JSON.
+          const text = judgeCalls === 1 ? 'Kein JSON, sorry.' : '{"violations": []}';
+          return Promise.resolve({ text });
+        }
+        return Promise.resolve({ text: '## Doku' });
+      },
+    };
+
+    const first = await generateDocs({ ...options(cacheDir), provider: flakyJudgeProvider });
+    expect(first.segments[0]!.violations[0]!.claim).toBe('(Judge-Antwort unparsebar)');
+    // Nur das zweite (erfolgreiche) Segment liegt im Cache.
+    expect(readdirSync(cacheDir)).toHaveLength(1);
+
+    const second = await generateDocs({ ...options(cacheDir), provider: flakyJudgeProvider });
+    // Das gescheiterte Segment wird neu generiert und diesmal sauber gejudged.
+    expect(second.cache).toEqual({ hits: 1, misses: 1 });
+    expect(second.segments.every((s) => s.violations.length === 0)).toBe(true);
+    expect(readdirSync(cacheDir)).toHaveLength(2);
   });
 
   it('meldet Fortschritt über den optionalen log-Callback', async () => {

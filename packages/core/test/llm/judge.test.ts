@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphSegment, LlmProvider, LlmRequest } from '../../src/contracts.js';
-import { parseJudgeResponse, runFaithfulnessCheck } from '../../src/llm/judge.js';
+import { judgeParseFailed, parseJudgeResponse, runFaithfulnessCheck } from '../../src/llm/judge.js';
 
 const segment: GraphSegment = {
   id: 'auth',
@@ -25,13 +25,38 @@ describe('parseJudgeResponse', () => {
     expect(parseJudgeResponse(fenced)).toEqual([{ claim: 'A', reason: 'B' }]);
   });
 
+  it('parst JSON, das ohne Fence in Prosa eingebettet ist', () => {
+    const prose =
+      'Nach Prüfung des Textes: {"violations":[{"claim":"C","reason":"D"}]} — keine weiteren Auffälligkeiten.';
+    expect(parseJudgeResponse(prose)).toEqual([{ claim: 'C', reason: 'D' }]);
+    // Geschweifte Klammern in Strings dürfen die Balance nicht stören.
+    const tricky = 'Ergebnis: {"violations":[{"claim":"Text mit } Klammer","reason":"R"}]}';
+    expect(parseJudgeResponse(tricky)).toEqual([{ claim: 'Text mit } Klammer', reason: 'R' }]);
+  });
+
   it('meldet Unparsebares konservativ als eine Violation', () => {
     for (const garbage of ['lorem ipsum', '{"foo": 1}', '{"violations": "kaputt"}', '']) {
       const violations = parseJudgeResponse(garbage);
       expect(violations).toHaveLength(1);
       expect(violations[0]!.claim).toBe('(Judge-Antwort unparsebar)');
       expect(violations[0]!.reason.length).toBeGreaterThan(0);
+      expect(judgeParseFailed(violations)).toBe(true);
     }
+  });
+
+  it('nimmt bei Parse-Fehlern ein Snippet der Roh-Antwort in die Begründung auf', () => {
+    const violations = parseJudgeResponse('Entschuldigung, ich kann kein JSON liefern.');
+    expect(violations[0]!.reason).toContain('Entschuldigung, ich kann kein JSON liefern.');
+    // Lange Antworten werden gekürzt, damit der Report lesbar bleibt.
+    const long = parseJudgeResponse('x'.repeat(1000));
+    expect(long[0]!.reason.length).toBeLessThan(400);
+    // Leere Antworten werden als solche benannt.
+    expect(parseJudgeResponse('')[0]!.reason).toContain('leer');
+  });
+
+  it('judgeParseFailed ist für reguläre Ergebnisse false', () => {
+    expect(judgeParseFailed([])).toBe(false);
+    expect(judgeParseFailed([{ claim: 'A', reason: 'B' }])).toBe(false);
   });
 });
 

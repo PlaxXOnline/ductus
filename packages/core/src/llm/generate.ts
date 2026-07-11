@@ -16,7 +16,7 @@ import type {
 } from '../contracts.js';
 import { SegmentCache, type CacheEntry } from './cache.js';
 import { estimateTokens } from './cost.js';
-import { runFaithfulnessCheck } from './judge.js';
+import { judgeParseFailed, runFaithfulnessCheck } from './judge.js';
 import { buildGenerationPrompt, buildJudgePrompt, PROMPT_VERSION, serializeSegment } from './prompts.js';
 import { segmentGraph } from './segment.js';
 
@@ -129,12 +129,18 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
       }
     }
 
-    const entry: CacheEntry = {
-      markdown: response.text,
-      ...(segmentUsage ? { usage: segmentUsage } : {}),
-      violations,
-    };
-    cache.set(key, entry);
+    if (judgeParseFailed(violations)) {
+      // Nicht cachen: ein Format-Ausrutscher des Judge soll beim nächsten
+      // Lauf erneut versucht werden, statt dauerhaft im Cache zu liegen.
+      opts.log?.(`Segment "${segment.id}": Judge-Antwort unparsebar — Ergebnis wird nicht gecacht`);
+    } else {
+      const entry: CacheEntry = {
+        markdown: response.text,
+        ...(segmentUsage ? { usage: segmentUsage } : {}),
+        violations,
+      };
+      cache.set(key, entry);
+    }
     results.push({
       segment,
       markdown: response.text,

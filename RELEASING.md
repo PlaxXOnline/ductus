@@ -108,7 +108,12 @@ Pro Änderung:
 2. PR mergen → der Release-Workflow legt automatisch den PR
    **„Version Packages"** an bzw. aktualisiert ihn (Versionen + CHANGELOGs).
 3. Den „Version Packages"-PR mergen → der Workflow publiziert die Pakete
-   automatisch nach npm (`npm run release`) und erzeugt GitHub-Releases/Tags.
+   automatisch nach npm (`npm run release`) und pusht die Tags. GitHub-Releases
+   erstellt anschließend `scripts/create-github-releases.mjs` — mit dem
+   Changelog-Eintrag als Release-Notes und **nur für Pakete mit echten
+   Änderungen**: Die fixed-Gruppierung bumpt bei jedem Release alle Pakete,
+   aber Pakete, deren Changelog-Eintrag leer ist oder nur Dependency-Bumps
+   enthält, bekommen kein Release (einen Tag schon).
 
 ### Changelog-Pflege ist erzwungen
 

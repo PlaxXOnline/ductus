@@ -6,6 +6,11 @@
 # Publisher für diesen Workflow konfiguriert (siehe RELEASING.md §3a);
 # id-token: write ist dafür zwingend. Provenance wird beim Trusted
 # Publishing automatisch erzeugt.
+#
+# GitHub-Releases erstellt nicht die Action (createGithubReleases: false),
+# sondern scripts/create-github-releases.mjs — nur für Pakete, deren
+# Changelog-Eintrag echte Änderungen enthält. Die fixed-Gruppierung bumpt
+# sonst alle Pakete und unveränderte bekämen leere Releases.
 name: Release
 
 on:
@@ -65,5 +70,13 @@ jobs:
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           publish: npm run release
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub releases for changed packages
+        if: steps.changesets.outputs.published == 'true'
+        run: node scripts/create-github-releases.mjs
+        env:
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

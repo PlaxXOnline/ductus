@@ -1,5 +1,11 @@
 # @ductus/adapter-typescript
 
+## 0.3.0
+
+### Patch Changes
+
+- @ductus/schema@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

@@ -36,6 +36,8 @@ CLAUDE.md
 # Interne Arbeitsdokumente (lokal, nicht Teil des veröffentlichten Repos)
 SPEC.md
 docs/DESIGN-DECISIONS.md
+SPEC-addendum-output-modes.md
+plans/
 
 # OS / Editor
 .DS_Store

@@ -1,7 +1,7 @@
 /**
- * Zentrale UI-Strings (de-Default; en, wenn site.locale mit "en" beginnt).
- * Die Strings werden ausschließlich zur Buildzeit aufgelöst — client-seitige
- * Skripte erhalten fertig übersetzte Texte über data-Attribute bzw. JSON-Inseln.
+ * Central UI strings (en default; de only when site.locale starts with "de").
+ * The strings are resolved exclusively at build time — client-side scripts
+ * receive pre-translated texts via data attributes and JSON islands.
  */
 
 export interface UiStrings {
@@ -64,7 +64,7 @@ export interface UiStrings {
   backToOverview: string;
 }
 
-/** Trigger-Vokabular (TriggerType aus @ductus/schema) → Handlungsaufforderung. */
+/** Trigger vocabulary (TriggerType from @ductus/schema) → call to action. */
 function actionHintDe(trigger: string | null, label: string): string {
   const l = label !== '' ? label : null;
   switch (trigger) {
@@ -242,5 +242,5 @@ const en: UiStrings = {
 };
 
 export function uiStrings(locale: string): UiStrings {
-  return locale.toLowerCase().startsWith('en') ? en : de;
+  return locale.toLowerCase().startsWith('de') ? de : en;
 }

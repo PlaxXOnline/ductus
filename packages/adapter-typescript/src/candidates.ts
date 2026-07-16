@@ -1,11 +1,11 @@
 /**
- * Zwischenstrukturen der manuellen Extraktion (Weg A), deren `from` ggf.
- * erst nach dem Scan ALLER Dateien aufgelöst wird.
+ * Intermediate structures of the manual extraction (path A) whose `from`
+ * may only be resolved after ALL files have been scanned.
  */
 
 import type { GraphFlow, GraphNode, SourceRef } from './graph-model.js';
 
-/** Eine @journey:action, deren `from` ggf. noch aufzulösen ist. */
+/** A @journey:action whose `from` may still need to be resolved. */
 export interface ActionCandidate {
   id?: string;
   label: string;
@@ -13,16 +13,16 @@ export interface ActionCandidate {
   from?: string;
   trigger: string;
   condition?: string;
-  /** Name der umschließenden Komponente für die from-Inferenz. */
+  /** Name of the enclosing component for `from` inference. */
   enclosingName?: string;
   sourceRef: SourceRef;
 }
 
-/** Ergebnis der manuellen Extraktion einer Datei. */
+/** Result of the manual extraction of a single file. */
 export class ManualExtraction {
   readonly nodes: GraphNode[] = [];
   readonly flows: GraphFlow[] = [];
   readonly actions: ActionCandidate[] = [];
-  /** Komponenten-Name → Screen-Id (für from-Inferenz und Nav-Zuordnung). */
+  /** Component name → screen id (for `from` inference and nav mapping). */
   readonly screenSymbols = new Map<string, string>();
 }

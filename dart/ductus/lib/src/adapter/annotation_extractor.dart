@@ -1,9 +1,9 @@
-/// Weg B — native Dart-Annotationen `@JourneyScreen` etc.
+/// Path B — native Dart annotations `@JourneyScreen` etc.
 ///
-/// Parse-only: Const-Argumente werden literal aus dem AST gelesen, ohne
-/// Resolution. Der build_runner-Builder (Weg D) kann über
-/// [AnnotationResolution] zusätzlich nicht-literale konstante Argumente
-/// auflösen — literale Argumente bleiben davon unberührt (Paritätsgarantie).
+/// Parse-only: const arguments are read literally from the AST, without
+/// resolution. The build_runner builder (path D) can additionally resolve
+/// non-literal constant arguments via [AnnotationResolution] — literal
+/// arguments remain unaffected by it (parity guarantee).
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -12,22 +12,22 @@ import 'candidates.dart';
 import 'graph_model.dart';
 import 'scanner.dart';
 
-/// Löst nicht-literale konstante Annotation-Argumente auf (Weg D).
+/// Resolves non-literal constant annotation arguments (path D).
 ///
-/// Der Extraktor fragt hier nach, BEVOR er ein nicht literal lesbares
-/// Argument diagnostiziert. `null` ⇒ nicht konstant auflösbar; dann greift
-/// unverändert die parse-only-Warn-/Fehlersemantik (gleiche Meldungsformate).
-/// Bewusst frei von build-/source_gen-Typen, damit das Adapter-CLI keine
-/// Builder-Abhängigkeiten zieht.
+/// The extractor asks here BEFORE it diagnoses an argument that is not
+/// readable as a literal. `null` ⇒ not constant-resolvable; then the
+/// parse-only warning/error semantics apply unchanged (same message
+/// formats). Deliberately free of build/source_gen types so the adapter CLI
+/// pulls no builder dependencies.
 abstract class AnnotationResolution {
-  /// Konstanter String-Wert des benannten Arguments [key], sonst `null`.
+  /// Constant string value of the named argument [key], otherwise `null`.
   String? stringValue(ScannedFile file, Annotation annotation, String key);
 
-  /// Konstante String-Liste des benannten Arguments [key], sonst `null`.
+  /// Constant string list of the named argument [key], otherwise `null`.
   List<String>? stringListValue(
       ScannedFile file, Annotation annotation, String key);
 
-  /// Name des konstanten `JourneyTrigger`-Werts (z. B. 'tap'), sonst `null`.
+  /// Name of the constant `JourneyTrigger` value (e.g. 'tap'), otherwise `null`.
   String? triggerValue(ScannedFile file, Annotation annotation, String key);
 }
 
@@ -39,7 +39,7 @@ String _annotationName(Annotation annotation) {
 String? _stringValue(Expression expr) =>
     expr is StringLiteral ? expr.stringValue : null;
 
-/// `JourneyTrigger.tap` bzw. `prefix.JourneyTrigger.tap` -> 'tap'.
+/// `JourneyTrigger.tap` or `prefix.JourneyTrigger.tap` -> 'tap'.
 String? _triggerValue(Expression expr) {
   if (expr is PrefixedIdentifier) return expr.identifier.name;
   if (expr is PropertyAccess) return expr.propertyName.name;
@@ -56,10 +56,10 @@ Map<String, Expression> _namedArgs(Annotation annotation) {
   return args;
 }
 
-/// Extrahiert alle Journey-Annotationen einer Datei.
+/// Extracts all journey annotations of a file.
 ///
-/// [resolution] (Weg D) löst nicht-literale konstante Argumente auf; ohne
-/// Auflösung bleibt das parse-only-Verhalten byte-identisch erhalten.
+/// [resolution] (path D) resolves non-literal constant arguments; without
+/// resolution the parse-only behavior stays byte-identical.
 ManualExtraction extractAnnotations(
   ScannedFile file,
   void Function(String) warn,
@@ -78,12 +78,11 @@ ManualExtraction extractAnnotations(
     final where = '${file.relPath}:${ref.line}';
     final args = _namedArgs(annotation);
 
-    /// Liest ein benanntes String-Argument. Ist das Argument zwar vorhanden,
-    /// aber parse-only nicht literal lesbar (z. B. eine Const-Referenz),
-    /// versucht zuerst [resolution] (Weg D) die konstante
-    /// Auflösung; scheitert auch die, wird das diagnostiziert statt
-    /// stillschweigend verworfen: Warnung für optionale Felder, Fehler bei
-    /// [errorIfUnreadable].
+    /// Reads a named string argument. If the argument is present but not
+    /// readable as a literal parse-only (e.g. a const reference),
+    /// [resolution] (path D) first attempts constant resolution; if that
+    /// fails too, it is diagnosed instead of silently dropped: a warning
+    /// for optional fields, an error for [errorIfUnreadable].
     String? str(String key, {bool errorIfUnreadable = false}) {
       final expr = args[key];
       if (expr == null) return null;
@@ -91,28 +90,28 @@ ManualExtraction extractAnnotations(
           _stringValue(expr) ?? resolution?.stringValue(file, annotation, key);
       if (value == null) {
         if (errorIfUnreadable) {
-          errors.add('$where: @$name: "$key" nicht literal lesbar '
-              '(nur String-Literale werden parse-only unterstützt).');
+          errors.add('$where: @$name: "$key" is not readable as a literal '
+              '(parse-only supports string literals only).');
         } else {
-          warn('Warnung: $where: @$name: "$key" nicht literal lesbar '
-              '— ignoriert.');
+          warn('Warning: $where: @$name: "$key" is not readable as a '
+              'literal — ignored.');
         }
       }
       return value;
     }
 
-    /// Liest das optionale `tags:`-Argument. Nicht (vollständig) literal
-    /// lesbare Listen werden zuerst über [resolution] (Weg D) konstant
-    /// aufgelöst; scheitert das, greift die parse-only-Semantik: nicht-
-    /// literale Liste bzw. nicht-literale Elemente mit Warnung überspringen.
+    /// Reads the optional `tags:` argument. Lists that are not (fully)
+    /// readable as literals are first constant-resolved via [resolution]
+    /// (path D); if that fails, parse-only semantics apply: skip a
+    /// non-literal list or non-literal elements with a warning.
     List<String> tagsValue() {
       final expr = args['tags'];
       if (expr == null) return const [];
       if (expr is! ListLiteral) {
         final resolved = resolution?.stringListValue(file, annotation, 'tags');
         if (resolved != null) return resolved;
-        warn('Warnung: $where: @$name: "tags" nicht literal lesbar '
-            '— ignoriert.');
+        warn('Warning: $where: @$name: "tags" is not readable as a '
+            'literal — ignored.');
         return const [];
       }
       final values = <String>[];
@@ -125,15 +124,15 @@ ManualExtraction extractAnnotations(
           values.add(v);
         }
       }
-      // Voll literal ⇒ Paritätspfad, identisch zum parse-only-Extraktor.
+      // Fully literal ⇒ parity path, identical to the parse-only extractor.
       if (allLiteral) return values;
       final resolved = resolution?.stringListValue(file, annotation, 'tags');
       if (resolved != null) return resolved;
-      // parse-only-Fallback: Warnung je nicht lesbarem Element, Rest behalten.
+      // Parse-only fallback: warn per unreadable element, keep the rest.
       for (final element in expr.elements) {
         if (element is! StringLiteral || element.stringValue == null) {
-          warn('Warnung: $where: @$name: "tags"-Element nicht literal '
-              'lesbar — ignoriert.');
+          warn('Warning: $where: @$name: "tags" element is not readable '
+              'as a literal — ignored.');
         }
       }
       return values;
@@ -146,7 +145,7 @@ ManualExtraction extractAnnotations(
         final title = str('title', errorIfUnreadable: true);
         if (id == null || title == null) {
           if (!args.containsKey('id') || !args.containsKey('title')) {
-            errors.add('$where: @$name benötigt literale "id" und "title".');
+            errors.add('$where: @$name requires literal "id" and "title".');
           }
           return;
         }
@@ -170,7 +169,7 @@ ManualExtraction extractAnnotations(
         if (label == null || to == null) {
           if (!args.containsKey('label') || !args.containsKey('to')) {
             errors
-                .add('$where: @JourneyAction benötigt literale "label" und "to".');
+                .add('$where: @JourneyAction requires literal "label" and "to".');
           }
           return;
         }
@@ -178,24 +177,24 @@ ManualExtraction extractAnnotations(
         if (args.containsKey('trigger')) {
           var t = _triggerValue(args['trigger']!);
           if (t == null || !validTriggers.contains(t)) {
-            // Weg D: konstante Referenz (z. B. `MyConsts.trigger`) auflösen.
+            // Path D: resolve a constant reference (e.g. `MyConsts.trigger`).
             t = resolution?.triggerValue(file, annotation, 'trigger') ?? t;
           }
           if (t == null || !validTriggers.contains(t)) {
-            warn('Warnung: $where: trigger nicht literal lesbar — '
-                'verwende "tap".');
+            warn('Warning: $where: trigger is not readable as a literal — '
+                'using "tap".');
           } else {
             trigger = t;
           }
         }
-        // Explizit gesetztes, aber nicht lesbares `from` ist ein Fehler —
-        // sonst würde die from-Inferenz den gemeinten Wert stillschweigend
-        // durch die umschließende Klasse ersetzen (falsche Kante).
+        // An explicitly set but unreadable `from` is an error — otherwise
+        // the from inference would silently replace the intended value
+        // with the enclosing class (wrong edge).
         final from = str('from', errorIfUnreadable: true);
         if (from == null && args.containsKey('from')) return;
         if (from == null && enclosingClassName == null) {
-          errors.add('$where: @JourneyAction ohne "from" und ohne '
-              'umschließende Klasse — "from" nicht bestimmbar.');
+          errors.add('$where: @JourneyAction without "from" and without an '
+              'enclosing class — cannot determine "from".');
           return;
         }
         result.actions.add(ActionCandidate(
@@ -217,7 +216,7 @@ ManualExtraction extractAnnotations(
               !args.containsKey('title') ||
               !args.containsKey('start')) {
             errors.add(
-                '$where: @JourneyFlow benötigt literale "id", "title" und "start".');
+                '$where: @JourneyFlow requires literal "id", "title", and "start".');
           }
           return;
         }

@@ -1,6 +1,6 @@
 /**
- * Weg A — Kommentar-Konvention `@journey:<typ>` in `//`-Kommentaren;
- * Syntax und Semantik identisch zum Dart-Adapter
+ * Path A — comment convention `@journey:<type>` in `//` comments;
+ * syntax and semantics identical to the Dart adapter
  * (dart/ductus/lib/src/adapter/comment_parser.dart).
  */
 
@@ -30,10 +30,10 @@ const REQUIRED_KEYS: Record<string, string[]> = {
 };
 
 const JOURNEY_START = /@journey:([A-Za-z_-]+)/;
-// key="value" — \" escaped ein Anführungszeichen im Wert.
+// key="value" — \" escapes a quote inside the value.
 const PAIR = /([A-Za-z][A-Za-z0-9_-]*)\s*=\s*"((?:[^"\\]|\\.)*)"/g;
 
-/** Ein roher `@journey:`-Block: Typ, Rohtext, Startzeile (1-basiert). */
+/** A raw `@journey:` block: type, raw text, start line (1-based). */
 export interface RawBlock {
   type: string;
   text: string;
@@ -41,9 +41,9 @@ export interface RawBlock {
 }
 
 /**
- * Zerlegt eine Datei zeilenbasiert in `@journey:`-Blöcke: Start in einer
- * Kommentarzeile, Fortsetzung in unmittelbar folgenden Kommentarzeilen,
- * Ende an Nicht-Kommentar-Zeile oder neuem `@journey:`-Block.
+ * Splits a file line by line into `@journey:` blocks: start in a comment
+ * line, continuation in immediately following comment lines, end at a
+ * non-comment line or a new `@journey:` block.
  */
 export function splitBlocks(content: string): RawBlock[] {
   const lines = content.split('\n');
@@ -66,7 +66,7 @@ export function splitBlocks(content: string): RawBlock[] {
       flush();
       continue;
     }
-    // Kommentar-Inhalt ohne führende Slashes.
+    // Comment content without the leading slashes.
     const body = trimmed.replace(/^\/{2,}/, '');
     const match = JOURNEY_START.exec(body);
     if (match !== null) {
@@ -103,9 +103,9 @@ function splitTags(value: string): string[] {
 }
 
 /**
- * Parst alle `@journey:`-Blöcke einer Datei. Warnungen (unbekannte Keys,
- * unbekannte Trigger/Typen) via `warn`; fatale Probleme (fehlende
- * Pflichtfelder, nicht auflösbares `from`) landen in `errors`.
+ * Parses all `@journey:` blocks of a file. Warnings (unknown keys, unknown
+ * triggers/types) go through `warn`; fatal problems (missing required
+ * fields, unresolvable `from`) end up in `errors`.
  */
 export function parseComments(
   file: ScannedFile,
@@ -118,7 +118,7 @@ export function parseComments(
   for (const block of splitBlocks(file.content)) {
     const where = `${file.relPath}:${block.line}`;
     if (!BLOCK_TYPES.has(block.type)) {
-      warn(`Warnung: ${where}: unbekannter @journey-Typ "${block.type}" — Block wird ignoriert.`);
+      warn(`Warning: ${where}: unknown @journey type "${block.type}" — block ignored.`);
       continue;
     }
 
@@ -126,7 +126,7 @@ export function parseComments(
     for (const m of block.text.matchAll(PAIR)) {
       const key = m[1]!;
       if (!KNOWN_KEYS[block.type]!.has(key)) {
-        warn(`Warnung: ${where}: unbekannter Key "${key}" in @journey:${block.type} — wird ignoriert.`);
+        warn(`Warning: ${where}: unknown key "${key}" in @journey:${block.type} — ignored.`);
         continue;
       }
       values.set(key, unescape(m[2]!));
@@ -134,7 +134,7 @@ export function parseComments(
 
     const missing = REQUIRED_KEYS[block.type]!.filter((k) => !values.has(k));
     if (missing.length > 0) {
-      errors.push(`${where}: @journey:${block.type} fehlen Pflichtfelder: ${missing.join(', ')}.`);
+      errors.push(`${where}: @journey:${block.type} is missing required fields: ${missing.join(', ')}.`);
       continue;
     }
 
@@ -144,7 +144,7 @@ export function parseComments(
     switch (block.type) {
       case 'screen':
       case 'decision': {
-        // Block einer Komponente zuordnen: umschließend oder direkt darüber.
+        // Attach the block to a component: enclosing or directly below.
         const component = enclosing ?? nextComponentAfter(declarations, blockOffset);
         const symbol = component?.name;
         const tags = values.get('tags');
@@ -171,12 +171,12 @@ export function parseComments(
       case 'action': {
         let trigger = values.get('trigger') ?? 'tap';
         if (!validTriggers.has(trigger)) {
-          warn(`Warnung: ${where}: unbekannter trigger "${trigger}" — verwende "tap".`);
+          warn(`Warning: ${where}: unknown trigger "${trigger}" — using "tap".`);
           trigger = 'tap';
         }
         if (!values.has('from') && enclosing === undefined) {
           errors.push(
-            `${where}: @journey:action ohne "from" und ohne umschließende Komponente — "from" nicht bestimmbar.`,
+            `${where}: @journey:action without "from" and without an enclosing component — cannot determine "from".`,
           );
           continue;
         }

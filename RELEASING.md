@@ -1,186 +1,188 @@
 # Releasing
 
-Schritt-für-Schritt-Anleitung, um Ductus zu veröffentlichen. Die npm-Pakete
+Step-by-step guide to publishing Ductus. The npm packages
 (`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`,
-`@ductus/adapter-typescript`) werden über
-[Changesets](https://github.com/changesets/changesets) versioniert und via
-GitHub Actions publiziert; das Dart-Paket `ductus` (in `dart/ductus`) geht
-über einen Tag-getriggerten Workflow nach pub.dev.
+`@ductus/adapter-typescript`) are versioned via
+[Changesets](https://github.com/changesets/changesets) and published through
+GitHub Actions; the Dart package `ductus` (in `dart/ductus`) goes to pub.dev
+via a tag-triggered workflow.
 
-## 1. npm-Organisation `ductus` anlegen
+## 1. Create the npm organization `ductus`
 
-Der Scope `@ductus` setzt eine npm-Organisation namens `ductus` voraus:
+The scope `@ductus` requires an npm organization named `ductus`:
 
-1. Auf [npmjs.com](https://www.npmjs.com/) einloggen.
-2. **Add Organization** → Name `ductus` → Free/Public reicht.
-3. Falls der Name bereits als User oder Organisation belegt ist, zeigt npm
-   das an dieser Stelle an — dann muss ein anderer Scope gewählt und in allen
-   `package.json`-Dateien nachgezogen werden.
+1. Log in on [npmjs.com](https://www.npmjs.com/).
+2. **Add Organization** → name `ductus` → Free/Public is sufficient.
+3. If the name is already taken by a user or organization, npm shows that
+   right there — in that case a different scope must be chosen and updated
+   in all `package.json` files.
 
-Hinweis: Das *unscoped* npm-Paket `ductus` ist ein Security-Holding-Package
-von npm — das ist irrelevant, publiziert wird ausschließlich scoped.
+Note: the *unscoped* npm package `ductus` is a security holding package
+owned by npm — that is irrelevant; publishing happens exclusively scoped.
 
-## 2. `main` nach GitHub pushen
+## 2. Push `main` to GitHub
 
-Das Repository existiert bereits — lokal (Branches `main` und `develop`) und
-auf GitHub unter `https://github.com/PlaxXOnline/ductus`; die Repo-URL ist in
-allen Manifests (`package.json`, `pubspec.yaml`) und READMEs eingetragen.
+The repository already exists — locally (branches `main` and `develop`) and
+on GitHub at `https://github.com/PlaxXOnline/ductus`; the repo URL is set in
+all manifests (`package.json`, `pubspec.yaml`) and READMEs.
 
-Auf `origin` liegt bisher allerdings nur `develop`. Der Release-Workflow
-triggert auf Pushes nach `main` (dort ist auch der Changesets-`baseBranch`
-konfiguriert), also vor dem ersten Workflow-Release `main` pushen:
+So far, however, only `develop` exists on `origin`. The release workflow
+triggers on pushes to `main` (the Changesets `baseBranch` is configured
+there as well), so push `main` before the first workflow release:
 
 ```bash
 git push -u origin main
 ```
 
-## 3. Publishing konfigurieren: Trusted Publishing und Actions-Rechte
+## 3. Configure publishing: trusted publishing and Actions permissions
 
-### 3a. npm Trusted Publishing (OIDC) einrichten
+### 3a. Set up npm trusted publishing (OIDC)
 
-Der Workflow [.github/workflows/release.yml](.github/workflows/release.yml)
-publiziert über [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers):
-npm vertraut dem OIDC-Token von GitHub Actions direkt — es gibt **kein**
-npm-Token, kein `NPM_TOKEN`-Secret und keine Token-Rotation.
+The workflow [.github/workflows/release.yml](.github/workflows/release.yml)
+publishes via [npm trusted publishing](https://docs.npmjs.com/trusted-publishers):
+npm trusts the OIDC token from GitHub Actions directly — there is **no**
+npm token, no `NPM_TOKEN` secret and no token rotation.
 
-Trusted Publisher werden in den **Paket**-Settings auf npmjs.com konfiguriert,
-die Pakete müssen also zuerst existieren. Die Erstveröffentlichung läuft
-deshalb **lokal**:
+Trusted publishers are configured in the **package** settings on npmjs.com,
+so the packages have to exist first. The initial publish therefore happens
+**locally**:
 
-1. `npm login` — die interaktive 2FA/OTP-Abfrage ist hier völlig in Ordnung,
-   ein Bypass ist nicht nötig.
-2. Im Repo-Root: `npm run build && npx changeset publish` — publiziert alle
-   npm-Pakete in ihrer Erstversion (noch ohne Provenance; ab dem nächsten
-   CI-Release automatisch mit).
+1. `npm login` — the interactive 2FA/OTP prompt is perfectly fine here,
+   no bypass is needed.
+2. In the repo root: `npm run build && npx changeset publish` — publishes
+   all npm packages in their initial version (without provenance for now;
+   automatically with provenance from the next CI release on).
 
-Dasselbe gilt für jedes **später hinzukommende** Paket (so geschehen mit
-`@ductus/adapter-typescript`): Erstveröffentlichung lokal, danach den
-Trusted Publisher für das neue Paket konfigurieren.
+The same applies to every package **added later** (as happened with
+`@ductus/adapter-typescript`): initial publish locally, then configure the
+trusted publisher for the new package.
 
-Danach **je Paket** (`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`,
-`@ductus/adapter-typescript`) auf npmjs.com:
-**Package Settings → Trusted Publisher → GitHub Actions** mit:
+Then, **per package** (`@ductus/schema`, `@ductus/core`, `@ductus/adapter-dart`,
+`@ductus/adapter-typescript`) on npmjs.com:
+**Package Settings → Trusted Publisher → GitHub Actions** with:
 
 - **Organization or user**: `PlaxXOnline`
 - **Repository**: `ductus`
-- **Workflow filename**: `release.yml` (nur der Dateiname, kein Pfad)
-- **Environment name**: leer lassen
+- **Workflow filename**: `release.yml` (just the file name, no path)
+- **Environment name**: leave empty
 - **Allowed actions**: *npm publish*
 
-Alle Felder sind case-sensitiv und müssen exakt passen. Weitere Hinweise:
+All fields are case-sensitive and must match exactly. Further notes:
 
-- Je Paket ist genau **ein** Trusted Publisher möglich; wird die
-  Workflow-Datei umbenannt, muss die Konfiguration je Paket nachgezogen
-  werden.
-- Self-hosted Runner werden nicht unterstützt (nur GitHub-hosted).
-- Trusted Publishing braucht npm CLI ≥ 11.5.1. Das von Node 24 gebündelte
-  npm erfüllt das; ein Guard-Schritt im Workflow prüft die Version vor dem
-  Publish. Bewusst **kein** `npm install -g npm@latest` im Workflow:
-  npm 12.0.0 deklariert `sigstore` nicht mehr als Dependency, obwohl
-  `libnpmpublish` es für Provenance lädt — ein Registry-Install entfernt das
-  Modul und der Publish scheitert mit `MODULE_NOT_FOUND`
+- Exactly **one** trusted publisher is possible per package; if the workflow
+  file is renamed, the configuration must be updated for each package.
+- Self-hosted runners are not supported (GitHub-hosted only).
+- Trusted publishing requires npm CLI ≥ 11.5.1. The npm bundled with Node 24
+  satisfies this; a guard step in the workflow checks the version before
+  publishing. Deliberately **no** `npm install -g npm@latest` in the
+  workflow: npm 12.0.0 no longer declares `sigstore` as a dependency even
+  though `libnpmpublish` loads it for provenance — a registry install
+  removes the module and the publish fails with `MODULE_NOT_FOUND`
   ([npm/cli#9722](https://github.com/npm/cli/issues/9722)).
-- Provenance wird beim Trusted Publishing automatisch erzeugt; ein
-  `publishConfig.provenance` in den Paketen ist nicht nötig (und würde den
-  lokalen Erstpublish brechen, weil Provenance unterstütztes CI/OIDC
-  voraussetzt).
+- Provenance is generated automatically with trusted publishing; a
+  `publishConfig.provenance` in the packages is not needed (and would break
+  the local initial publish, because provenance requires supported
+  CI/OIDC).
 
-### 3b. GitHub Actions das Erstellen von Pull Requests erlauben
+### 3b. Allow GitHub Actions to create pull requests
 
-In **Settings → Actions → General → Workflow permissions** die Option
-**„Allow GitHub Actions to create and approve pull requests“** aktivieren.
-Bei Repos unter persönlichen Accounts (wie `PlaxXOnline`) ist sie per Default
-**deaktiviert** — ohne sie bricht der Release-Workflow beim Anlegen des
-„Version Packages“-PR mit *„GitHub Actions is not permitted to create or
-approve pull requests“* ab (workflow-seitig ist `pull-requests: write`
-bereits gesetzt). Die Erstveröffentlichung 0.1.0 läuft lokal (Schritt 3a)
-und braucht die Option nicht — jedes Folge-Release über den Workflow schon.
+In **Settings → Actions → General → Workflow permissions**, enable
+**“Allow GitHub Actions to create and approve pull requests”**.
+For repos under personal accounts (like `PlaxXOnline`) it is **disabled** by
+default — without it the release workflow aborts when creating the
+“Version Packages” PR with *“GitHub Actions is not permitted to create or
+approve pull requests”* (`pull-requests: write` is already set on the
+workflow side). The initial 0.1.0 publish happens locally (step 3a) and
+does not need the option — every subsequent release through the workflow
+does.
 
-## 4. Release-Ablauf npm (Changesets)
+## 4. npm release flow (Changesets)
 
-Die npm-Pakete sind in `.changeset/config.json` als `fixed` gruppiert —
-sie tragen immer dieselbe Version.
+The npm packages are grouped as `fixed` in `.changeset/config.json` —
+they always carry the same version.
 
-Pro Änderung:
+Per change:
 
-1. `npx changeset` — Pakete wählen, Bump-Typ (patch/minor/major) und
-   Beschreibung angeben; die erzeugte `.changeset/*.md` mit committen.
-2. PR mergen → der Release-Workflow legt automatisch den PR
-   **„Version Packages"** an bzw. aktualisiert ihn (Versionen + CHANGELOGs).
-3. Den „Version Packages"-PR mergen → der Workflow publiziert die Pakete
-   automatisch nach npm (`npm run release`) und pusht die Tags. GitHub-Releases
-   erstellt anschließend `scripts/create-github-releases.mjs` — mit dem
-   Changelog-Eintrag als Release-Notes und **nur für Pakete mit echten
-   Änderungen**: Die fixed-Gruppierung bumpt bei jedem Release alle Pakete,
-   aber Pakete, deren Changelog-Eintrag leer ist oder nur Dependency-Bumps
-   enthält, bekommen kein Release (einen Tag schon).
+1. `npx changeset` — select the packages, choose the bump type
+   (patch/minor/major) and enter a description; commit the generated
+   `.changeset/*.md` along with the change.
+2. Merge the PR → the release workflow automatically creates or updates the
+   **“Version Packages”** PR (versions + CHANGELOGs).
+3. Merge the “Version Packages” PR → the workflow publishes the packages to
+   npm automatically (`npm run release`) and pushes the tags. GitHub
+   releases are then created by `scripts/create-github-releases.mjs` — with
+   the changelog entry as release notes and **only for packages with real
+   changes**: the fixed grouping bumps all packages on every release, but
+   packages whose changelog entry is empty or contains only dependency
+   bumps do not get a release (they do get a tag).
 
-### Changelog-Pflege ist erzwungen
+### Changelog maintenance is enforced
 
-Die `CHANGELOG.md`-Dateien der Pakete werden **nie von Hand** geschrieben —
-sie entstehen vollständig aus den Changesets, wenn die Version-PR erzeugt
-wird. Damit dabei nichts verloren geht, prüft der CI-Job **`changeset-check`**
-bei jedem Push/PR (außer auf `main` und den Bot-Version-PRs) per
-`npx changeset status --since=origin/main`, ob für alle seit dem letzten
-Release geänderten Pakete ein Changeset vorliegt — fehlt eins, ist CI rot.
+The packages' `CHANGELOG.md` files are **never written by hand** — they are
+generated entirely from the changesets when the version PR is created. To
+make sure nothing gets lost, the CI job **`changeset-check`** verifies on
+every push/PR (except on `main` and the bot version PRs) via
+`npx changeset status --since=origin/main` that a changeset exists for all
+packages changed since the last release — if one is missing, CI is red.
 
-Daraus folgt als Arbeitsregel: **Jede Änderung unter `packages/*` bekommt im
-selben Commit/PR ihr Changeset** (auch interne Umbauten oder Doku — dann eben
-als `patch` mit einem Einzeiler). Änderungen außerhalb der Pakete (Repo-Doku,
-Beispiele, CI) brauchen keins.
+The resulting working rule: **every change under `packages/*` gets its
+changeset in the same commit/PR** (including internal restructurings or
+docs — then simply as a `patch` with a one-liner). Changes outside the
+packages (repo docs, examples, CI) do not need one.
 
-Für das Dart-Paket (kein Changesets-Support) gilt das Analogon über den
-CI-Job **`dart-changelog-check`**: Änderungen unter `dart/ductus/` müssen die
-`dart/ductus/CHANGELOG.md` im selben Diff mitpflegen — der Eintrag wird dort
-manuell geschrieben (Abschnitt 5), das Gate stellt nur sicher, dass er nie
-fehlt.
+For the Dart package (no Changesets support) the analogue is the CI job
+**`dart-changelog-check`**: changes under `dart/ductus/` must update
+`dart/ductus/CHANGELOG.md` in the same diff — the entry is written there
+manually (section 5); the gate only ensures that it is never missing.
 
-**Erstveröffentlichung (0.1.0):** Läuft **lokal** (siehe Schritt 3a), nicht
-über den ersten Workflow-Lauf — die Trusted-Publisher-Konfiguration setzt
-existierende Pakete voraus. Ein Changeset ist nicht nötig: Alle Pakete stehen
-bereits auf 0.1.0, `npx changeset publish` publiziert auf npm fehlende
-Versionen direkt. Ab dann publiziert der Release-Workflow jedes Folge-Release
-über OIDC.
+**Initial publish (0.1.0):** happens **locally** (see step 3a), not through
+the first workflow run — the trusted publisher configuration requires
+existing packages. No changeset is needed: all packages are already at
+0.1.0, and `npx changeset publish` publishes versions missing on npm
+directly. From then on, the release workflow publishes every subsequent
+release via OIDC.
 
-## 5. Release-Ablauf pub.dev (Dart-Paket)
+## 5. pub.dev release flow (Dart package)
 
-Die **erste** Veröffentlichung muss manuell erfolgen — automated publishing
-lässt sich erst danach im Admin-Tab des Pakets aktivieren:
+The **first** publish has to happen manually — automated publishing can
+only be enabled in the package's Admin tab afterwards:
 
 ```bash
 cd dart/ductus
-dart pub publish        # erst --dry-run, dann echt
+dart pub publish        # first --dry-run, then for real
 ```
 
-Danach auf pub.dev automated publishing einrichten:
+Then set up automated publishing on pub.dev:
 
-1. Auf der Paketseite von `ductus` → **Admin** →
+1. On the package page of `ductus` → **Admin** →
    **Enable publishing from GitHub Actions**.
 2. Repository: `PlaxXOnline/ductus`.
-3. Tag-Pattern: `dart-v{{version}}` (das Paket liegt im Unterordner
-   `dart/ductus`, daher das Präfix statt des Standard-Musters `v{{version}}`).
+3. Tag pattern: `dart-v{{version}}` (the package lives in the subfolder
+   `dart/ductus`, hence the prefix instead of the default pattern
+   `v{{version}}`).
 
-Ab dann läuft jedes weitere Release über
+From then on, every further release runs through
 [.github/workflows/publish-dart.yml](.github/workflows/publish-dart.yml):
 
-1. `version` in `dart/ductus/pubspec.yaml` bumpen, die Konstante
-   `adapterVersion` in `dart/ductus/lib/src/adapter/graph_model.dart`
-   nachziehen (muss identisch sein — ein Regressionstest in
-   `test/cli_integration_test.dart` prüft das) und
-   `dart/ductus/CHANGELOG.md` ergänzen; mergen.
-2. Tag pushen — die Version im Tag muss exakt der `pubspec.yaml` entsprechen:
+1. Bump `version` in `dart/ductus/pubspec.yaml`, update the constant
+   `adapterVersion` in `dart/ductus/lib/src/adapter/graph_model.dart` to
+   match (they must be identical — a regression test in
+   `test/cli_integration_test.dart` checks this) and add an entry to
+   `dart/ductus/CHANGELOG.md`; merge.
+2. Push the tag — the version in the tag must match the `pubspec.yaml`
+   exactly:
 
    ```bash
    git tag dart-v0.2.0
    git push origin dart-v0.2.0
    ```
 
-3. Der Workflow testet das Paket und publiziert per OIDC nach pub.dev
-   (kein Secret nötig).
+3. The workflow tests the package and publishes to pub.dev via OIDC
+   (no secret needed).
 
-## 6. Späterer Umzug in eine GitHub-Organisation
+## 6. Moving to a GitHub organization later
 
-Ein Umzug des Repos zu einer GitHub-Org ist später problemlos möglich —
-GitHub richtet Redirects von der alten URL ein. Danach die Repo-URLs in den
-Manifests (`package.json` × 3, `pubspec.yaml`) und READMEs nachziehen und mit
-dem nächsten regulären Release veröffentlichen.
+Moving the repo to a GitHub org later is straightforward — GitHub sets up
+redirects from the old URL. Afterwards, update the repo URLs in the
+manifests (`package.json` × 4, `pubspec.yaml`) and READMEs and ship them
+with the next regular release.

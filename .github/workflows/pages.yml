@@ -1,6 +1,6 @@
-# Baut die Live-Demo aus dem journey-Template und den committeten Demo-Daten
-# (demo/ductus.data.json) und deployt sie nach GitHub Pages. Trailing Slash am
-# --base ist Pflicht: das Template konkateniert `${base}journeys/…`.
+# Builds the live demo from the journey template and the committed demo data
+# (demo/ductus.data.json) and deploys it to GitHub Pages. The trailing slash
+# on --base is mandatory: the template concatenates `${base}journeys/…`.
 name: Deploy Demo
 
 on:
@@ -28,11 +28,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      - name: Site aus Template + Demo-Daten zusammensetzen
+      - name: Assemble site from template + demo data
         run: |
           cp -R templates/journey site
           cp demo/ductus.data.json site/ductus.data.json
-      # Kein Lockfile im Template — daher npm install statt npm ci.
+      # No lockfile in the template — hence npm install instead of npm ci.
       - run: npm install
         working-directory: site
       - run: npx astro build --site https://plaxxonline.github.io --base /ductus/

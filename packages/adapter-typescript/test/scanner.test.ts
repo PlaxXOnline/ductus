@@ -1,5 +1,5 @@
 /**
- * Dateisuche + Glob-Semantik des Scanners.
+ * File discovery + glob semantics of the scanner.
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -29,20 +29,20 @@ afterAll(() => {
 });
 
 describe('globToRegExp', () => {
-  it('** matcht über Segmentgrenzen', () => {
+  it('** matches across segment boundaries', () => {
     const re = globToRegExp('src/**');
     expect(re.test('src/a/b.ts')).toBe(true);
     expect(re.test('src/a.ts')).toBe(true);
     expect(re.test('lib/x.ts')).toBe(false);
   });
 
-  it('* bleibt innerhalb eines Segments', () => {
+  it('* stays within a segment', () => {
     const re = globToRegExp('src/*.ts');
     expect(re.test('src/a.ts')).toBe(true);
     expect(re.test('src/a/b.ts')).toBe(false);
   });
 
-  it('? matcht genau ein Zeichen, aber kein /', () => {
+  it('? matches exactly one character, but not /', () => {
     const re = globToRegExp('src/?.ts');
     expect(re.test('src/a.ts')).toBe(true);
     expect(re.test('src/ab.ts')).toBe(false);
@@ -50,7 +50,7 @@ describe('globToRegExp', () => {
     expect(globToRegExp('a?b').test('a/b')).toBe(false);
   });
 
-  it('Regex-Sonderzeichen wie . werden escaped', () => {
+  it('regex special characters like . are escaped', () => {
     const re = globToRegExp('*.ts');
     expect(re.test('a.ts')).toBe(true);
     expect(re.test('a-ts')).toBe(false);
@@ -58,7 +58,7 @@ describe('globToRegExp', () => {
 });
 
 describe('scanProject', () => {
-  it('scannt node_modules/dist/dot-Verzeichnisse nie — auch nicht bei include **', () => {
+  it('never scans node_modules/dist/dot directories — not even with include **', () => {
     const dir = makeProject({
       'src/a.ts': 'export const a = 1;\n',
       'node_modules/pkg/index.ts': 'export const x = 1;\n',
@@ -72,25 +72,25 @@ describe('scanProject', () => {
     expect(files.map((f) => f.relPath)).toEqual(['src/a.ts']);
   });
 
-  it('include-Globs filtern; Pfade sind posix-relativ und sortiert', () => {
+  it('include globs filter; paths are posix-relative and sorted', () => {
     const dir = makeProject({
       'src/z.ts': 'export const z = 1;\n',
       'src/a/b.tsx': 'export const b = () => null;\n',
       'lib/x.ts': 'export const x = 1;\n',
       'docs/readme.ts': 'export const d = 1;\n',
-      'src/notes.md': '# Notizen\n',
+      'src/notes.md': '# Notes\n',
     });
 
-    // Default-Includes: src/**, app/**, pages/**, lib/** — docs/ fällt raus,
-    // .md ist keine Quell-Endung.
+    // Default includes: src/**, app/**, pages/**, lib/** — docs/ is dropped,
+    // .md is not a source extension.
     const files = scanProject(dir, new AdapterConfig(), new WarnLog().call);
     expect(files.map((f) => f.relPath)).toEqual(['lib/x.ts', 'src/a/b.tsx', 'src/z.ts']);
     expect(files.every((f) => !f.relPath.includes('\\'))).toBe(true);
-    // Die Dateien sind geparst (SourceFile vorhanden).
+    // The files are parsed (SourceFile present).
     expect(files[0]!.sourceFile.statements.length).toBeGreaterThan(0);
   });
 
-  it('nur passende include-Globs bleiben übrig', () => {
+  it('only matching include globs remain', () => {
     const dir = makeProject({
       'src/a.ts': 'export const a = 1;\n',
       'lib/x.ts': 'export const x = 1;\n',
@@ -100,7 +100,7 @@ describe('scanProject', () => {
     expect(files.map((f) => f.relPath)).toEqual(['src/a.ts']);
   });
 
-  it('Dateien mit Syntaxfehlern werden best effort verwendet und mit Warnung gemeldet', () => {
+  it('files with syntax errors are used best effort and reported with a warning', () => {
     const dir = makeProject({
       'src/kaputt.tsx': 'export function Broken( {\n',
       'src/ok.ts': 'export const ok = 1;\n',
@@ -110,17 +110,17 @@ describe('scanProject', () => {
     const files = scanProject(dir, new AdapterConfig(), warnings.call);
     expect(files.map((f) => f.relPath)).toEqual(['src/kaputt.tsx', 'src/ok.ts']);
     expect(warnings.messages).toEqual([
-      'Warnung: src/kaputt.tsx enthält Syntaxfehler; Analyse ist best effort.',
+      'Warning: src/kaputt.tsx contains syntax errors; analysis is best effort.',
     ]);
   });
 
-  it('nicht existierendes Projektverzeichnis wirft AdapterException', () => {
+  it('a non-existent project directory throws AdapterException', () => {
     const dir = makeProject({});
     expect(() =>
       scanProject(join(dir, 'gibt-es-nicht'), new AdapterConfig(), new WarnLog().call),
     ).toThrowError(AdapterException);
     expect(() =>
       scanProject(join(dir, 'gibt-es-nicht'), new AdapterConfig(), new WarnLog().call),
-    ).toThrowError(/Projektverzeichnis nicht gefunden/);
+    ).toThrowError(/Project directory not found/);
   });
 });

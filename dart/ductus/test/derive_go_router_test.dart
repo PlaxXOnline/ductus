@@ -5,7 +5,7 @@ import 'test_util.dart';
 
 void main() {
   group('slugFromPath', () {
-    test('führendes / weg, / zu -, :param entfällt, leer ergibt root', () {
+    test('leading / dropped, / to -, :param removed, empty yields root', () {
       expect(slugFromPath('/'), 'root');
       expect(slugFromPath(''), 'root');
       expect(slugFromPath('/login'), 'login');
@@ -15,14 +15,14 @@ void main() {
   });
 
   group('humanize', () {
-    test('erster Buchstabe groß, Bindestriche zu Leerzeichen', () {
+    test('first letter uppercased, hyphens to spaces', () {
       expect(humanize('user-profile'), 'User profile');
       expect(humanize('root'), 'Root');
     });
   });
 
   group('deriveGoRouter', () {
-    test('verschachtelte Routen, name vs. Pfad-Slug', () {
+    test('nested routes, name vs. path slug', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/login', name: 'login'),
@@ -33,18 +33,18 @@ final router = GoRouter(routes: [
 ''');
       final result = deriveGoRouter([file], WarnLog().call);
 
-      // Verschachtelte Routen ohne name: erhalten den Slug des Vollpfads.
+      // Nested routes without a name get the slug of the full path.
       expect(result.nodes.map((n) => n.id), ['login', 'users', 'users-edit']);
       final users = result.nodes.firstWhere((n) => n.id == 'users');
       expect(users.title, 'Users');
       expect(users.type, 'screen');
       expect(users.source, 'derived');
-      // Verschachtelte Pfade werden absolut aufgelöst.
+      // Nested paths are resolved to absolute ones.
       expect(result.pathToScreen['/users/:id/edit'], 'users-edit');
     });
 
-    test('gleiche relative Segmente unter verschiedenen Eltern kollabieren '
-        'nicht (Regression)', () {
+    test('identical relative segments under different parents do not '
+        'collapse (regression)', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/user', routes: [
@@ -68,13 +68,13 @@ class UserDetailScreen {
       expect(result.pathToScreen['/user/detail'], 'user-detail');
       expect(result.pathToScreen['/admin/detail'], 'admin-detail');
 
-      // Navigation zwischen den beiden Detail-Screens bleibt unterscheidbar.
+      // Navigation between the two detail screens stays distinguishable.
       final edge = result.edges.single;
       expect(edge.from, 'user-detail');
       expect(edge.to, 'admin-detail');
     });
 
-    test('ShellRoute wird zum Flow, Kind-Screens erhalten ihn', () {
+    test('ShellRoute becomes a flow, child screens receive it', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   ShellRoute(routes: [
@@ -92,7 +92,7 @@ final router = GoRouter(routes: [
       expect(result.nodes.map((n) => n.flow), everyElement('shell-0'));
     });
 
-    test('redirect erzeugt Decision-Node und Kanten', () {
+    test('redirect produces a decision node and edges', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/login', name: 'login'),
@@ -106,7 +106,7 @@ final router = GoRouter(routes: [
 
       final decision = result.nodes.firstWhere((n) => n.type == 'decision');
       expect(decision.id, 'dashboard_redirect');
-      expect(decision.title, 'Weiterleitung: Dashboard');
+      expect(decision.title, 'Redirect: Dashboard');
 
       final autoEdge = result.edges.firstWhere(
           (e) => e.to == 'dashboard' && e.from == 'dashboard_redirect');
@@ -118,7 +118,7 @@ final router = GoRouter(routes: [
       expect(redirectEdge.condition, 'redirect');
     });
 
-    test('context.go-Kanten über builder-Zuordnung', () {
+    test('context.go edges via the builder mapping', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/home', name: 'home'),
@@ -141,7 +141,7 @@ class ProfileScreen {
       expect(edge.source, 'derived');
     });
 
-    test('pageBuilder mit child: wird zugeordnet', () {
+    test('pageBuilder with child: is mapped', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(
@@ -155,7 +155,7 @@ final router = GoRouter(routes: [
       expect(result.builderClassToScreen['HomeScreen'], 'home');
     });
 
-    test('goNamed nutzt die Namens-Tabelle', () {
+    test('goNamed uses the name table', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/a', name: 'alpha', builder: (c, s) => AScreen()),
@@ -175,7 +175,7 @@ class AScreen {
       expect(edge.to, 'beta');
     });
 
-    test('manuell annotierte Klasse liefert das from', () {
+    test('manually annotated class provides the from', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/home', name: 'home'),
@@ -198,7 +198,7 @@ class LoginScreen {
       expect(edge.to, 'home');
     });
 
-    test('nicht zuordenbare Navigations-Aufrufe werden verworfen', () {
+    test('unmappable navigation calls are dropped', () {
       final file = scanSource('''
 final router = GoRouter(routes: [
   GoRoute(path: '/home', name: 'home'),
@@ -216,13 +216,13 @@ class UnbekannteKlasse {
 
       expect(result.edges, isEmpty);
       expect(warn.messages, hasLength(2));
-      expect(warn.messages[0], contains('verworfen'));
+      expect(warn.messages[0], contains('dropped'));
       expect(warn.messages[1], contains('/nirgendwo'));
     });
   });
 
   group('deriveAutoRoute', () {
-    test('@RoutePage-Klassen werden zu Screens', () {
+    test('@RoutePage classes become screens', () {
       final file = scanSource('''
 @RoutePage()
 class UserProfileScreen {}
@@ -240,7 +240,7 @@ class SettingsPage {}
       expect(result.classToScreen['UserProfileScreen'], 'user-profile');
     });
 
-    test('AutoRoute-Einträge liefern die Pfad-Zuordnung', () {
+    test('AutoRoute entries provide the path mapping', () {
       final file = scanSource('''
 @RoutePage()
 class LoginScreen {}

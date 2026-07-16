@@ -1,8 +1,8 @@
 ---
 /**
- * Übersicht (Screen 1 der Design-Referenz): Hero „Wie können wir helfen?“,
- * großes Suchfeld, „Häufig gesucht“-Chips (häufigste Kanten-Labels),
- * Journey-Karten-Grid und Footer.
+ * Overview (screen 1 of the design reference): hero “How can we help?”, large
+ * search field, “Frequently searched” chips (most frequent edge labels),
+ * journey card grid and footer.
  */
 import Base from '../layouts/Base.astro';
 import Footer from '../components/Footer.astro';
@@ -187,20 +187,20 @@ const chips = frequentEdgeLabels(data);
   }
   .dj-journeys-grid {
     display: grid;
-    /* Design-Spalten: die erste Karte bekommt etwas mehr Raum. */
+    /* Design columns: the first card gets a bit more room. */
     grid-template-columns: 1.25fr 1fr 1fr;
     gap: 18px;
   }
 
-  /* Zwischenbreite (Design: 760 ≤ vw < 1120): zwei gleichbreite Spalten. */
+  /* Intermediate width (design: 760 ≤ vw < 1120): two equal-width columns. */
   @media (max-width: 1119.98px) {
     .dj-journeys-grid {
       grid-template-columns: 1fr 1fr;
     }
   }
 
-  /* Mobil (Design: mob = vw < 760): kompakter Hero, einspaltiges Grid,
-     ⌘K-Tasten entfallen, Chips als Touch-Targets. */
+  /* Mobile (design: mob = vw < 760): compact hero, single-column grid,
+     ⌘K keys are dropped, chips become touch targets. */
   @media (max-width: 759.98px) {
     .dj-hero {
       padding: 46px 20px 26px;

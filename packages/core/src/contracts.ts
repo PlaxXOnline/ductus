@@ -1,9 +1,9 @@
 /**
- * Interne Vertragsfläche zwischen den Core-Modulen (graph/, llm/, output/, CLI).
+ * Internal contract surface between the core modules (graph/, llm/, output/, CLI).
  *
- * Diese Datei enthält ausschließlich Datenformen (keine Implementierung), damit
- * die Module unabhängig voneinander implementiert und getestet werden können.
- * Änderungen hier betreffen mehrere Module — nur bewusst anpassen.
+ * This file contains data shapes only (no implementation), so the modules can
+ * be implemented and tested independently of each other. Changes here affect
+ * multiple modules — adjust deliberately.
  */
 
 import type {
@@ -16,41 +16,41 @@ import type {
   SourceRef,
 } from '@ductus/schema';
 
-// ──────────────────── Konfiguration (ductus.config.yaml) ─────────────────────
+// ──────────────────── Configuration (ductus.config.yaml) ─────────────────────
 
 export interface AdapterConfigEntry {
-  /** Adapter-Name, z. B. "dart". */
+  /** Adapter name, e.g. "dart". */
   name: string;
-  /** Projektverzeichnis relativ zur Config-Datei. */
+  /** Project directory relative to the config file. */
   project: string;
-  /** Ableitungsquellen (Weg C), Default: ['go_router', 'auto_route']. */
+  /** Derivation sources (route C), default: ['go_router', 'auto_route']. */
   deriveFrom?: string[];
-  /** Expliziter Befehl (überschreibt eingebaute Auflösung, NFR6), z. B. "my-adapter --project". */
+  /** Explicit command (overrides built-in resolution, NFR6), e.g. "my-adapter --project". */
   command?: string;
-  /** Weitere adapterspezifische Schlüssel werden unverändert durchgereicht. */
+  /** Additional adapter-specific keys are passed through unchanged. */
   extra?: Record<string, unknown>;
 }
 
 export interface LlmPricing {
-  /** USD je 1M Input-Token. */
+  /** USD per 1M input tokens. */
   inputPerMTokUsd: number;
-  /** USD je 1M Output-Token. */
+  /** USD per 1M output tokens. */
   outputPerMTokUsd: number;
 }
 
 export interface LlmConfig {
   provider: 'anthropic' | 'openai' | 'mistral' | 'custom' | 'mock';
   model: string;
-  /** Name der Umgebungsvariable mit dem API-Key (NFR4: nie loggen/persistieren). */
+  /** Name of the environment variable holding the API key (NFR4: never log/persist). */
   apiKeyEnv: string;
-  /** Nur für provider "custom": OpenAI-kompatible Basis-URL. */
+  /** Only for provider "custom": OpenAI-compatible base URL. */
   baseUrl?: string;
   temperature: number;
   maxTokens: number;
   faithfulnessCheck: boolean;
-  /** Mehr Verstöße als dieser Wert ⇒ Exit-Code 2. */
+  /** More violations than this value ⇒ exit code 2. */
   faithfulnessThreshold: number;
-  /** Optional; ohne Preise wird nur in Token berichtet (NFR3). */
+  /** Optional; without prices, only tokens are reported (NFR3). */
   pricing?: LlmPricing;
 }
 
@@ -66,12 +66,12 @@ export interface StyleConfig {
 
 export interface OutputConfig {
   format: OutputFormat;
-  /** Ausgabeverzeichnis; im Website-Modus die Wurzel des SSG-Projekts. */
+  /** Output directory; in website mode the root of the SSG project. */
   dir: string;
   website: {
     generator: WebsiteGenerator;
     diagrams: boolean;
-    /** Optionaler Pfad zu einem eigenen Template (überschreibt das Preset). */
+    /** Optional path to a custom template (overrides the preset). */
     template?: string;
   };
 }
@@ -82,11 +82,11 @@ export interface DuctusConfig {
   llm: LlmConfig;
   style: StyleConfig;
   output: OutputConfig;
-  /** Absoluter Pfad des Verzeichnisses, in dem die Config liegt (Basis für rel. Pfade). */
+  /** Absolute path of the directory containing the config (base for relative paths). */
   rootDir: string;
 }
 
-// ─────────────────────────────── Graph-Pipeline ──────────────────────────────
+// ─────────────────────────────── Graph pipeline ──────────────────────────────
 
 export type ValidationRule = 'SCHEMA' | 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6';
 
@@ -110,7 +110,7 @@ export interface MergeConflictSide {
   adapter?: string;
 }
 
-/** Zwei manuelle Quellen für dasselbe Feld — fail-fast statt stiller Mehrdeutigkeit. */
+/** Two manual sources for the same field — fail fast instead of silent ambiguity. */
 export interface MergeConflict {
   kind: 'node' | 'edge' | 'flow';
   id: string;
@@ -119,7 +119,7 @@ export interface MergeConflict {
   b: MergeConflictSide;
 }
 
-// ─────────────────────────────── LLM-Schicht ─────────────────────────────────
+// ─────────────────────────────── LLM layer ───────────────────────────────────
 
 export interface LlmMessage {
   role: 'user' | 'assistant';
@@ -132,15 +132,20 @@ export interface LlmUsage {
 }
 
 /**
- * Erzwungenes Antwortformat (Structured Output): Anthropic setzt es per
- * Tool-Use um, OpenAI/Mistral per response_format json_schema, custom
- * (OpenAI-kompatibel) konservativ per json_object.
+ * Enforced response format (structured output): Anthropic implements it via
+ * tool use, OpenAI/Mistral via response_format json_schema, custom
+ * (OpenAI-compatible) conservatively via json_object.
  */
 export interface LlmResponseFormat {
-  /** Schema-Name (Anthropic-Tool-Name bzw. json_schema.name). */
+  /** Schema name (Anthropic tool name or json_schema.name). */
   name: string;
-  /** JSON-Schema der erwarteten Antwort. */
+  /** JSON Schema of the expected response. */
   schema: Record<string, unknown>;
+  /**
+   * Model-visible description (Anthropic tool description). Optional: providers
+   * fall back to their existing default when absent.
+   */
+  description?: string;
 }
 
 export interface LlmRequest {
@@ -148,7 +153,7 @@ export interface LlmRequest {
   messages: LlmMessage[];
   maxTokens: number;
   temperature: number;
-  /** Optional: Provider soll schema-konformes JSON garantieren. */
+  /** Optional: the provider should guarantee schema-conformant JSON. */
   responseFormat?: LlmResponseFormat;
 }
 
@@ -157,58 +162,58 @@ export interface LlmResponse {
   usage?: LlmUsage;
 }
 
-/** Provider-agnostische Schnittstelle (BYOK — der Nutzer bringt den eigenen API-Key). */
+/** Provider-agnostic interface (BYOK — the user brings their own API key). */
 export interface LlmProvider {
   readonly name: string;
   complete(request: LlmRequest): Promise<LlmResponse>;
 }
 
-/** Zusammenhängendes Graph-Segment als Generierungseinheit (Segmentierung statt Monolith-Prompt). */
+/** Connected graph segment as the unit of generation (segmentation instead of one monolithic prompt). */
 export interface GraphSegment {
-  /** Eindeutig, deterministisch (Flow-id, Screen-id oder "_misc"). */
+  /** Unique, deterministic (flow id, screen id, or "_misc"). */
   id: string;
   kind: 'flow' | 'screen' | 'misc';
   title: string;
-  /** Stabile Reihenfolge für `order`-Frontmatter und Sidebar. */
+  /** Stable order for the `order` frontmatter and the sidebar. */
   order: number;
   flow?: JourneyFlow;
   nodes: JourneyNode[];
   edges: JourneyEdge[];
-  /** Kanten, die das Segment verlassen (Kontext für das LLM, keine Erfindungsfläche). */
+  /** Edges leaving the segment (context for the LLM, no room for invention). */
   exits: Array<{ edge: JourneyEdge; toTitle: string }>;
 }
 
 export interface FaithfulnessViolation {
-  /** Die beanstandete Behauptung aus dem generierten Text. */
+  /** The disputed claim from the generated text. */
   claim: string;
   reason: string;
 }
 
 export interface GeneratedSegment {
   segment: GraphSegment;
-  /** Reines Markdown (ohne Frontmatter — die baut das Output-Modul). */
+  /** Plain Markdown (without frontmatter — the output module builds that). */
   markdown: string;
   fromCache: boolean;
   usage?: LlmUsage;
-  /** Mechanisch bestätigte Verstöße (deterministischer Vokabular-Check + verifizierte Judge-Findings). */
+  /** Mechanically confirmed violations (deterministic vocabulary check + verified judge findings). */
   violations: FaithfulnessViolation[];
-  /** Unbestätigte Judge-Findings — Hinweise zum manuellen Nachprüfen, zählen nicht gegen den Schwellwert. */
+  /** Unconfirmed judge findings — pointers for manual review, do not count against the threshold. */
   hints: FaithfulnessViolation[];
 }
 
 export interface GenerateResult {
   segments: GeneratedSegment[];
   cache: { hits: number; misses: number };
-  /** Tatsächlicher Verbrauch (Summe über alle Aufrufe inkl. Judge). */
+  /** Actual consumption (sum over all calls incl. the judge). */
   usage: LlmUsage;
-  /** Vorab-Schätzung (NFR3), vor dem ersten Provider-Aufruf berechnet. */
+  /** Upfront estimate (NFR3), computed before the first provider call. */
   estimated: { inputTokens: number; outputTokens: number };
 }
 
-// ─────────────────────────────── Ausgabe ─────────────────────────────────────
+// ─────────────────────────────── Output ──────────────────────────────────────
 
 export interface MdxPage {
-  /** Dateiname ohne Verzeichnis, z. B. "auth.mdx". */
+  /** File name without directory, e.g. "auth.mdx". */
   fileName: string;
   frontmatter: {
     title: string;
@@ -216,17 +221,17 @@ export interface MdxPage {
     order: number;
     sourceRefs: SourceRef[];
   };
-  /** Vollständiger Seiteninhalt unterhalb des Frontmatters. */
+  /** Full page content below the frontmatter. */
   body: string;
 }
 
-// ───────────────── Website-Generator "journey": ductus.data.json ─────────────
+// ───────────────── Website generator "journey": ductus.data.json ─────────────
 
 /**
- * Node-Eintrag im Datenvertrag: aufgelöste Anzeige-Felder statt optionaler
- * Schema-Felder — das Template braucht keine Fallback-Logik.
- * `title`: für type=action label ?? title ?? id, sonst title ?? id
- * (konsistent zu renderNode/journeyTaskLabel in output/mermaid.ts).
+ * Node entry in the data contract: resolved display fields instead of optional
+ * schema fields — the template needs no fallback logic.
+ * `title`: for type=action label ?? title ?? id, otherwise title ?? id
+ * (consistent with renderNode/journeyTaskLabel in output/mermaid.ts).
  */
 export interface JourneyWebsiteNode {
   id: string;
@@ -234,75 +239,75 @@ export interface JourneyWebsiteNode {
   title: string;
   /** node.description ?? "". */
   description: string;
-  /** true genau für den Start-Node des Flows (flow.start). */
+  /** true exactly for the start node of the flow (flow.start). */
   start: boolean;
-  /** Rückverweis in den Quellcode; null statt undefined (JSON-stabil). */
+  /** Back-reference into the source code; null instead of undefined (JSON-stable). */
   sourceRef: SourceRef | null;
 }
 
-/** Kanten-Eintrag im Datenvertrag (fehlende Werte als null, JSON-stabil). */
+/** Edge entry in the data contract (missing values as null, JSON-stable). */
 export interface JourneyWebsiteEdge {
   id: string;
   from: string;
   to: string;
-  /** edge.label ?? "" (trigger/condition stehen separat). */
+  /** edge.label ?? "" (trigger/condition are separate). */
   label: string;
   trigger: string | null;
   condition: string | null;
   /**
-   * 0-basierter Index der Hauptpfad-Kante (zwischen mainPath[i] und
-   * mainPath[i+1], gewählt wie in deriveMainPath/segmentToJourney), sonst null.
+   * 0-based index of the main-path edge (between mainPath[i] and
+   * mainPath[i+1], chosen as in deriveMainPath/segmentToJourney), otherwise null.
    */
   main: number | null;
 }
 
-/** Ein Journey-Eintrag (= ein GraphSegment) im Datenvertrag. */
+/** One journey entry (= one GraphSegment) in the data contract. */
 export interface JourneyWebsiteEntry {
   /** segment.id. */
   id: string;
-  /** toSlug(segment.id) — URL-Segment. */
+  /** toSlug(segment.id) — URL segment. */
   slug: string;
   kind: 'flow' | 'screen' | 'misc';
   order: number;
   title: string;
   /** flow.description ?? "". */
   description: string;
-  /** flow.start (nur flows), sonst null. */
+  /** flow.start (flows only), otherwise null. */
   startNodeId: string | null;
-  /** Nach id sortiert (NFR2). */
+  /** Sorted by id (NFR2). */
   nodes: JourneyWebsiteNode[];
-  /** Nach id sortiert (NFR2). */
+  /** Sorted by id (NFR2). */
   edges: JourneyWebsiteEdge[];
-  /** Node-IDs des Hauptpfads; leer wenn kein flow-Segment oder Pfad < 2 Nodes. */
+  /** Node ids of the main path; empty if not a flow segment or path < 2 nodes. */
   mainPath: string[];
-  /** Generiertes LLM-Markdown pur (ohne Mermaid-Anhänge, ohne Aside). */
+  /** Generated LLM Markdown pure (no Mermaid attachments, no aside). */
   markdown: string;
   violations: FaithfulnessViolation[];
 }
 
-/** Site-weite Metadaten des Datenvertrags. */
+/** Site-wide metadata of the data contract. */
 export interface JourneyWebsiteSite {
   /** config.app.name. */
   title: string;
-  /** config.app.locale (z. B. "de"). */
+  /** config.app.locale (e.g. "en"). */
   locale: string;
-  /** Version von @ductus/core (deterministisch aus der package.json des Pakets). */
+  /** Version of @ductus/core (deterministic from the package's package.json). */
   ductusVersion: string;
-  /** extract.adapterInfos, nach name sortiert (NFR2). */
+  /** extract.adapterInfos, sorted by name (NFR2). */
   adapters: AdapterInfo[];
   violationsTotal: number;
 }
 
 /**
- * Wurzelobjekt der ductus.data.json — die einzige Datei, die scaffoldWebsite
- * im Modus generator="journey" zusätzlich zum Template schreibt. Das Template
- * liest sie zur Buildzeit. Deterministisch (NFR2): stabile Sortierung, LF,
- * abschließender Zeilenumbruch, KEINE Zeitstempel.
+ * Root object of ductus.data.json — the only file that scaffoldWebsite
+ * writes in generator="journey" mode in addition to the template. The
+ * template reads it at build time. Deterministic (NFR2): stable sorting, LF,
+ * trailing newline, NO timestamps.
  */
 export interface JourneyWebsiteData {
   dataVersion: '1';
   site: JourneyWebsiteSite;
-  /** Nach order sortiert (Tie-Break slug, NFR2). */
+  /** Sorted by order (tie-break slug, NFR2). */
   journeys: JourneyWebsiteEntry[];
 }
 
@@ -315,7 +320,7 @@ export interface DuctusReport {
   faithfulness: Array<{
     segmentId: string;
     violations: FaithfulnessViolation[];
-    /** Nur vorhanden, wenn es unbestätigte Judge-Hinweise gibt. */
+    /** Only present when there are unconfirmed judge hints. */
     hints?: FaithfulnessViolation[];
   }>;
   cache?: { hits: number; misses: number; hitRate: number };
@@ -323,15 +328,15 @@ export interface DuctusReport {
     estimated: { inputTokens: number; outputTokens: number };
     actual: LlmUsage;
   };
-  /** Nur wenn llm.pricing konfiguriert ist. */
+  /** Only when llm.pricing is configured. */
   costUsd?: number;
 }
 
-// ─────────────────────────────── Adapter-Lauf ────────────────────────────────
+// ─────────────────────────────── Adapter run ─────────────────────────────────
 
 export interface AdapterRunResult {
   graph: JourneyGraph;
   adapter: AdapterConfigEntry;
-  /** stderr-Diagnostik des Adapters (wird durchgereicht, nie verschluckt). */
+  /** stderr diagnostics of the adapter (passed through, never swallowed). */
   diagnostics: string;
 }

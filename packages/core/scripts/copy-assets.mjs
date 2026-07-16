@@ -1,10 +1,10 @@
 /**
- * Kopiert alle Website-Templates (templates/*) in die Paket-Assets,
- * damit sie im publizierten @ductus/core enthalten sind (Website-Modus).
+ * Copies all website templates (templates/*) into the package assets so they
+ * are included in the published @ductus/core (website mode).
  *
- * Hinweis: Die .gitignore der Templates liegt bewusst als "gitignore" (ohne
- * Punkt) vor — npm schließt Dateien namens .gitignore IMMER vom Tarball aus.
- * scaffoldWebsite benennt sie beim Scaffolding zurück.
+ * Note: the templates' .gitignore is deliberately stored as "gitignore"
+ * (without the dot) — npm ALWAYS excludes files named .gitignore from the
+ * tarball. scaffoldWebsite renames it back during scaffolding.
  */
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -15,22 +15,22 @@ const templatesRoot = join(pkgDir, '..', '..', 'templates');
 const assetsRoot = join(pkgDir, 'assets', 'templates');
 
 if (!existsSync(templatesRoot)) {
-  console.warn(`copy-assets: Template-Verzeichnis fehlt noch, übersprungen (${templatesRoot})`);
+  console.warn(`copy-assets: templates directory does not exist yet, skipped (${templatesRoot})`);
   process.exit(0);
 }
 
-// Deterministische Reihenfolge (sortierte Namen); nur Verzeichnisse zählen.
+// Deterministic order (sorted names); only directories count.
 const templates = readdirSync(templatesRoot, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort();
 
 if (templates.length === 0) {
-  console.warn(`copy-assets: keine Templates gefunden, übersprungen (${templatesRoot})`);
+  console.warn(`copy-assets: no templates found, skipped (${templatesRoot})`);
   process.exit(0);
 }
 
-// Ziel komplett neu aufbauen — entfernte Templates bleiben nicht als Leichen liegen.
+// Rebuild the target from scratch — removed templates must not linger as corpses.
 rmSync(assetsRoot, { recursive: true, force: true });
 mkdirSync(assetsRoot, { recursive: true });
 
@@ -39,8 +39,8 @@ for (const name of templates) {
   const dest = join(assetsRoot, name);
   cpSync(src, dest, {
     recursive: true,
-    // Basename-Vergleich wie in scaffoldWebsite — ein Substring-Filter würde
-    // auch *.astro-Dateien treffen, nicht nur das .astro/-Cache-Verzeichnis.
+    // Basename comparison as in scaffoldWebsite — a substring filter would
+    // also match *.astro files, not just the .astro/ cache directory.
     filter: (p) => {
       const base = basename(p);
       return base !== 'node_modules' && base !== '.astro';

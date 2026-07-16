@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * Fake-Adapter für Integrationstests des Adapter-Vertrags: emittiert einen festen,
- * validen Graphen auf stdout. Modus über ein zusätzliches Argument VOR den
- * vom Runner angehängten Optionen:
- *   fail          → Exit 1 mit stderr-Diagnostik
- *   badjson       → stdout ist kein JSON
- *   invalid       → JSON, verletzt aber das Graph-Schema
- *   dangling      → schema-valider Graph mit dangling edge (V1-Fehler im Core)
- *   futureversion → schema-valider Graph mit schemaVersion "2.0" (V6-Fehler im Core)
- *   pubnoise      → valider Graph, aber mit führenden pub-Diagnosezeilen auf
- *                   stdout (simuliert `dart pub global run` bei path-Aktivierung)
- *   flowfull      → valider Graph, beide Screens gehören zum Flow "auth"
- *                   (Hauptpfad mit 2 Knoten für `graph --journey`)
- * Der Inhalt der --config-Datei wird immer auf stderr gespiegelt, damit
- * Tests die temporäre Adapter-Konfiguration (deriveFrom/extra) prüfen können.
+ * Fake adapter for integration tests of the adapter contract: emits a fixed,
+ * valid graph on stdout. The mode is selected via an extra argument BEFORE the
+ * options appended by the runner:
+ *   fail          → exit 1 with stderr diagnostics
+ *   badjson       → stdout is not JSON
+ *   invalid       → JSON, but violates the graph schema
+ *   dangling      → schema-valid graph with a dangling edge (V1 error in core)
+ *   futureversion → schema-valid graph with schemaVersion "2.0" (V6 error in core)
+ *   pubnoise      → valid graph, but with leading pub diagnostic lines on
+ *                   stdout (simulates `dart pub global run` with a path activation)
+ *   flowfull      → valid graph, both screens belong to the flow "auth"
+ *                   (main path with 2 nodes for `graph --journey`)
+ * The content of the --config file is always mirrored to stderr so tests can
+ * inspect the temporary adapter configuration (deriveFrom/extra).
  */
 
 import { readFileSync } from 'node:fs';
@@ -29,20 +29,20 @@ if (configIndex !== -1 && args[configIndex + 1] !== undefined) {
   try {
     process.stderr.write(`fake-adapter config: ${readFileSync(args[configIndex + 1], 'utf8')}\n`);
   } catch (error) {
-    process.stderr.write(`fake-adapter: Config nicht lesbar (${error.message})\n`);
+    process.stderr.write(`fake-adapter: cannot read config (${error.message})\n`);
   }
 }
 
 if (mode === 'fail') {
-  process.stderr.write('fake-adapter: absichtlicher Fehler für Tests\n');
+  process.stderr.write('fake-adapter: intentional failure for tests\n');
   process.exit(1);
 }
 if (mode === 'badjson') {
-  process.stdout.write('das ist kein JSON {');
+  process.stdout.write('this is not JSON {');
   process.exit(0);
 }
 if (mode === 'invalid') {
-  // Syntaktisch JSON, aber nodes muss ein Array sein (Schema-Verstoß, A3).
+  // Syntactically JSON, but nodes must be an array (schema violation, A3).
   process.stdout.write(JSON.stringify({ schemaVersion: '1.0', flows: [], nodes: 'nope', edges: [] }));
   process.exit(0);
 }
@@ -85,17 +85,17 @@ if (mode === 'dangling') {
   graph.edges.push({ id: 'e_bad', from: 'login', to: 'missing', source: 'derived' });
 }
 if (mode === 'flowfull') {
-  // Dashboard ebenfalls dem Flow zuordnen → login→dashboard liegt im Flow-Segment.
+  // Assign dashboard to the flow as well → login→dashboard lies within the flow segment.
   graph.nodes[0].flow = 'auth';
 }
 if (mode === 'futureversion') {
-  // Schema-valide (Pattern ^\d+\.\d+$), aber inkompatibler Major ⇒ V6 im Core.
+  // Schema-valid (pattern ^\d+\.\d+$), but incompatible major ⇒ V6 in core.
   graph.schemaVersion = '2.0';
 }
 
 if (mode === 'pubnoise') {
-  // Exakt die Art Vorspann, die pub vor dem eigentlichen Programm auf stdout
-  // schreibt (beobachtet bei `dart pub global run` mit path-Aktivierung).
+  // Exactly the kind of preamble pub writes to stdout before the actual
+  // program (observed with `dart pub global run` and a path activation).
   process.stdout.write('Resolving dependencies...\nDownloading packages...\nGot dependencies.\n');
 }
 

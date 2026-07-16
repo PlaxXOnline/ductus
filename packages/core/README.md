@@ -1,92 +1,95 @@
 # @ductus/core
 
-**Endnutzer-Dokumentation direkt aus dem App-Code — automatisch, geprüft, versionierbar.**
+**English** | [Deutsch](./README.de.md) | [Español](./README.es.md) | [简体中文](./README.zh-CN.md)
 
-Ductus extrahiert aus annotiertem Quellcode (Dart/Flutter und
-TypeScript/JavaScript) einen User-Journey-Graphen und übersetzt ihn per
-LLM — mit deinem eigenen API-Key
-(BYOK) — in gepflegte Endnutzer-Dokumentation: als MDX-Dateien oder als
-statische Website. `@ductus/core` ist das Herzstück: CLI, Orchestrator,
-LLM-Schicht und Ausgabe-Module.
+**End-user documentation straight from your app code — automatic, verified, versionable.**
 
-- **Graph statt Prosa als Quelle** — Adapter lesen Routen und Annotationen aus dem Code, `ductus extract` merged und validiert sie zu `journey-graph.json`. Ohne LLM nutzbar.
-- **BYOK-LLM-Übersetzung** — Anthropic, OpenAI, Mistral, jeder OpenAI-kompatible Endpunkt (`custom`, z. B. lokal) oder ein deterministischer `mock`-Provider für Tests. Keine SDK-Abhängigkeiten, der Key bleibt in deiner Umgebungsvariable.
-- **Faithfulness-Judge** — ein zweiter LLM-Durchlauf prüft, ob der generierte Text durch den Graphen gedeckt ist. Verstöße landen sichtbar im Output und im Report; über dem Schwellwert schlägt der Lauf fehl (Exit 2).
-- **Kosten im Griff** — Token-/Kostenschätzung vor dem ersten LLM-Aufruf, Segment-Cache unter `.ductus/cache` (unveränderte Segmente kosten nichts erneut).
-- **Zwei Output-Modi** — MDX-Dateien für deine bestehende Doku-Pipeline oder eine fertige statische Website (interaktive Journey-Site oder Starlight).
-- **CI-tauglich** — `ductus check` prüft Graph und Faithfulness ohne LLM-Kosten; deterministische, byte-stabile Ausgaben.
+Ductus extracts a user-journey graph from annotated source code
+(Dart/Flutter and TypeScript/JavaScript) and translates it via
+LLM — with your own API key
+(BYOK) — into polished end-user documentation: as MDX files or as a
+static website. `@ductus/core` is the heart of the toolchain: CLI,
+orchestrator, LLM layer, and output modules.
+
+- **A graph, not prose, as the source** — adapters read routes and annotations from the code; `ductus extract` merges and validates them into `journey-graph.json`. Usable without an LLM.
+- **BYOK LLM translation** — Anthropic, OpenAI, Mistral, any OpenAI-compatible endpoint (`custom`, e.g. local), or a deterministic `mock` provider for tests. No SDK dependencies; the key stays in your environment variable.
+- **Faithfulness judge** — a second LLM pass checks whether the generated text is backed by the graph. Violations appear visibly in the output and in the report; above the threshold the run fails (exit 2).
+- **Costs under control** — token/cost estimate before the first LLM call, segment cache under `.ductus/cache` (unchanged segments cost nothing again).
+- **Two output modes** — MDX files for your existing docs pipeline or a ready-made static website (interactive journey site or Starlight).
+- **CI-ready** — `ductus check` validates the graph and faithfulness without LLM costs; deterministic, byte-stable output.
 
 ## Installation
 
-Voraussetzung: Node.js ≥ 20.
+Requirement: Node.js ≥ 20.
 
 ```bash
-# global
+# globally
 npm install -g @ductus/core
 
-# oder als devDependency im Projekt
+# or as a devDependency in your project
 npm install --save-dev @ductus/core
 ```
 
-Für Dart/Flutter-Projekte zusätzlich den Adapter installieren:
+For Dart/Flutter projects, additionally install the adapter:
 
 ```bash
 npm install -g @ductus/adapter-dart
 ```
 
-sowie im Flutter-Projekt das Dart-Paket [`ductus`](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) (Annotationen + Extraktor) als Dependency aufnehmen.
+and add the Dart package [`ductus`](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) (annotations + extractor) as a dependency in your Flutter project.
 
-Für TypeScript/JavaScript-Projekte (z. B. React mit react-router oder Next.js) genügt:
+For TypeScript/JavaScript projects (e.g. React with react-router or Next.js), this is all you need:
 
 ```bash
 npm install -g @ductus/core @ductus/adapter-typescript
 ```
 
-Ein weiteres SDK oder eine Dependency im Zielprojekt ist nicht nötig — der [TypeScript-Adapter](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) parst die Quellen selbst (parse-only, reines Node).
+No additional SDK or dependency in the target project is required — the [TypeScript adapter](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) parses the sources itself (parse-only, pure Node).
 
 ## Quickstart
 
 ```bash
-cd mein_projekt                      # Flutter- oder TS/JS-Projekt
+cd my_project                        # Flutter or TS/JS project
 
-ductus init                          # erkennt pubspec.yaml bzw. package.json, legt ductus.config.yaml an
+ductus init                          # detects pubspec.yaml or package.json, creates ductus.config.yaml
 ductus extract                       # → journey-graph.json + ductus-report.json
 
-export DUCTUS_LLM_API_KEY=sk-…       # dein eigener Anthropic-/OpenAI-Key (BYOK)
-ductus generate                      # → docs/*.mdx (oder Website, je nach Config)
+export DUCTUS_LLM_API_KEY=sk-…       # your own Anthropic/OpenAI key (BYOK)
+ductus generate                      # → docs/*.mdx (or a website, depending on config)
 
-ductus graph --open                  # Graph als HTML im Browser inspizieren
-ductus check                         # CI-Gate: Validierung + Faithfulness, ohne LLM-Kosten
+ductus graph --open                  # inspect the graph as HTML in the browser
+ductus check                         # CI gate: validation + faithfulness, no LLM costs
 ```
 
-## CLI-Referenz
+## CLI reference
 
-Globale Optionen (vor oder nach dem Befehl):
+Global options (before or after the command):
 
-| Option | Beschreibung |
+| Option | Description |
 |---|---|
-| `-c, --config <pfad>` | Pfad zur `ductus.config.yaml` (Default: `./ductus.config.yaml`) |
-| `--offline` | Kein Netzzugriff: `extract`/`check`/`graph` laufen frei (Adapter arbeiten lokal), `generate` nur mit `llm.provider: mock` |
+| `-c, --config <path>` | Path to the `ductus.config.yaml` (default: `./ductus.config.yaml`) |
+| `--offline` | No network access: `extract`/`check`/`graph` run freely (adapters work locally), `generate` only with `llm.provider: mock` |
 
-Befehle:
+Commands:
 
-| Befehl | Optionen | Beschreibung |
+| Command | Options | Description |
 |---|---|---|
-| `ductus init` | `--force` | Legt eine kommentierte `ductus.config.yaml` an. Erkennt `pubspec.yaml` (`app.name`, `go_router`/`auto_route` ⇒ `deriveFrom`) bzw. `package.json` (`app.name`, `react-router`/`react-router-dom`/`next` ⇒ `deriveFrom`); die `pubspec.yaml` hat Vorrang, wenn beide existieren. Überschreibt eine bestehende Config nur mit `--force`. |
-| `ductus extract` | — | Führt alle Adapter aus, merged und validiert den Graphen. Schreibt `journey-graph.json` und `ductus-report.json` neben die Config. Ohne LLM nutzbar. |
-| `ductus generate` | `--build` | Extract + LLM-Generierung → MDX oder Website. `--build` baut die Website nach dem Export zusätzlich (`npm ci`/`install` + `npm run build` im Site-Verzeichnis; nur bei `output.format: website`, nicht mit `--offline` kombinierbar). |
-| `ductus check` | — | Validierung + Faithfulness aus dem Segment-Cache — schreibt keine Dateien, ruft kein LLM auf (CI-tauglich). Noch nicht generierte Segmente werden gemeldet, sind aber kein Fehler. |
-| `ductus graph` | `--open`, `--out <pfad>`, `--journey` | Gibt den Graphen als Mermaid-Flowchart auf stdout aus. `--journey` gibt stattdessen die journey-Diagramme der Flow-Hauptpfade aus. `--out` schreibt in eine Datei. `--open` schreibt `.ductus/graph.html` (Flowchart **und** Journeys) und öffnet sie im Browser. |
+| `ductus init` | `--force` | Creates a commented `ductus.config.yaml`. Detects `pubspec.yaml` (`app.name`, `go_router`/`auto_route` ⇒ `deriveFrom`) or `package.json` (`app.name`, `react-router`/`react-router-dom`/`next` ⇒ `deriveFrom`); `pubspec.yaml` takes priority when both exist. Only overwrites an existing config with `--force`. |
+| `ductus extract` | — | Runs all adapters, merges and validates the graph. Writes `journey-graph.json` and `ductus-report.json` next to the config. Usable without an LLM. |
+| `ductus generate` | `--build` | Extract + LLM generation → MDX or website. `--build` additionally builds the website after the export (`npm ci`/`install` + `npm run build` in the site directory; only with `output.format: website`, cannot be combined with `--offline`). |
+| `ductus check` | — | Validation + faithfulness from the segment cache — writes no files, calls no LLM (CI-ready). Segments not yet generated are reported but are not an error. |
+| `ductus graph` | `--open`, `--out <path>`, `--journey` | Prints the graph as a Mermaid flowchart on stdout. `--journey` prints the journey diagrams of the flow main paths instead. `--out` writes to a file. `--open` writes `.ductus/graph.html` (flowchart **and** journeys) and opens it in the browser. |
+| `ductus help [command]` | — | Without an argument prints a rich CLI overview (workflow, commands, exit codes, configuration); with an argument shows the help for that specific command. |
 
-## Konfiguration: `ductus.config.yaml`
+## Configuration: `ductus.config.yaml`
 
-`ductus init` erzeugt genau diese Vorlage (Werte aus der `pubspec.yaml` bzw. `package.json` vorbelegt):
+`ductus init` generates exactly this template (values prefilled from the `pubspec.yaml` or `package.json`):
 
 ```yaml
-# Ductus-Konfiguration
+# Ductus configuration
 app:
   name: MyApp
-  locale: de
+  locale: en
 
 adapters:
   - dart:
@@ -101,7 +104,7 @@ llm:
   faithfulnessCheck: true
 
 style:
-  voice: formal-sie          # formal-sie | informal-du | en-you
+  voice: en-you              # formal-sie | informal-du | en-you
   granularity: flow          # flow | screen
 
 output:
@@ -112,7 +115,13 @@ output:
     diagrams: true
 ```
 
-In TypeScript/JavaScript-Projekten sieht die `adapters:`-Sektion stattdessen so aus:
+`app.locale` (default: `en`) is the language of the generated end-user
+documentation. `style.voice` (default: `en-you`) sets its tone: `en-you`
+addresses the reader in plain English “you”; `formal-sie` and `informal-du`
+remain fully supported for German end-user docs (formal “Sie” and informal
+“du”, respectively).
+
+In TypeScript/JavaScript projects the `adapters:` section looks like this instead:
 
 ```yaml
 adapters:
@@ -121,127 +130,127 @@ adapters:
       deriveFrom: [react-router, next]
 ```
 
-Weitere optionale Schlüssel (mit Defaults, wo nicht angegeben):
+Further optional keys (with defaults where applicable):
 
-| Schlüssel | Beschreibung |
+| Key | Description |
 |---|---|
-| `app.platforms` | Liste der Zielplattformen (rein informativ, landet in den Graph-Metadaten) |
-| `adapters[].project` | Projektverzeichnis relativ zur Config (Default: `.`) |
-| `adapters[].command` | Adapter-Befehl explizit überschreiben |
-| `adapters[].extra` | Zusätzliche Optionen, die 1:1 an den Adapter durchgereicht werden (z. B. die `include`-Globs des Dart- und des TypeScript-Adapters; unbekannte Schlüssel direkt im Adapter-Eintrag landen ebenfalls dort) |
-| `llm.maxTokens` | Max. Output-Token je LLM-Aufruf (Default: `2048`) |
-| `llm.baseUrl` | Basis-URL des Endpunkts — **Pflicht** bei `provider: custom` |
-| `llm.faithfulnessThreshold` | Erlaubte Faithfulness-Verstöße insgesamt, darüber Exit 2 (Default: `0`) |
-| `llm.pricing.inputPerMTokUsd` / `llm.pricing.outputPerMTokUsd` | USD je 1 Mio. Token — nur mit diesen Werten rechnet Ductus die Schätzung in USD um |
-| `output.website.template` | Eigenes Template-Verzeichnis statt der mitgelieferten Vorlage |
+| `app.platforms` | List of target platforms (purely informational, ends up in the graph metadata) |
+| `adapters[].project` | Project directory relative to the config (default: `.`) |
+| `adapters[].command` | Explicitly override the adapter command |
+| `adapters[].extra` | Additional options passed 1:1 to the adapter (e.g. the `include` globs of the Dart and TypeScript adapters; unknown keys placed directly in the adapter entry end up there as well) |
+| `llm.maxTokens` | Max output tokens per LLM call (default: `2048`) |
+| `llm.baseUrl` | Base URL of the endpoint — **required** with `provider: custom` |
+| `llm.faithfulnessThreshold` | Total faithfulness violations allowed; above it, exit 2 (default: `0`) |
+| `llm.pricing.inputPerMTokUsd` / `llm.pricing.outputPerMTokUsd` | USD per 1M tokens — only with these values does Ductus convert the estimate to USD |
+| `output.website.template` | Custom template directory instead of the bundled one |
 
-Unbekannte Top-Level-Schlüssel sind nur Warnungen (vorwärtskompatibel).
+Unknown top-level keys are only warnings (forward-compatible).
 
-## Output-Modi
+## Output modes
 
 ### `format: mdx`
 
-Schreibt je Segment (Flow oder Screen, je nach `style.granularity`) eine
-MDX-Seite mit YAML-Frontmatter nach `output.dir`. Mit `diagrams: true`
-enthält jede Flow-Seite den Ablauf als Mermaid-`flowchart` und — sobald der
-abgeleitete Hauptpfad mindestens zwei Knoten hat — zusätzlich den Hauptpfad
-als `journey`-Diagramm. Faithfulness-Verstöße erscheinen als sichtbare
-Warnbox am Seitenanfang. Die Ausgabe ist byte-stabil — ideal zum
-Einchecken und Diffen.
+Writes one MDX page with YAML frontmatter per segment (flow or screen,
+depending on `style.granularity`) to `output.dir`. With `diagrams: true`,
+every flow page contains the flow as a Mermaid `flowchart` and — as soon as
+the derived main path has at least two nodes — additionally the main path
+as a `journey` diagram. Faithfulness violations appear as a visible warning
+box at the top of the page. The output is byte-stable — ideal for checking
+in and diffing.
 
 ### `format: website`
 
-Scaffoldet eine komplette Astro-Website nach `output.dir` (danach:
-`npm install`, `npm run dev` bzw. `npm run build` — oder direkt
+Scaffolds a complete Astro website into `output.dir` (afterwards:
+`npm install`, `npm run dev` or `npm run build` — or directly
 `ductus generate --build`).
 
-| Generator | Beschreibung |
+| Generator | Description |
 |---|---|
-| `journey` *(Default)* | Interaktive Journey-Site aus `ductus.data.json`: klickbarer Journey-Graph mit deterministischem Layout, „Pfad abspielen“, ⌘K/Ctrl+K-Suche über Journeys/Schritte/Aktionen, Schrittliste + ausführliche LLM-Anleitung je Journey. [Template ansehen](https://github.com/PlaxXOnline/ductus/tree/main/templates/journey) |
-| `starlight` | Klassische Doku-Site auf Astro/Starlight-Basis; die generierten MDX-Seiten landen unter `src/content/docs/`, Mermaid-Diagramme werden im Browser gerendert. [Template ansehen](https://github.com/PlaxXOnline/ductus/tree/main/templates/starlight) |
-| `docusaurus` | Noch nicht enthalten — `generate` bricht mit einer klaren Meldung ab; bitte `journey` oder `starlight` verwenden. |
+| `journey` *(default)* | Interactive journey site built from `ductus.data.json`: clickable journey graph with deterministic layout, “Play path”, ⌘K/Ctrl+K search across journeys/steps/actions, step list + detailed LLM-written guide per journey. The site UI follows `app.locale` (English by default, German UI for `de`). [View template](https://github.com/PlaxXOnline/ductus/tree/main/templates/journey) |
+| `starlight` | Classic docs site based on Astro/Starlight; the generated MDX pages go to `src/content/docs/`, Mermaid diagrams are rendered in the browser. [View template](https://github.com/PlaxXOnline/ductus/tree/main/templates/starlight) |
+| `docusaurus` | Not included yet — `generate` aborts with a clear message; please use `journey` or `starlight`. |
 
-## LLM: BYOK, Kosten, Cache, Faithfulness
+## LLM: BYOK, costs, cache, faithfulness
 
-**Bring Your Own Key.** Der API-Key kommt aus der Umgebungsvariable, die
-`llm.apiKeyEnv` benennt (Default: `DUCTUS_LLM_API_KEY`), und taucht in
-keiner Ausgabe oder Fehlermeldung auf.
+**Bring Your Own Key.** The API key comes from the environment variable
+named by `llm.apiKeyEnv` (default: `DUCTUS_LLM_API_KEY`) and never appears
+in any output or error message.
 
-| Provider | Hinweise |
+| Provider | Notes |
 |---|---|
-| `anthropic` | Anthropic Messages API; Key erforderlich |
-| `openai` | OpenAI Chat Completions; Key erforderlich |
-| `mistral` | Mistral Chat Completions (OpenAI-kompatibel, api.mistral.ai); Key erforderlich — `model` explizit setzen, z. B. `mistral-large-latest` |
-| `custom` | Jeder OpenAI-kompatible Endpunkt via `llm.baseUrl` (z. B. lokale Modelle) — ohne gesetzten Key wird schlicht kein Authorization-Header gesendet |
-| `mock` | Deterministisch, ohne Netz — für Tests, CI und `--offline` |
+| `anthropic` | Anthropic Messages API; key required |
+| `openai` | OpenAI Chat Completions; key required |
+| `mistral` | Mistral Chat Completions (OpenAI-compatible, api.mistral.ai); key required — set `model` explicitly, e.g. `mistral-large-latest` |
+| `custom` | Any OpenAI-compatible endpoint via `llm.baseUrl` (e.g. local models) — without a key set, no Authorization header is sent |
+| `mock` | Deterministic, no network — for tests, CI, and `--offline` |
 
-**Kostenschätzung vor dem Lauf.** Vor dem ersten Provider-Aufruf gibt
-`generate` eine Schätzung aus (Segmente, Input-/Output-Token, mit
-`llm.pricing` auch USD). Die Heuristik rechnet mit ~4 Zeichen je Token;
-die tatsächlichen Werte stehen nach dem Lauf in der Ausgabe und im
+**Cost estimate before the run.** Before the first provider call,
+`generate` prints an estimate (segments, input/output tokens, with
+`llm.pricing` also USD). The heuristic assumes ~4 characters per token;
+the actual numbers appear after the run in the output and in
 `ductus-report.json`.
 
-**Segment-Cache.** Ergebnisse werden unter `.ductus/cache` abgelegt,
-geschlüsselt über Segment-Inhalt, Prompt-Version, Modell und Stil
-(`voice`/`locale`). Unveränderte Segmente verursachen bei erneuten Läufen
-keine LLM-Kosten; `generate` meldet Treffer und Neu-Generierungen.
+**Segment cache.** Results are stored under `.ductus/cache`, keyed by
+segment content, prompt version, model, and style (`voice`/`locale`).
+Unchanged segments incur no LLM costs on subsequent runs; `generate`
+reports hits and regenerations.
 
-**Faithfulness-Check.** Zwei Ebenen sichern den generierten Text ab —
-LLM-Aussagen werden dabei nie ungeprüft übernommen:
+**Faithfulness check.** Two layers safeguard the generated text — LLM
+claims are never accepted unverified:
 
-1. **Deterministischer Vokabular-Check** (immer aktiv, ohne LLM): Alle in
-   Schrittzeilen als UI-Element ausgezeichneten `**Bold**`-Terme werden gegen
-   das Vokabular des Graph-Segments geprüft (Node-Titel, Edge-Labels,
-   Conditions, App-Name). Ein erfundenes UI-Element fällt damit garantiert
-   auf — unabhängig von Modell und Judge.
-2. **Faithfulness-Judge** (`llm.faithfulnessCheck: true`, Default): Ein
-   zweiter LLM-Aufruf sucht semantische Abweichungen. Dem Judge wird nicht
-   geglaubt, er wird verifiziert: Jedes Finding muss die beanstandete Passage
-   wörtlich zitieren und das angeblich fehlende Element benennen; Code prüft
-   beides mechanisch. Widerlegte Findings (Zitat nicht im Text oder Element
-   doch im Graphen) werden verworfen, Grenzfälle als **Hinweise** (`hints`)
-   geführt — nur bestätigte Findings zählen als Verstoß. Bei `anthropic`,
-   `openai` und `mistral` erzwingt zusätzlich Structured Output (Tool-Use
-   bzw. `json_schema`) API-seitig gültiges JSON.
+1. **Deterministic vocabulary check** (always active, no LLM): all
+   `**bold**` terms marked as UI elements in step lines are checked against
+   the vocabulary of the graph segment (node titles, edge labels,
+   conditions, app name). An invented UI element is guaranteed to be
+   caught — regardless of model and judge.
+2. **Faithfulness judge** (`llm.faithfulnessCheck: true`, default): a
+   second LLM call looks for semantic deviations. The judge is not
+   trusted — it is verified: every finding must quote the offending passage
+   verbatim and name the allegedly missing element; code checks both
+   mechanically. Refuted findings (quote not in the text, or element
+   present in the graph after all) are discarded; borderline cases are kept
+   as **hints** (`hints`) — only confirmed findings count as violations.
+   With `anthropic`, `openai`, and `mistral`, structured output (tool use
+   or `json_schema`) additionally enforces valid JSON on the API side.
 
-Verstöße werden als Warnbox in den Output geschrieben und im Report
-gelistet; Hinweise erscheinen dort getrennt und zählen **nicht** gegen den
-Schwellwert. Liegt die Zahl der Verstöße über `llm.faithfulnessThreshold`
-(Default: `0`), endet der Lauf mit Exit-Code 2 — der Output wird trotzdem
-geschrieben, damit du die Stellen prüfen kannst.
+Violations are written into the output as a warning box and listed in the
+report; hints appear there separately and do **not** count against the
+threshold. If the number of violations exceeds `llm.faithfulnessThreshold`
+(default: `0`), the run ends with exit code 2 — the output is still
+written so you can inspect the flagged passages.
 
-## Exit-Codes
+## Exit codes
 
-| Code | Bedeutung |
+| Code | Meaning |
 |---|---|
-| `0` | Erfolg |
-| `1` | Validierungsfehler im Graphen oder Merge-Konflikt zwischen mehreren Adapter-Ausgaben (Details zeilenweise auf stderr) |
-| `2` | Faithfulness-Verstöße über dem Schwellwert |
-| `3` | Config-, LLM-, Adapter- oder Website-Build-Fehler (auch Usage-Fehler wie `--build` + `--offline`) |
+| `0` | Success |
+| `1` | Validation error in the graph or merge conflict between multiple adapter outputs (details line by line on stderr) |
+| `2` | Faithfulness violations above the threshold |
+| `3` | Config, LLM, adapter, or website build error (including usage errors such as `--build` + `--offline`) |
 
-## CI-Rezept: `ductus check` ohne LLM-Kosten
+## CI recipe: `ductus check` without LLM costs
 
-`ductus check` führt die Adapter aus, validiert den Graphen und liest
-Faithfulness-Ergebnisse ausschließlich aus dem Segment-Cache — kein
-LLM-Aufruf, kein API-Key nötig. Damit der Faithfulness-Teil in CI greift,
-den Ordner `.ductus/cache` mit einchecken (er stammt aus dem letzten
-lokalen `ductus generate`).
+`ductus check` runs the adapters, validates the graph, and reads
+faithfulness results exclusively from the segment cache — no LLM call, no
+API key needed. For the faithfulness part to take effect in CI, check the
+`.ductus/cache` directory into the repository (it comes from your last
+local `ductus generate`).
 
 ```yaml
-# GitHub Actions (Ausschnitt)
+# GitHub Actions (excerpt)
 steps:
   - uses: actions/checkout@v4
   - uses: actions/setup-node@v4
     with:
       node-version: 20
-  - uses: subosito/flutter-action@v2   # Dart-Adapter braucht das Dart/Flutter-SDK
+  - uses: subosito/flutter-action@v2   # the Dart adapter needs the Dart/Flutter SDK
   - run: npm install -g @ductus/core @ductus/adapter-dart
   - run: flutter pub get
-  - run: ductus check                  # Exit 1 = Graph kaputt, Exit 2 = Faithfulness
+  - run: ductus check                  # exit 1 = broken graph, exit 2 = faithfulness
 ```
 
-Für TypeScript/JavaScript-Projekte entfällt die SDK-Zeile — der
-TypeScript-Adapter ist reines Node, ein zusätzliches SDK ist nicht nötig:
+For TypeScript/JavaScript projects the SDK line goes away — the
+TypeScript adapter is pure Node, no additional SDK is required:
 
 ```yaml
 steps:
@@ -253,28 +262,28 @@ steps:
   - run: ductus check
 ```
 
-## Hinweis: Mermaid & CDN
+## Note: Mermaid & CDN
 
-Die von `ductus graph --open` erzeugte HTML-Seite lädt Mermaid beim Öffnen
-per CDN (jsdelivr, mermaid@11) — das Rendern im Browser braucht also
-einmalig Netz. Gleiches gilt für die Diagramm-Darstellung der
-Starlight-Website; offline bleibt der Diagramm-Quelltext als Codeblock
-lesbar. `--offline` selbst wirkt nur auf `generate` (nur mit
-`llm.provider: mock` erlaubt, nicht mit `--build` kombinierbar).
+The HTML page produced by `ductus graph --open` loads Mermaid from a CDN
+when opened (jsdelivr, mermaid@11) — so rendering in the browser needs
+network access once. The same applies to the diagram rendering of the
+Starlight website; offline, the diagram source remains readable as a code
+block. `--offline` itself only affects `generate` (allowed only with
+`llm.provider: mock`, cannot be combined with `--build`).
 
-## Ökosystem
+## Ecosystem
 
-| Paket | Beschreibung |
+| Package | Description |
 |---|---|
-| [`@ductus/adapter-dart`](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-dart) | npm-Wrapper, der das Dart-Adapter-CLI aufrufbar macht |
-| [`@ductus/adapter-typescript`](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) | TypeScript/JavaScript-Adapter: `@journey:`-Kommentare + Ableitung aus react-router/Next.js |
-| [`ductus` (Dart)](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) | pub.dev-Paket: Annotationen, Extraktor und build_runner-Builder für Flutter/Dart |
-| [`@ductus/schema`](https://github.com/PlaxXOnline/ductus/tree/main/packages/schema) | JSON-Schema und TypeScript-Typen des Journey-Graphen |
+| [`@ductus/adapter-dart`](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-dart) | npm wrapper that makes the Dart adapter CLI callable |
+| [`@ductus/adapter-typescript`](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) | TypeScript/JavaScript adapter: `@journey:` comments + derivation from react-router/Next.js |
+| [`ductus` (Dart)](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) | pub.dev package: annotations, extractor, and build_runner builder for Flutter/Dart |
+| [`@ductus/schema`](https://github.com/PlaxXOnline/ductus/tree/main/packages/schema) | JSON Schema and TypeScript types of the journey graph |
 
-Mehr im [Ductus-Repository](https://github.com/PlaxXOnline/ductus):
-[Beispielprojekte](https://github.com/PlaxXOnline/ductus/tree/main/examples) ·
-[Best Practices](https://github.com/PlaxXOnline/ductus#best-practices) (Graph-Qualität, Arbeitsablauf, LLM & Kosten).
+More in the [Ductus repository](https://github.com/PlaxXOnline/ductus):
+[example projects](https://github.com/PlaxXOnline/ductus/tree/main/examples) ·
+[best practices](https://github.com/PlaxXOnline/ductus#best-practices) (graph quality, workflow, LLM & costs).
 
-## Lizenz
+## License
 
 [MIT](https://github.com/PlaxXOnline/ductus/blob/main/packages/core/LICENSE)

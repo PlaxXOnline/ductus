@@ -1,9 +1,9 @@
 ---
 /**
- * ⌘K-Suchoverlay (Screen 3 der Design-Referenz): Input, Ergebniszeilen mit
- * Typ-Badges (JOURNEY/SCHRITT/ENTSCHEIDUNG/AKTION), Pfeiltasten + Enter, esc.
- * Der Index wird zur Buildzeit erzeugt und als JSON eingebettet; gefiltert
- * wird client-seitig per Substring (Verhalten wie searchVals im Design).
+ * ⌘K search overlay (screen 3 of the design reference): input, result rows
+ * with type badges (JOURNEY/STEP/DECISION/ACTION), arrow keys + Enter, esc.
+ * The index is built at build time and embedded as JSON; filtering happens
+ * client-side via substring (behavior like searchVals in the design).
  */
 import { data } from '../lib/data';
 import { uiStrings } from '../lib/strings';
@@ -33,11 +33,11 @@ const index = buildSearchIndex(data, t, base);
   </div>
 </div>
 
-{/* toJsonIsland escaped </script>-Ausbrüche — Index-Strings sind untrusted. */}
+{/* toJsonIsland escapes </script> breakouts — index strings are untrusted. */}
 <script type="application/json" id="dj-search-index" set:html={toJsonIsland(index.items)} />
 
 <script>
-  // Suchlogik — Referenz-Implementierung: searchVals/sKey in der Design-Datei.
+  // Search logic — reference implementation: searchVals/sKey in the design file.
   interface SearchItem {
     t: string;
     k: 'J' | 'S' | 'E' | 'A';
@@ -52,9 +52,9 @@ const index = buildSearchIndex(data, t, base);
   const indexEl = document.getElementById('dj-search-index');
   const items: SearchItem[] = indexEl?.textContent ? JSON.parse(indexEl.textContent) : [];
 
-  // Fokus-Verwaltung (aria-modal verlangt sie wirklich): Hintergrund wird
-  // inert (Overlay ist Geschwister von .dj-app, bleibt also bedienbar), der
-  // Fokus kehrt beim Schließen zum auslösenden Element zurück.
+  // Focus management (aria-modal genuinely requires it): the background
+  // becomes inert (the overlay is a sibling of .dj-app, so it stays usable),
+  // and focus returns to the triggering element on close.
   const appRoot = document.querySelector<HTMLElement>('.dj-app');
   let lastFocused: HTMLElement | null = null;
 
@@ -65,8 +65,8 @@ const index = buildSearchIndex(data, t, base);
     close();
     const target = new URL(href, window.location.href);
     if (target.pathname === window.location.pathname && target.hash !== '') {
-      // Gleiche Seite: nur Hash setzen; identischer Hash feuert kein
-      // hashchange — dann manuell auslösen, damit die Auswahl greift.
+      // Same page: only set the hash; an identical hash fires no hashchange —
+      // then trigger it manually so the selection takes effect.
       if (window.location.hash === target.hash) window.dispatchEvent(new Event('hashchange'));
       else window.location.hash = target.hash;
     } else {
@@ -138,15 +138,15 @@ const index = buildSearchIndex(data, t, base);
     lastFocused = null;
   }
 
-  // Auslöser: Nav-Button, Hero-Suchfeld, „Häufig gesucht“-Chips.
+  // Triggers: nav button, hero search field, “Frequently searched” chips.
   for (const trigger of document.querySelectorAll<HTMLElement>('[data-search-open]')) {
     trigger.addEventListener('click', () => open(trigger.dataset.searchQuery ?? ''));
   }
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) close();
   });
-  // Fokus-Falle: Tab/Shift+Tab zirkulieren innerhalb des Dialogs, statt in den
-  // verdeckten Hintergrund zu entweichen (inert ist die zweite Verteidigung).
+  // Focus trap: Tab/Shift+Tab cycle within the dialog instead of escaping into
+  // the covered background (inert is the second line of defense).
   overlay.addEventListener('keydown', (event) => {
     if (event.key !== 'Tab') return;
     const focusables = [
@@ -194,7 +194,7 @@ const index = buildSearchIndex(data, t, base);
 </script>
 
 <style is:global>
-  /* [hidden] muss das display:flex schlagen — sonst wäre das Overlay immer sichtbar. */
+  /* [hidden] must beat the display:flex — otherwise the overlay would always be visible. */
   .dj-search-overlay[hidden] {
     display: none;
   }
@@ -364,8 +364,8 @@ const index = buildSearchIndex(data, t, base);
     flex: 1;
   }
 
-  /* Mobil (Design: mob = vw < 760): Overlay fast vollflächig direkt unter dem
-     oberen Rand, Tastatur-Hinweise entfallen, schmalere Typ-Badges. */
+  /* Mobile (design: mob = vw < 760): overlay almost full-area directly below
+     the top edge, keyboard hints are dropped, narrower type badges. */
   @media (max-width: 759.98px) {
     .dj-search-overlay {
       padding-top: 14px;

@@ -1,11 +1,12 @@
 /**
- * Deterministischer Graph-Layout-Algorithmus (NFR2) für die Journey-Detailseite.
+ * Deterministic graph layout algorithm (NFR2) for the journey detail page.
  *
- * Ebenenzuordnung per BFS ab startNodeId (Fallback: Knoten mit Eingangsgrad 0,
- * sonst kleinste id), festes Spalten-/Zeilenraster nach der Geometrie der
- * Design-Referenz (Karten 150×64, Rauten 52×52). Bezier-Kanten mit
- * Ankerseiten-Heuristik nach relativer Lage (edgeGeo im Design als Referenz),
- * Pfeilspitzen am Kurvenende, Label-Chips am Kurvenmittelpunkt (t = 0.5).
+ * Level assignment via BFS from startNodeId (fallback: nodes with in-degree 0,
+ * otherwise smallest id), fixed column/row grid following the geometry of the
+ * design reference (cards 150×64, diamonds 52×52). Bezier edges with an
+ * anchor-side heuristic based on relative position (edgeGeo in the design as
+ * reference), arrowheads at the curve end, label chips at the curve midpoint
+ * (t = 0.5).
  */
 
 import type { Journey, JourneyEdge } from './types';
@@ -18,11 +19,11 @@ export interface NodeRect {
 }
 
 export interface EdgeGeo {
-  /** SVG-Pfad (kubische Bezier-Kurve) */
+  /** SVG path (cubic Bezier curve) */
   d: string;
-  /** transform der Pfeilspitze: translate(bx,by) rotate(angle) */
+  /** transform of the arrowhead: translate(bx,by) rotate(angle) */
   arrowTransform: string;
-  /** Chip-Position: Kurvenpunkt bei t = 0.5 */
+  /** chip position: curve point at t = 0.5 */
   labelX: number;
   labelY: number;
 }
@@ -34,15 +35,15 @@ export interface GraphLayout {
   edges: Record<string, EdgeGeo>;
 }
 
-// Raster-Konstanten (an der Design-Geometrie orientiert).
+// Grid constants (following the design geometry).
 export const CARD_W = 150;
 export const CARD_H = 64;
 export const DECISION_SIZE = 52;
-const COL_PITCH = 216; // 150 Kartenbreite + 66 Spaltenabstand
-const ROW_PITCH = 148; // 64 Kartenhöhe + Platz für Chips/Kurven
+const COL_PITCH = 216; // 150 card width + 66 column gap
+const ROW_PITCH = 148; // 64 card height + room for chips/curves
 const PAD_X = 24;
 const PAD_TOP = 44;
-const PAD_BOTTOM = 96; // Platz für unten herumgeführte Rück-Kanten + Legende
+const PAD_BOTTOM = 96; // room for back edges routed along the bottom + legend
 
 type Side = 'l' | 'r' | 't' | 'b';
 
@@ -54,7 +55,7 @@ function center(r: NodeRect): { x: number; y: number } {
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 }
 
-/** Ankerpunkt an einer Node-Seite mit Offset entlang der Seite. */
+/** Anchor point on a node side with an offset along the side. */
 function anchor(r: NodeRect, side: Side, off = 0): [number, number] {
   if (side === 'r') return [r.x + r.w, r.y + r.h / 2 + off];
   if (side === 'l') return [r.x, r.y + r.h / 2 + off];
@@ -62,12 +63,12 @@ function anchor(r: NodeRect, side: Side, off = 0): [number, number] {
   return [r.x + r.w / 2 + off, r.y + r.h];
 }
 
-/** Richtungsvektor senkrecht zur Seite (nach außen). */
+/** Direction vector perpendicular to the side (pointing outward). */
 function dirV(side: Side): [number, number] {
   return side === 'r' ? [1, 0] : side === 'l' ? [-1, 0] : side === 't' ? [0, -1] : [0, 1];
 }
 
-/** Punkt einer kubischen Bezier-Kurve bei t = 0.5: (a + 3·c1 + 3·c2 + b) / 8. */
+/** Point of a cubic Bezier curve at t = 0.5: (a + 3·c1 + 3·c2 + b) / 8. */
 function bezierMid(a: [number, number], c1: [number, number], c2: [number, number], b: [number, number]): [number, number] {
   return [(a[0] + 3 * c1[0] + 3 * c2[0] + b[0]) / 8, (a[1] + 3 * c1[1] + 3 * c2[1] + b[1]) / 8];
 }
@@ -76,12 +77,12 @@ interface EdgePlan {
   edge: JourneyEdge;
   sa: Side;
   sb: Side;
-  /** feste Kontrollpunkte (nur für herumgeführte Rück-Kanten) */
+  /** fixed control points (only for routed-around back edges) */
   c1?: [number, number];
   c2?: [number, number];
   oa: number;
   ob: number;
-  /** feste Chip-Höhe (unten herumgeführte Rück-Kanten: unterhalb der Karten) */
+  /** fixed chip height (back edges routed along the bottom: below the cards) */
   labelY?: number;
 }
 
@@ -94,14 +95,14 @@ export function layoutGraph(journey: Journey): GraphLayout {
     return { width: PAD_X * 2 + CARD_W, height: PAD_TOP + PAD_BOTTOM, nodes: rects, edges: geos };
   }
 
-  // ── Ebenen per BFS ─────────────────────────────────────────────────────────
+  // ── Levels via BFS ─────────────────────────────────────────────────────────
   const ids = nodes.map((n) => n.id);
   const inDegree = new Map<string, number>(ids.map((id) => [id, 0]));
   const outgoing = new Map<string, string[]>();
   for (const e of edges) {
     if (e.from !== e.to && inDegree.has(e.to)) inDegree.set(e.to, (inDegree.get(e.to) ?? 0) + 1);
     const list = outgoing.get(e.from) ?? [];
-    list.push(e.to); // edges sind nach id sortiert ⇒ deterministische Expansion
+    list.push(e.to); // edges are sorted by id ⇒ deterministic expansion
     outgoing.set(e.from, list);
   }
   let roots: string[];
@@ -127,14 +128,14 @@ export function layoutGraph(journey: Journey): GraphLayout {
       }
     }
   }
-  // Unerreichbare Knoten in eine zusätzliche Spalte rechts.
+  // Unreachable nodes go into an extra column on the right.
   let maxDepth = 0;
   for (const d of depth.values()) maxDepth = Math.max(maxDepth, d);
   const unreachedDepth = depth.size < ids.length ? maxDepth + 1 : maxDepth;
   for (const id of ids) if (!depth.has(id)) depth.set(id, unreachedDepth);
   maxDepth = Math.max(maxDepth, unreachedDepth);
 
-  // ── Spalten/Zeilen (ids sind sortiert ⇒ stabile Zeilenreihenfolge) ────────
+  // ── Columns/rows (ids are sorted ⇒ stable row order) ──────────────────────
   const columns: string[][] = Array.from({ length: maxDepth + 1 }, () => []);
   for (const id of ids) columns[depth.get(id) ?? 0].push(id);
   const maxRows = Math.max(...columns.map((c) => c.length));
@@ -143,7 +144,7 @@ export function layoutGraph(journey: Journey): GraphLayout {
 
   for (let c = 0; c < columns.length; c += 1) {
     const col = columns[c];
-    // Spalte vertikal im Raster zentrieren (halbe Slot-Schritte, deterministisch).
+    // Center the column vertically in the grid (half slot steps, deterministic).
     const startY = PAD_TOP + Math.round(((maxRows - col.length) * ROW_PITCH) / 2);
     for (let r = 0; r < col.length; r += 1) {
       const id = col[r];
@@ -160,9 +161,9 @@ export function layoutGraph(journey: Journey): GraphLayout {
     }
   }
 
-  // ── Ankerseiten-Heuristik je Kante ────────────────────────────────────────
+  // ── Anchor-side heuristic per edge ────────────────────────────────────────
   const plans: EdgePlan[] = [];
-  let backLane = 0; // versetzt unten herumgeführte Rück-Kanten gegeneinander
+  let backLane = 0; // offsets bottom-routed back edges against each other
   for (const edge of edges) {
     const ra = rects[edge.from];
     const rb = rects[edge.to];
@@ -173,7 +174,7 @@ export function layoutGraph(journey: Journey): GraphLayout {
     const cb = center(rb);
     let plan: EdgePlan;
     if (edge.from === edge.to) {
-      // Selbstschleife: rechts heraus, oben wieder hinein.
+      // Self-loop: exit on the right, re-enter at the top.
       plan = {
         edge,
         sa: 'r',
@@ -184,17 +185,17 @@ export function layoutGraph(journey: Journey): GraphLayout {
         ob: 12,
       };
     } else if (db > da) {
-      plan = { edge, sa: 'r', sb: 'l', oa: 0, ob: 0 }; // vorwärts
+      plan = { edge, sa: 'r', sb: 'l', oa: 0, ob: 0 }; // forward
     } else if (db === da) {
-      // gleiche Spalte: senkrecht verbinden
+      // same column: connect vertically
       plan = cb.y > ca.y ? { edge, sa: 'b', sb: 't', oa: 0, ob: 0 } : { edge, sa: 't', sb: 'b', oa: 0, ob: 0 };
     } else if (db === da - 1 && Math.abs(cb.y - ca.y) < ROW_PITCH) {
-      // kurze Rück-Kante auf ähnlicher Höhe: oben herum (vgl. e6 im Design)
+      // short back edge at a similar height: route over the top (cf. e6 in the design)
       const loopY = Math.min(ra.y, rb.y) - 64;
       plan = { edge, sa: 't', sb: 't', c1: [ca.x + 26, loopY], c2: [cb.x + 26, loopY], oa: 0, ob: 40 };
     } else {
-      // lange Rück-Kante: unten um den Graphen herum (vgl. e7/e8 im Design);
-      // Chip fest auf Höhe der Schleife, damit er keine Karten überdeckt.
+      // long back edge: route around the bottom of the graph (cf. e7/e8 in the
+      // design); chip fixed at the loop's height so it never covers any cards.
       const loopY = height - PAD_BOTTOM + 58 + backLane * 22;
       backLane += 1;
       plan = {
@@ -211,7 +212,7 @@ export function layoutGraph(journey: Journey): GraphLayout {
     plans.push(plan);
   }
 
-  // Mehrere Kanten an derselben Node-Seite: Anker entlang der Seite auffächern.
+  // Multiple edges on the same node side: fan out anchors along the side.
   const bySide = new Map<string, EdgePlan[]>();
   for (const p of plans) {
     const key = `${p.edge.from}|${p.sa}`;
@@ -227,7 +228,7 @@ export function layoutGraph(journey: Journey): GraphLayout {
     }
   }
 
-  // ── Geometrie je Kante (Bezier, Pfeilwinkel, Chip bei t = 0.5) ───────────
+  // ── Geometry per edge (Bezier, arrow angle, chip at t = 0.5) ──────────────
   for (const p of plans) {
     const ra = rects[p.edge.from];
     const rb = rects[p.edge.to];

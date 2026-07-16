@@ -22,11 +22,11 @@ function expectMergeError(fn: () => unknown): MergeError {
     expect(error).toBeInstanceOf(MergeError);
     return error as MergeError;
   }
-  throw new Error('MergeError erwartet, aber nichts geworfen');
+  throw new Error('expected a MergeError, but nothing was thrown');
 }
 
-describe('mergeGraphs — Nodes', () => {
-  it('annotation überschreibt derived feldweise; Lücken bleiben von derived gefüllt', () => {
+describe('mergeGraphs — nodes', () => {
+  it('annotation overrides derived field by field; gaps stay filled from derived', () => {
     const derived = graph({
       nodes: [
         node('login', {
@@ -49,13 +49,13 @@ describe('mergeGraphs — Nodes', () => {
     const merged = mergeGraphs([derived, annotated]);
     expect(merged.nodes).toHaveLength(1);
     const login = merged.nodes[0]!;
-    expect(login.title).toBe('Anmeldung'); // annotation gewinnt
-    expect(login.description).toBe('Aus dem Router abgeleitet.'); // Lücke aus derived
-    expect(login.source).toBe('annotation'); // höchstpräzedente Quelle
+    expect(login.title).toBe('Anmeldung'); // annotation wins
+    expect(login.description).toBe('Aus dem Router abgeleitet.'); // gap filled from derived
+    expect(login.source).toBe('annotation'); // highest-precedence source
     expect(login.sourceRef).toEqual({ file: 'lib/login.dart', line: 12, symbol: 'LoginScreen' });
   });
 
-  it('zwei manuelle Quellen mit unterschiedlichen Werten werfen MergeError mit beiden sourceRefs', () => {
+  it('two manual sources with different values throw MergeError with both sourceRefs', () => {
     const a = graph({
       nodes: [node('login', { title: 'Anmeldung', sourceRef: { file: 'lib/a.dart', line: 1 } })],
     });
@@ -69,13 +69,13 @@ describe('mergeGraphs — Nodes', () => {
     expect(conflict).toMatchObject({ kind: 'node', id: 'login', field: 'title' });
     expect(conflict.a.sourceRef).toEqual({ file: 'lib/a.dart', line: 1 });
     expect(conflict.b.sourceRef).toEqual({ file: 'lib/b.dart', line: 8 });
-    // Message nennt beide Quellen menschenlesbar (file:line)
+    // The message names both sources human-readably (file:line)
     expect(error.message).toContain('lib/a.dart:1');
     expect(error.message).toContain('lib/b.dart:8');
     expect(error.message).toContain('"login"');
   });
 
-  it('sammelt ALLE Konflikte, bevor geworfen wird', () => {
+  it('collects ALL conflicts before throwing', () => {
     const a = graph({
       nodes: [node('login', { title: 'A' }), node('home', { title: 'H1' })],
     });
@@ -86,7 +86,7 @@ describe('mergeGraphs — Nodes', () => {
     expect(error.conflicts.map((c) => c.id).sort()).toEqual(['home', 'login']);
   });
 
-  it('gleicher Wert aus zwei manuellen Quellen ist kein Konflikt', () => {
+  it('the same value from two manual sources is not a conflict', () => {
     const a = graph({ nodes: [node('login', { title: 'Anmeldung', tags: ['auth'] })] });
     const b = graph({ nodes: [node('login', { title: 'Anmeldung', tags: ['auth'] })] });
     const merged = mergeGraphs([a, b]);
@@ -94,7 +94,7 @@ describe('mergeGraphs — Nodes', () => {
     expect(merged.nodes[0]?.title).toBe('Anmeldung');
   });
 
-  it('derived+derived: erster gewinnt pro Feld, Lücken werden aufgefüllt, kein Fehler', () => {
+  it('derived+derived: first one wins per field, gaps are filled, no error', () => {
     const a = graph({
       nodes: [node('login', { source: 'derived', title: 'Login (go_router)' })],
     });
@@ -109,7 +109,7 @@ describe('mergeGraphs — Nodes', () => {
     expect(merged.nodes[0]?.source).toBe('derived');
   });
 
-  it('dedupliziert auch Duplikate innerhalb EINES Graphen', () => {
+  it('also deduplicates duplicates within a SINGLE graph', () => {
     const single = graph({
       nodes: [
         node('login', { source: 'derived', title: 'Login' }),
@@ -122,8 +122,8 @@ describe('mergeGraphs — Nodes', () => {
   });
 });
 
-describe('mergeGraphs — Edges', () => {
-  it('merged Edges mit gleicher id wie Nodes (annotation > derived)', () => {
+describe('mergeGraphs — edges', () => {
+  it('merges edges with the same id like nodes (annotation > derived)', () => {
     const a = graph({
       nodes: [node('login'), node('dash')],
       edges: [edge('e1', 'login', 'dash', { source: 'derived', trigger: 'auto' })],
@@ -141,7 +141,7 @@ describe('mergeGraphs — Edges', () => {
     });
   });
 
-  it('derived-Edge mit gleichem (from, to) wie annotation-Edge entfällt; annotation erbt fehlende Felder', () => {
+  it('a derived edge with the same (from, to) as an annotation edge is dropped; annotation inherits missing fields', () => {
     const derived = graph({
       nodes: [node('login', { source: 'derived' }), node('dash', { source: 'derived' })],
       edges: [edge('e_login_dash', 'login', 'dash', { source: 'derived', trigger: 'auto' })],
@@ -157,12 +157,12 @@ describe('mergeGraphs — Edges', () => {
       from: 'login',
       to: 'dash',
       label: 'Anmelden',
-      trigger: 'auto', // geerbt von der verdrängten derived-Edge
+      trigger: 'auto', // inherited from the displaced derived edge
       source: 'annotation',
     });
   });
 
-  it('zwei manuelle Edges mit gleichem (from, to) und verschiedenen ids bleiben beide (parallel)', () => {
+  it('two manual edges with the same (from, to) and different ids both remain (parallel)', () => {
     const merged = mergeGraphs([
       graph({
         nodes: [node('login'), node('dash')],
@@ -175,7 +175,7 @@ describe('mergeGraphs — Edges', () => {
     expect(merged.edges.map((e) => e.id).sort()).toEqual(['via-button', 'via-enter']);
   });
 
-  it('manueller Konflikt auf einer Edge (gleiche id, verschiedene labels) wirft', () => {
+  it('a manual conflict on an edge (same id, different labels) throws', () => {
     const a = graph({ edges: [edge('e1', 'login', 'dash', { label: 'Weiter' })] });
     const b = graph({ edges: [edge('e1', 'login', 'dash', { label: 'Los' })] });
     const error = expectMergeError(() => mergeGraphs([a, b]));
@@ -183,8 +183,8 @@ describe('mergeGraphs — Edges', () => {
   });
 });
 
-describe('mergeGraphs — Flows, app, meta', () => {
-  it('merged Flows wie Nodes: Lücken auffüllen, Widerspruch wirft', () => {
+describe('mergeGraphs — flows, app, meta', () => {
+  it('merges flows like nodes: fill gaps, contradiction throws', () => {
     const a = graph({ flows: [{ id: 'auth', title: 'Anmeldung', start: 'login' }] });
     const b = graph({
       flows: [{ id: 'auth', title: 'Anmeldung', start: 'login', description: 'Alles rund ums Konto.' }],
@@ -198,7 +198,7 @@ describe('mergeGraphs — Flows, app, meta', () => {
     expect(error.conflicts[0]).toMatchObject({ kind: 'flow', id: 'auth', field: 'start' });
   });
 
-  it('vereinigt meta.adapters mit Dedupe über name+version, sortiert nach name', () => {
+  it('unions meta.adapters with dedupe over name+version, sorted by name', () => {
     const a = graph({ meta: { adapters: [{ name: 'dart', version: '0.1.0' }] } });
     const b = graph({
       meta: {
@@ -215,7 +215,7 @@ describe('mergeGraphs — Flows, app, meta', () => {
     ]);
   });
 
-  it('setzt schemaVersion auf SCHEMA_VERSION und lässt options.app gewinnen', () => {
+  it('sets schemaVersion to SCHEMA_VERSION and lets options.app win', () => {
     const a = graph({ app: { name: 'AusGraph' } });
     expect(mergeGraphs([a]).schemaVersion).toBe(SCHEMA_VERSION);
     expect(mergeGraphs([a]).app).toEqual({ name: 'AusGraph' });
@@ -223,7 +223,7 @@ describe('mergeGraphs — Flows, app, meta', () => {
     expect('app' in mergeGraphs([graph({})])).toBe(false);
   });
 
-  it('liefert deterministisch nach id sortierte Sammlungen', () => {
+  it('returns collections deterministically sorted by id', () => {
     const merged = mergeGraphs([
       graph({
         nodes: [node('zeta'), node('alpha')],

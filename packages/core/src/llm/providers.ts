@@ -1,9 +1,9 @@
 /**
- * BYOK-LLM-Provider: Anthropic, OpenAI, Mistral, OpenAI-kompatible
- * Endpunkte (custom) und ein deterministischer Mock — über natives fetch, ohne SDKs.
+ * BYOK LLM providers: Anthropic, OpenAI, Mistral, OpenAI-compatible
+ * endpoints (custom) and a deterministic mock — via native fetch, no SDKs.
  *
- * NFR4: Der API-Key stammt aus der Umgebungsvariable `config.apiKeyEnv` und darf
- * in keiner Fehlermeldung auftauchen; HTTP-Fehlertexte werden defensiv bereinigt.
+ * NFR4: The API key comes from the environment variable `config.apiKeyEnv` and
+ * must never appear in an error message; HTTP error bodies are scrubbed defensively.
  */
 
 import type { LlmConfig, LlmProvider, LlmRequest, LlmResponse, LlmUsage } from '../contracts.js';
@@ -12,10 +12,10 @@ import { JUDGE_MARKER } from './prompts.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-// Mistrals Chat-API ist OpenAI-kompatibel (Bearer-Auth, choices/usage).
+// Mistral's chat API is OpenAI-compatible (Bearer auth, choices/usage).
 const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions';
 
-/** 429/5xx: bis zu 2 Wiederholungen mit kurzem Backoff. */
+/** 429/5xx: up to 2 retries with a short backoff. */
 const RETRY_DELAYS_MS = [200, 400];
 const ERROR_BODY_MAX_CHARS = 500;
 
@@ -23,7 +23,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Entfernt den Key-Wert aus beliebigem Text, bevor er in eine Fehlermeldung gelangt. */
+/** Removes the key value from arbitrary text before it can reach an error message. */
 function scrubSecret(text: string, apiKey: string | undefined): string {
   if (!apiKey) return text;
   return text.split(apiKey).join('***');
@@ -32,8 +32,8 @@ function scrubSecret(text: string, apiKey: string | undefined): string {
 function requireApiKey(config: LlmConfig, env: NodeJS.ProcessEnv): string {
   const key = env[config.apiKeyEnv];
   if (!key) {
-    // NFR4: nur den Variablennamen nennen, nie einen Wert.
-    throw new Error(`Fehlender API-Key: Umgebungsvariable "${config.apiKeyEnv}" ist nicht gesetzt.`);
+    // NFR4: name only the variable, never a value.
+    throw new Error(`Missing API key: environment variable "${config.apiKeyEnv}" is not set.`);
   }
   return key;
 }
@@ -60,7 +60,7 @@ async function postJson(
     }
     const rawBody = await response.text().catch(() => '');
     const safeBody = scrubSecret(rawBody, apiKey).slice(0, ERROR_BODY_MAX_CHARS);
-    throw new Error(`LLM-Provider "${providerName}": HTTP ${response.status}: ${safeBody}`);
+    throw new Error(`LLM provider "${providerName}": HTTP ${response.status}: ${safeBody}`);
   }
 }
 
@@ -86,14 +86,17 @@ function anthropicProvider(config: LlmConfig, apiKey: string): LlmProvider {
           temperature: request.temperature,
           system: request.system,
           messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
-          // Structured Output: erzwungener Tool-Aufruf — die API garantiert
-          // schema-konformes JSON im tool_use-Block.
+          // Structured output: forced tool call — the API guarantees
+          // schema-conformant JSON in the tool_use block.
           ...(request.responseFormat
             ? {
                 tools: [
                   {
                     name: request.responseFormat.name,
-                    description: 'Strukturierte Antwort im vorgegebenen Schema.',
+                    // Default stays German — byte-identical requests for the German judge.
+                    description:
+                      request.responseFormat.description ??
+                      'Strukturierte Antwort im vorgegebenen Schema.',
                     input_schema: request.responseFormat.schema,
                   },
                 ],
@@ -115,19 +118,19 @@ function anthropicProvider(config: LlmConfig, apiKey: string): LlmProvider {
       }
       const text = data.content?.[0]?.text;
       if (typeof text !== 'string') {
-        throw new Error('LLM-Provider "anthropic": unerwartetes Antwortformat (content[0].text fehlt)');
+        throw new Error('LLM provider "anthropic": unexpected response format (content[0].text missing)');
       }
       return { text, ...(usage ? { usage } : {}) };
     },
   };
 }
 
-// ──────────────── OpenAI, Mistral & OpenAI-kompatibel (custom) ───────────────
+// ──────────────── OpenAI, Mistral & OpenAI-compatible (custom) ───────────────
 
 /**
- * response_format-Baustein: OpenAI und Mistral garantieren mit json_schema
- * (strict) schema-konformes JSON; bei custom-Endpunkten ist json_schema nicht
- * verlässlich verbreitet — dort konservativ json_object (Parser fängt den Rest).
+ * response_format building block: OpenAI and Mistral guarantee schema-conformant
+ * JSON via json_schema (strict); for custom endpoints json_schema is not
+ * reliably available — there, conservative json_object (the parser catches the rest).
  */
 function responseFormatBody(name: string, format: { name: string; schema: Record<string, unknown> }): Record<string, unknown> {
   if (name === 'openai' || name === 'mistral') {
@@ -150,7 +153,7 @@ function openAiCompatibleProvider(
   return {
     name,
     async complete(request: LlmRequest): Promise<LlmResponse> {
-      // Bei lokalen Endpunkten ohne Key entfällt der Authorization-Header.
+      // For local endpoints without a key, the Authorization header is omitted.
       const headers: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
       const data = (await postJson(
         name,
@@ -173,7 +176,7 @@ function openAiCompatibleProvider(
       };
       const text = data.choices?.[0]?.message?.content;
       if (typeof text !== 'string') {
-        throw new Error(`LLM-Provider "${name}": unerwartetes Antwortformat (choices[0].message.content fehlt)`);
+        throw new Error(`LLM provider "${name}": unexpected response format (choices[0].message.content missing)`);
       }
       const usage = readUsage(data.usage?.prompt_tokens, data.usage?.completion_tokens);
       return { text, ...(usage ? { usage } : {}) };
@@ -207,21 +210,33 @@ interface MockSegment {
   exits?: Array<{ edge?: MockEdge; toTitle?: string }>;
 }
 
-/** Letzter ```json-Block der User-Nachricht — dort steht das echte Segment. */
+/** Last ```json block of the user message — that is where the real segment lives. */
 function extractLastJsonBlock(text: string): string | undefined {
   const matches = [...text.matchAll(/```json\n([\s\S]*?)\n```/g)];
   return matches.at(-1)?.[1];
 }
 
+/**
+ * Stable marker of the English system prompt (prompts.ts, voice 'en-you').
+ * The mock stays a pure function of the request: it mirrors the language the
+ * prompt asks for — English for 'en-you', German otherwise (the German mock
+ * output stands in for German LLM output in tests and demos; product data).
+ */
+const EN_SYSTEM_MARKER = 'You are a technical writer';
+
 function buildMockMarkdown(request: LlmRequest): string {
+  const en = request.system.includes(EN_SYSTEM_MARKER);
+  const noData = en
+    ? 'No graph data is available for this segment.\n'
+    : 'Für dieses Segment liegen keine Graph-Daten vor.\n';
   const userText = request.messages.map((m) => m.content).join('\n');
   const block = extractLastJsonBlock(userText);
-  if (block === undefined) return 'Für dieses Segment liegen keine Graph-Daten vor.\n';
+  if (block === undefined) return noData;
   let segment: MockSegment;
   try {
     segment = JSON.parse(block) as MockSegment;
   } catch {
-    return 'Für dieses Segment liegen keine Graph-Daten vor.\n';
+    return noData;
   }
   const nodes = segment.nodes ?? [];
   const edges = segment.edges ?? [];
@@ -232,9 +247,13 @@ function buildMockMarkdown(request: LlmRequest): string {
     const exit = exits.find((x) => x.edge?.to === id);
     return exit?.toTitle ?? id;
   };
-  const lines: string[] = [`Dieser Abschnitt beschreibt den Bereich „${segment.title ?? 'Unbenannt'}“.`];
+  const lines: string[] = [
+    en
+      ? `This section describes the “${segment.title ?? 'Untitled'}” area.`
+      : `Dieser Abschnitt beschreibt den Bereich „${segment.title ?? 'Unbenannt'}“.`,
+  ];
   if (edges.length > 0) {
-    lines.push('', '## Schritte', '');
+    lines.push('', en ? '## Steps' : '## Schritte', '');
     edges.forEach((edge, index) => {
       const trigger = edge.label ?? edge.trigger ?? edge.id;
       const condition = edge.condition ? ` (${edge.condition})` : '';
@@ -243,7 +262,7 @@ function buildMockMarkdown(request: LlmRequest): string {
   }
   const screens = nodes.filter((n) => n.type === 'screen');
   if (screens.length > 0) {
-    lines.push('', '## Bildschirme', '');
+    lines.push('', en ? '## Screens' : '## Bildschirme', '');
     for (const screen of screens) {
       const description = screen.description ? ` — ${screen.description}` : '';
       lines.push(`- **${screen.title ?? screen.id}**${description}`);
@@ -256,7 +275,7 @@ function mockProvider(): LlmProvider {
   return {
     name: 'mock',
     complete(request: LlmRequest): Promise<LlmResponse> {
-      // Reine Funktion der Eingabe — kein Netz, kein Zufall, keine Zeit.
+      // A pure function of the input — no network, no randomness, no clock.
       const text = request.system.includes(JUDGE_MARKER)
         ? '{"violations": []}'
         : buildMockMarkdown(request);
@@ -280,8 +299,8 @@ export function createProvider(config: LlmConfig, env: NodeJS.ProcessEnv = proce
       return openAiCompatibleProvider('mistral', MISTRAL_URL, config, requireApiKey(config, env));
     case 'custom': {
       const base = (config.baseUrl ?? '').replace(/\/+$/, '');
-      if (!base) throw new Error('LLM-Provider "custom": baseUrl fehlt in der Konfiguration.');
-      // Lokale Endpunkte brauchen keinen Key — dann ohne Authorization-Header.
+      if (!base) throw new Error('LLM provider "custom": baseUrl is missing from the configuration.');
+      // Local endpoints need no key — then the Authorization header is dropped.
       const apiKey = env[config.apiKeyEnv];
       return openAiCompatibleProvider('custom', `${base}/chat/completions`, config, apiKey || undefined);
     }

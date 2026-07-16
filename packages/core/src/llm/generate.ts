@@ -1,6 +1,6 @@
 /**
- * Generierungs-Pipeline: Segmentierung → Kostenschätzung (NFR3) →
- * sequenzielle Generierung mit Segment-Cache und Faithfulness-Judge.
+ * Generation pipeline: segmentation → cost estimation (NFR3) →
+ * sequential generation with segment cache and faithfulness judge.
  */
 
 import type { JourneyGraph } from '@ductus/schema';
@@ -20,8 +20,9 @@ import { judgeParseFailed, runFaithfulnessCheck } from './judge.js';
 import { checkLexicon } from './lexicon.js';
 import { buildGenerationPrompt, buildJudgePrompt, PROMPT_VERSION, serializeSegment } from './prompts.js';
 import { segmentGraph } from './segment.js';
+import { outputStrings } from '../output/strings.js';
 
-/** Obergrenze der Output-Schätzung je Aufruf (NFR3). */
+/** Upper bound of the output estimate per call (NFR3). */
 const ESTIMATED_OUTPUT_CAP = 800;
 
 export interface GenerateDocsOptions {
@@ -41,7 +42,9 @@ function promptChars(parts: { system: string; messages: Array<{ content: string 
 }
 
 export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateResult> {
-  const segments = segmentGraph(opts.graph, opts.granularity);
+  const segments = segmentGraph(opts.graph, opts.granularity, {
+    miscTitle: outputStrings(opts.locale).miscSegmentTitle,
+  });
   const promptOpts = {
     voice: opts.voice,
     locale: opts.locale,
@@ -49,8 +52,8 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
   };
   const perCallOutput = Math.min(opts.llm.maxTokens, ESTIMATED_OUTPUT_CAP);
 
-  // Vorab-Schätzung über ALLE Segmente — vor dem ersten Provider-Aufruf,
-  // unabhängig davon, was später aus dem Cache kommt (NFR3).
+  // Upfront estimate across ALL segments — before the first provider call,
+  // regardless of what the cache serves later (NFR3).
   let estimatedInput = 0;
   let estimatedOutput = 0;
   for (const segment of segments) {
@@ -58,8 +61,8 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     estimatedInput += estimateTokens(promptChars(generation));
     estimatedOutput += perCallOutput;
     if (opts.llm.faithfulnessCheck) {
-      // Judge-Input = Judge-Prompt plus das (noch ungenerierte) Markdown ≈ perCallOutput Token.
-      const judge = buildJudgePrompt(segment, '');
+      // Judge input = judge prompt plus the (not yet generated) Markdown ≈ perCallOutput tokens.
+      const judge = buildJudgePrompt(segment, '', opts.voice);
       estimatedInput += estimateTokens(promptChars(judge)) + perCallOutput;
       estimatedOutput += perCallOutput;
     }
@@ -77,7 +80,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     totalUsage.outputTokens += usage.outputTokens;
   };
 
-  // Sequenziell statt parallel: stabile Reihenfolge von Logs und usage (Determinismus).
+  // Sequential instead of parallel: stable ordering of logs and usage (determinism).
   for (const segment of segments) {
     const segmentJson = serializeSegment(segment);
     const key = cache.computeKey({
@@ -90,7 +93,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     const cached = cache.get(key);
     if (cached) {
       hits += 1;
-      opts.log?.(`Segment "${segment.id}": aus Cache übernommen`);
+      opts.log?.(`Segment "${segment.id}": served from cache`);
       results.push({
         segment,
         markdown: cached.markdown,
@@ -102,7 +105,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     }
 
     misses += 1;
-    opts.log?.(`Segment "${segment.id}": wird generiert`);
+    opts.log?.(`Segment "${segment.id}": generating`);
     const generation = buildGenerationPrompt(segment, promptOpts);
     const response = await opts.provider.complete({
       system: generation.system,
@@ -113,7 +116,7 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     addUsage(response.usage);
     let segmentUsage: LlmUsage | undefined = response.usage;
 
-    // Deterministischer Vokabular-Check — läuft immer (kostenlos, kein LLM).
+    // Deterministic vocabulary check — always runs (free, no LLM).
     const lexicon = checkLexicon(response.text, segment, {
       ...(opts.appName !== undefined ? { appName: opts.appName } : {}),
     });
@@ -123,13 +126,14 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
       const judged = await runFaithfulnessCheck(opts.provider, segment, response.text, {
         maxTokens: opts.llm.maxTokens,
         temperature: opts.llm.temperature,
+        voice: opts.voice,
         ...(opts.appName !== undefined ? { appName: opts.appName } : {}),
       });
       violations.push(...judged.violations);
       hints.push(...judged.hints);
       if (judged.refuted > 0) {
         opts.log?.(
-          `Segment "${segment.id}": ${judged.refuted} Judge-Finding(s) mechanisch widerlegt und verworfen`,
+          `Segment "${segment.id}": ${judged.refuted} judge finding(s) mechanically refuted and discarded`,
         );
       }
       addUsage(judged.usage);
@@ -144,9 +148,9 @@ export async function generateDocs(opts: GenerateDocsOptions): Promise<GenerateR
     }
 
     if (judgeParseFailed(violations)) {
-      // Nicht cachen: ein Format-Ausrutscher des Judge soll beim nächsten
-      // Lauf erneut versucht werden, statt dauerhaft im Cache zu liegen.
-      opts.log?.(`Segment "${segment.id}": Judge-Antwort unparsebar — Ergebnis wird nicht gecacht`);
+      // Do not cache: a formatting slip by the judge should be retried on the
+      // next run instead of being persisted in the cache.
+      opts.log?.(`Segment "${segment.id}": judge response unparsable — result will not be cached`);
     } else {
       const entry: CacheEntry = {
         markdown: response.text,

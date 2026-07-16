@@ -20,8 +20,8 @@ GraphNode screen(
     );
 
 void main() {
-  group('mergeGraph — Nodes', () {
-    test('annotation überschreibt derived feldweise', () {
+  group('mergeGraph — nodes', () {
+    test('annotation overrides derived field by field', () {
       final result = mergeGraph(
         nodes: [
           screen('login',
@@ -36,13 +36,13 @@ void main() {
       );
 
       final node = result.nodes.single;
-      expect(node.title, 'Anmeldung'); // manuell gewinnt
-      expect(node.description, 'Abgeleitet.'); // derived füllt Lücke
+      expect(node.title, 'Anmeldung'); // manual wins
+      expect(node.description, 'Abgeleitet.'); // derived fills the gap
       expect(node.source, 'annotation');
       expect(node.sourceRef.file, 'lib/screens.dart');
     });
 
-    test('zwei manuelle Quellen mit gleichem Wert sind ok', () {
+    test('two manual sources with the same value are fine', () {
       final result = mergeGraph(
         nodes: [
           screen('login', title: 'Anmeldung', at: ref('lib/a.dart', 1)),
@@ -54,8 +54,8 @@ void main() {
       expect(result.nodes, hasLength(1));
     });
 
-    test('zwei manuelle Quellen mit verschiedenen Werten sind ein Fehler '
-        'mit beiden Quellen', () {
+    test('two manual sources with different values are an error '
+        'citing both sources', () {
       expect(
         () => mergeGraph(
           nodes: [
@@ -75,8 +75,8 @@ void main() {
     });
   });
 
-  group('mergeGraph — Flows', () {
-    test('manueller Flow überschreibt abgeleiteten feldweise', () {
+  group('mergeGraph — flows', () {
+    test('manual flow overrides derived one field by field', () {
       final result = mergeGraph(
         nodes: [],
         edges: [],
@@ -101,7 +101,7 @@ void main() {
     });
   });
 
-  group('mergeGraph — Edges', () {
+  group('mergeGraph — edges', () {
     GraphEdge edge(
       String from,
       String to, {
@@ -121,8 +121,8 @@ void main() {
           sourceRef: at ?? ref('lib/a.dart', 1),
         );
 
-    test('generierte Ids e_<from>_<to> mit Kollisions-Suffix in '
-        '(Datei, Zeile)-Reihenfolge', () {
+    test('generated ids e_<from>_<to> with collision suffix in '
+        '(file, line) order', () {
       final result = mergeGraph(
         nodes: [],
         flows: [],
@@ -140,7 +140,7 @@ void main() {
       expect(idOf('Drei'), 'e_a_b_3');
     });
 
-    test('derived-Edge mit gleichem (from, to): manuelle gewinnt feldweise',
+    test('derived edge with the same (from, to): manual one wins field by field',
         () {
       final result = mergeGraph(
         nodes: [],
@@ -157,11 +157,11 @@ void main() {
 
       final merged = result.edges.single;
       expect(merged.label, 'Anmelden');
-      expect(merged.trigger, 'tap'); // derived füllt fehlendes Feld
+      expect(merged.trigger, 'tap'); // derived fills the missing field
       expect(merged.source, 'annotation');
     });
 
-    test('zwei manuelle Edges mit gleichem (from, to) bleiben beide', () {
+    test('two manual edges with the same (from, to) both remain', () {
       final result = mergeGraph(
         nodes: [],
         flows: [],
@@ -173,7 +173,7 @@ void main() {
       expect(result.edges, hasLength(2));
     });
 
-    test('gleiche explizite Id mit verschiedenen Werten ist ein Fehler', () {
+    test('the same explicit id with different values is an error', () {
       expect(
         () => mergeGraph(
           nodes: [],
@@ -191,7 +191,7 @@ void main() {
       );
     });
 
-    test('exakt gleiche derived-Edges werden dedupliziert', () {
+    test('identical derived edges are deduplicated', () {
       final result = mergeGraph(
         nodes: [],
         flows: [],
@@ -209,7 +209,7 @@ void main() {
       expect(result.edges, hasLength(1));
     });
 
-    test('generierte Id weicht bestehender expliziter Id aus', () {
+    test('a generated id avoids an existing explicit id', () {
       final result = mergeGraph(
         nodes: [],
         flows: [],

@@ -1,7 +1,7 @@
 /**
- * Ende-zu-Ende-Tests des Adapter-CLI gegen den gebauten dist-Output —
- * Semantik-Spiegel von dart/ductus/test/cli_integration_test.dart.
- * Der Build läuft einmal pro Testdatei im beforeAll (großzügiger Timeout).
+ * End-to-end tests of the adapter CLI against the built dist output —
+ * semantic mirror of dart/ductus/test/cli_integration_test.dart.
+ * The build runs once per test file in beforeAll (generous timeout).
  */
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -32,14 +32,14 @@ function writeProject(files: Record<string, string>): string {
 }
 
 /**
- * Fixture analog dart/ductus/test/fixtures/full_app: react-router-
- * Konfiguration + @journey:-Kommentare über denselben Ids.
+ * Fixture analogous to dart/ductus/test/fixtures/full_app: react-router
+ * configuration + @journey: comments over the same ids.
  */
 function makeFullApp(): string {
   return writeProject({
     'src/router.tsx': [
-      '// Fixture: react-router-Konfiguration. Wird nur geparst (parse-only),',
-      '// unaufgelöste Bezeichner sind beabsichtigt.',
+      '// Fixture: react-router configuration. Only parsed (parse-only),',
+      '// unresolved identifiers are intentional.',
       '',
       'const router = createBrowserRouter([',
       '  {',
@@ -79,7 +79,7 @@ function makeFullApp(): string {
       '',
     ].join('\n'),
     'src/screens.tsx': [
-      '// Fixture: manuelle Annotationen (Weg A) über den abgeleiteten Routen.',
+      '// Fixture: manual annotations (path A) over the derived routes.',
       '',
       '// @journey:flow id="auth" title="Anmeldung & Registrierung" start="login"',
       '',
@@ -132,7 +132,7 @@ interface GraphJson {
 }
 
 beforeAll(() => {
-  // Einmal pro Testdatei bauen — die CLI-Tests laufen gegen dist/ (bin-Vertrag).
+  // Build once per test file — the CLI tests run against dist/ (bin contract).
   execSync('npm run build', {
     cwd: REPO_ROOT,
     stdio: 'pipe',
@@ -146,7 +146,7 @@ afterAll(() => {
 });
 
 describe('ductus-adapter-typescript', () => {
-  it('Erfolg: Exit 0, parsebares JSON, erwartete Nodes/Edges/Flows, Debug-Datei', () => {
+  it('success: exit 0, parseable JSON, expected nodes/edges/flows, debug file', () => {
     const fullApp = makeFullApp();
     const result = runCli(['--project', fullApp]);
 
@@ -156,8 +156,8 @@ describe('ductus-adapter-typescript', () => {
     expect(graph.schemaVersion).toBe('1.0');
     expect(graph.meta.adapters).toEqual([{ name: 'typescript', version: adapterVersion }]);
 
-    // Exakte Menge (Ausgabe ist nach id sortiert) — arrayContaining würde
-    // Phantom-Elemente kaschieren.
+    // Exact set (output is sorted by id) — arrayContaining would mask
+    // phantom elements.
     expect(graph.nodes.map((n) => n.id)).toEqual([
       'dashboard',
       'dashboard-settings',
@@ -167,11 +167,11 @@ describe('ductus-adapter-typescript', () => {
       'profile',
     ]);
 
-    // Manuelle Annotation überschreibt abgeleiteten Screen.
+    // Manual annotation overrides the derived screen.
     const login = graph.nodes.find((n) => n.id === 'login');
     expect(login?.title).toBe('Anmeldung');
     expect(login?.source).toBe('annotation');
-    expect(login?.tags).toEqual(['auth', 'entry']); // sortiert
+    expect(login?.tags).toEqual(['auth', 'entry']); // sorted
 
     expect(graph.edges.map((e) => e.id)).toEqual([
       'e_dashboard_login',
@@ -183,16 +183,16 @@ describe('ductus-adapter-typescript', () => {
 
     expect(graph.flows.map((f) => f.id)).toEqual(['auth', 'shell-0']);
 
-    // Nicht zuordenbare Navigation landet als Hinweis auf stderr.
+    // Unmappable navigation ends up as a note on stderr.
     expect(result.stderr).toContain('/unbekannt');
 
-    // Debug-Datei mit identischem Inhalt.
+    // Debug file with identical content.
     const debugFile = join(fullApp, 'ductus_graph.g.json');
     expect(existsSync(debugFile)).toBe(true);
     expect(readFileSync(debugFile, 'utf8')).toBe(result.stdout);
   });
 
-  it('Determinismus: zwei Läufe liefern byte-identisches stdout (NFR2)', () => {
+  it('determinism: two runs produce byte-identical stdout (NFR2)', () => {
     const fullApp = makeFullApp();
     const first = runCli(['--project', fullApp, '--no-debug-file']);
     const second = runCli(['--project', fullApp, '--no-debug-file']);
@@ -201,13 +201,13 @@ describe('ductus-adapter-typescript', () => {
     expect(second.status, second.stderr).toBe(0);
     expect(second.stdout).toBe(first.stdout);
     expect(Buffer.from(second.stdout, 'utf8').equals(Buffer.from(first.stdout, 'utf8'))).toBe(true);
-    // Kanonische Form: LF + abschließender Zeilenumbruch, kein Zeitstempel.
+    // Canonical form: LF + trailing newline, no timestamp.
     expect(first.stdout.endsWith('}\n')).toBe(true);
     expect(first.stdout).not.toContain('\r');
     expect(first.stdout).not.toContain('generatedAt');
   });
 
-  it('--no-debug-file unterdrückt die Debug-Datei', () => {
+  it('--no-debug-file suppresses the debug file', () => {
     const fullApp = makeFullApp();
     const result = runCli(['--project', fullApp, '--no-debug-file']);
 
@@ -215,10 +215,10 @@ describe('ductus-adapter-typescript', () => {
     expect(existsSync(join(fullApp, 'ductus_graph.g.json'))).toBe(false);
   });
 
-  it('Konflikt: Exit 1, stderr nennt beide Quellen, stdout leer', () => {
+  it('conflict: exit 1, stderr cites both sources, stdout empty', () => {
     const conflict = writeProject({
       'src/a.tsx': [
-        '// Fixture: manuelle Quelle 1 für node "login".',
+        '// Fixture: manual source 1 for node "login".',
         '// @journey:screen id="login" title="Anmeldung A"',
         'function LoginScreenA() {',
         '  return null;',
@@ -226,7 +226,7 @@ describe('ductus-adapter-typescript', () => {
         '',
       ].join('\n'),
       'src/b.tsx': [
-        '// Fixture: manuelle Quelle 2 für node "login" — Konflikt im Feld "title".',
+        '// Fixture: manual source 2 for node "login" — conflict in field "title".',
         '// @journey:screen id="login" title="Anmeldung B"',
         'function LoginScreenB() {',
         '  return null;',
@@ -240,28 +240,28 @@ describe('ductus-adapter-typescript', () => {
     expect(result.stderr).toContain('src/a.tsx:2');
     expect(result.stderr).toContain('src/b.tsx:2');
     expect(result.stderr).toContain('title');
-    // Kein Graph auf stdout im Fehlerfall.
+    // No graph on stdout in the error case.
     expect(result.stdout).toBe('');
   });
 
-  it('fehlendes --project: Exit 64 mit Usage auf stderr', () => {
+  it('missing --project: exit 64 with usage on stderr', () => {
     const result = runCli([]);
 
     expect(result.status).toBe(64);
     expect(result.stderr).toContain('--project');
-    expect(result.stderr).toContain('Verwendung');
+    expect(result.stderr).toContain('Usage');
     expect(result.stdout).toBe('');
   });
 
-  it('unbekannte Option: Exit 64 mit Usage auf stderr', () => {
-    const result = runCli(['--quatsch']);
+  it('unknown option: exit 64 with usage on stderr', () => {
+    const result = runCli(['--bogus']);
 
     expect(result.status).toBe(64);
-    expect(result.stderr).toContain('unbekannte Option');
-    expect(result.stderr).toContain('Verwendung');
+    expect(result.stderr).toContain('unknown option');
+    expect(result.stderr).toContain('Usage');
   });
 
-  it('--config mit leerem deriveFrom schaltet Ableitungen ab', () => {
+  it('--config with empty deriveFrom disables derivations', () => {
     const fullApp = makeFullApp();
     const configDir = writeProject({ 'config.json': '{"deriveFrom": []}' });
 
@@ -275,12 +275,12 @@ describe('ductus-adapter-typescript', () => {
 
     expect(result.status, result.stderr).toBe(0);
     const graph = JSON.parse(result.stdout) as GraphJson;
-    // Nur manuell annotierte Nodes, keine abgeleiteten Routen.
+    // Only manually annotated nodes, no derived routes.
     expect(graph.nodes.map((n) => n.id).sort()).toEqual(['dashboard', 'login']);
     expect(graph.flows.map((f) => f.id)).toEqual(['auth']);
   });
 
-  it('--config mit include-Globs ignoriert Dateien außerhalb', () => {
+  it('--config with include globs ignores files outside them', () => {
     const project = writeProject({
       'app/extra.tsx': [
         '// @journey:screen id="extra" title="Extra"',
@@ -312,17 +312,17 @@ describe('ductus-adapter-typescript', () => {
     expect(graph.nodes.map((n) => n.id)).toEqual(['extra']);
   });
 
-  it('adapterVersion stimmt mit "version" in package.json überein', () => {
+  it('adapterVersion matches "version" in package.json', () => {
     const packageJson = JSON.parse(readFileSync(join(PACKAGE_DIR, 'package.json'), 'utf8')) as {
       version: string;
     };
-    // Die Konstante ist hartkodiert — beim Release-Bump beide nachziehen,
-    // sonst meldet meta.adapters.version nicht mehr die tatsächliche
-    // Paketversion (zugesagt ist "version: <Paketversion>").
+    // The constant is hard-coded — update both on a release bump, otherwise
+    // meta.adapters.version no longer reports the actual package version
+    // (the contract is "version: <package version>").
     expect(adapterVersion).toBe(packageJson.version);
   });
 
-  it('Ausgabe ist konform zum Journey-Graph-JSON-Schema', () => {
+  it('output conforms to the journey graph JSON schema', () => {
     const fullApp = makeFullApp();
     const result = runCli(['--project', fullApp, '--no-debug-file']);
     expect(result.status, result.stderr).toBe(0);

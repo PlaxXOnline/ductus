@@ -1,5 +1,5 @@
 /**
- * Weg C — Ableitung aus Next.js-Projekten (dateibasiertes Routing).
+ * Path C — derivation from Next.js projects (file-based routing).
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -16,8 +16,8 @@ afterAll(() => {
 
 const PAGE = 'export default function Page() {\n  return null;\n}\n';
 
-describe('deriveNext — App-Router-Screens', () => {
-  it('app/page.tsx wird zum Screen root mit Pfad /', () => {
+describe('deriveNext — App Router screens', () => {
+  it('app/page.tsx becomes the screen root with path /', () => {
     const result = deriveNext([scanSource(PAGE, 'app/page.tsx')], new WarnLog().call);
 
     expect(result.nodes).toHaveLength(1);
@@ -30,7 +30,7 @@ describe('deriveNext — App-Router-Screens', () => {
     expect(result.pathToScreen.get('/')).toBe('root');
   });
 
-  it('verschachtelte Segmente werden zum Bindestrich-Slug', () => {
+  it('nested segments become a hyphenated slug', () => {
     const result = deriveNext(
       [scanSource(PAGE, 'app/dashboard/settings/page.tsx')],
       new WarnLog().call,
@@ -41,14 +41,14 @@ describe('deriveNext — App-Router-Screens', () => {
     expect(result.pathToScreen.get('/dashboard/settings')).toBe('dashboard-settings');
   });
 
-  it('Param-Segmente entfallen in der Id, bleiben aber im Pfad-Schlüssel', () => {
+  it('param segments are dropped from the id but kept in the path key', () => {
     const result = deriveNext([scanSource(PAGE, 'app/users/[id]/page.tsx')], new WarnLog().call);
 
     expect(result.nodes.map((n) => n.id)).toEqual(['users']);
     expect(result.pathToScreen.get('/users/[id]')).toBe('users');
   });
 
-  it('Routen-Gruppe (name) wird zum Flow mit dem ersten Screen als Start', () => {
+  it('route group (name) becomes a flow with the first screen as start', () => {
     const result = deriveNext(
       [
         scanSource(PAGE, 'app/(onboarding)/welcome/page.tsx'),
@@ -65,7 +65,7 @@ describe('deriveNext — App-Router-Screens', () => {
     expect(result.flows[0]).toMatchObject({ id: 'onboarding', title: 'Onboarding', start: 'welcome' });
   });
 
-  it('@slot-, (.)-Intercepting- und _private-Segmente werden übersprungen', () => {
+  it('@slot, (.) intercepting, and _private segments are skipped', () => {
     const result = deriveNext(
       [
         scanSource(PAGE, 'app/@modal/photo/page.tsx'),
@@ -80,7 +80,7 @@ describe('deriveNext — App-Router-Screens', () => {
     expect(result.flows).toEqual([]);
   });
 
-  it('src/app-Präfix funktioniert ebenfalls', () => {
+  it('the src/app prefix works as well', () => {
     const result = deriveNext([scanSource(PAGE, 'src/app/settings/page.tsx')], new WarnLog().call);
 
     expect(result.nodes.map((n) => n.id)).toEqual(['settings']);
@@ -88,9 +88,9 @@ describe('deriveNext — App-Router-Screens', () => {
   });
 });
 
-describe('deriveNext — Pages-Router-Screens', () => {
-  it('pages-Dateien werden zu Screens; api/ und _app entfallen (mit Next-Evidenz via Import)', () => {
-    // Next-Evidenz: mindestens eine Datei importiert aus next/… .
+describe('deriveNext — Pages Router screens', () => {
+  it('pages files become screens; api/ and _app are dropped (with Next evidence via import)', () => {
+    // Next evidence: at least one file imports from next/… .
     const NEXT_PAGE = "import Link from 'next/link';\n" + PAGE;
     const result = deriveNext(
       [
@@ -109,9 +109,9 @@ describe('deriveNext — Pages-Router-Screens', () => {
     expect(result.pathToScreen.get('/')).toBe('root');
   });
 
-  it('ohne Next-Evidenz entstehen KEINE Pages-Router-Screens (src/pages/ in react-router-Projekten)', () => {
-    // Kein next-Import, keine package.json/next.config.* — die verbreitete
-    // src/pages/-Konvention darf keine Phantom-Screens erzeugen.
+  it('without Next evidence, NO Pages Router screens are created (src/pages/ in react-router projects)', () => {
+    // No next import, no package.json/next.config.* — the common src/pages/
+    // convention must not create phantom screens.
     const result = deriveNext(
       [scanSource(PAGE, 'src/pages/Home.tsx'), scanSource(PAGE, 'pages/about.tsx')],
       new WarnLog().call,
@@ -122,7 +122,7 @@ describe('deriveNext — Pages-Router-Screens', () => {
     expect(result.componentToScreen.size).toBe(0);
   });
 
-  it('package.json mit next-Dependency im projectDir zählt als Next-Evidenz', () => {
+  it('a package.json with a next dependency in projectDir counts as Next evidence', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-next-evidence-'));
     tmpRoots.push(dir);
     writeFileSync(join(dir, 'package.json'), JSON.stringify({ dependencies: { next: '^15.0.0' } }), 'utf8');
@@ -134,14 +134,14 @@ describe('deriveNext — Pages-Router-Screens', () => {
     expect(result.nodes.map((n) => n.id)).toEqual(['about']);
   });
 
-  it('App-Router-Screens brauchen keine Evidenz (Konvention ist eindeutig)', () => {
+  it('App Router screens need no evidence (the convention is unambiguous)', () => {
     const result = deriveNext([scanSource(PAGE, 'app/dashboard/page.tsx')], new WarnLog().call);
     expect(result.nodes.map((n) => n.id)).toEqual(['dashboard']);
   });
 });
 
-describe('deriveNext — Default-Export-Zuordnung', () => {
-  it('erkennt export default function, export default X und export default memo(X)', () => {
+describe('deriveNext — default-export mapping', () => {
+  it('recognizes export default function, export default X, and export default memo(X)', () => {
     const result = deriveNext(
       [
         scanSource('export default function APage() {\n  return null;\n}\n', 'app/a/page.tsx'),
@@ -157,8 +157,8 @@ describe('deriveNext — Default-Export-Zuordnung', () => {
   });
 });
 
-describe('deriveNext — Navigation', () => {
-  it('<Link href> erzeugt eine tap-Kante mit Label', () => {
+describe('deriveNext — navigation', () => {
+  it('<Link href> creates a tap edge with a label', () => {
     const warn = new WarnLog();
     const result = deriveNext(
       [
@@ -182,7 +182,7 @@ describe('deriveNext — Navigation', () => {
     });
   });
 
-  it("router.push('/pfad') wird nur erfasst, wenn die Datei useRouter erwähnt", () => {
+  it("router.push('/path') is only captured when the file mentions useRouter", () => {
     const withHook = deriveNext(
       [
         scanSource(
@@ -220,7 +220,7 @@ describe('deriveNext — Navigation', () => {
     expect(withoutHook.edges).toEqual([]);
   });
 
-  it('from fällt auf die page-Datei zurück, wenn die umschließende Komponente unbekannt ist', () => {
+  it('from falls back to the page file when the enclosing component is unknown', () => {
     const result = deriveNext(
       [
         scanSource(
@@ -246,8 +246,8 @@ describe('deriveNext — Navigation', () => {
   });
 });
 
-describe('deriveNext — redirect-Decisions', () => {
-  it('redirect in einer page-Datei mit next/navigation-Import erzeugt eine Decision', () => {
+describe('deriveNext — redirect decisions', () => {
+  it('redirect in a page file with a next/navigation import creates a decision', () => {
     const result = deriveNext(
       [
         scanSource(
@@ -272,7 +272,7 @@ describe('deriveNext — redirect-Decisions', () => {
     const decision = result.nodes.find((n) => n.id === 'dashboard_redirect');
     expect(decision).toBeDefined();
     expect(decision?.type).toBe('decision');
-    expect(decision?.title).toBe('Weiterleitung: Dashboard');
+    expect(decision?.title).toBe('Redirect: Dashboard');
     expect(
       result.edges.map((e) => ({ from: e.from, to: e.to, trigger: e.trigger, condition: e.condition })),
     ).toEqual([
@@ -281,7 +281,7 @@ describe('deriveNext — redirect-Decisions', () => {
     ]);
   });
 
-  it('redirect ohne next/navigation-Import erzeugt keine Decision', () => {
+  it('redirect without a next/navigation import creates no decision', () => {
     const result = deriveNext(
       [
         scanSource(

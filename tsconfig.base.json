@@ -13,8 +13,8 @@
     "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true,
-    // sourcesContent in die .js.map einbetten — die Tarballs enthalten kein
-    // src/, ohne inlineSources wären die Source-Maps für Konsumenten tot.
+    // Embed sourcesContent into the .js.map — the tarballs contain no src/,
+    // so without inlineSources the source maps would be dead for consumers.
     "inlineSources": true,
     "resolveJsonModule": true
   }

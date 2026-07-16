@@ -1,6 +1,6 @@
 /**
- * Gemeinsame Bausteine der Ableitungen (Weg C) — Pfad-Slugs, JSX-Helfer,
- * from-Zuordnung. Alles best effort und `source: "derived"`.
+ * Shared building blocks of the derivations (path C) — path slugs, JSX
+ * helpers, `from` mapping. Everything is best effort and `source: "derived"`.
  */
 
 import ts from 'typescript';
@@ -8,8 +8,8 @@ import { componentDeclarations, enclosingComponent } from '../declarations.js';
 import type { ScannedFile } from '../scanner.js';
 
 /**
- * Pfad-Slug für abgeleitete Screen-Ids: führendes '/' weg, '/'→'-',
- * ':param'/'[param]'-Segmente entfallen, leer → 'root' (wie im Dart-Adapter).
+ * Path slug for derived screen ids: leading '/' removed, '/'→'-',
+ * ':param'/'[param]' segments dropped, empty → 'root' (as in the Dart adapter).
  */
 export function slugFromPath(path: string): string {
   const slug = path
@@ -19,7 +19,7 @@ export function slugFromPath(path: string): string {
   return slug === '' ? 'root' : slug;
 }
 
-/** Humanisierte Id: '-'→' ', erster Buchstabe groß. */
+/** Humanized id: '-'→' ', first letter uppercased. */
 export function humanize(id: string): string {
   const text = id.replaceAll('-', ' ');
   if (text === '') return text;
@@ -32,20 +32,20 @@ export function joinPaths(parent: string, child: string): string {
   return `${parent}/${child}`;
 }
 
-/** Wert eines statischen String-Ausdrucks ('…', "…", `…` ohne Interpolation). */
+/** Value of a static string expression ('…', "…", `…` without interpolation). */
 export function stringValue(expr: ts.Expression | undefined): string | undefined {
   if (expr === undefined) return undefined;
   if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return expr.text;
   return undefined;
 }
 
-/** Einfacher Tag-Name eines JSX-Elements (nur Identifier, kein `Foo.Bar`). */
+/** Simple tag name of a JSX element (identifiers only, no `Foo.Bar`). */
 export function jsxTagName(node: ts.JsxElement | ts.JsxSelfClosingElement): string | undefined {
   const tag = ts.isJsxElement(node) ? node.openingElement.tagName : node.tagName;
   return ts.isIdentifier(tag) ? tag.text : undefined;
 }
 
-/** Attribut-Ausdruck eines JSX-Elements: `name="…"` oder `name={…}`. */
+/** Attribute expression of a JSX element: `name="…"` or `name={…}`. */
 export function jsxAttributeExpression(
   node: ts.JsxElement | ts.JsxSelfClosingElement,
   name: string,
@@ -63,8 +63,8 @@ export function jsxAttributeExpression(
 }
 
 /**
- * Boolesches JSX-Attribut: `name` (ohne Wert) und `name={true}` ⇒ true;
- * `name={false}`, andere Ausdrücke oder fehlendes Attribut ⇒ false.
+ * Boolean JSX attribute: `name` (without a value) and `name={true}` ⇒ true;
+ * `name={false}`, other expressions, or a missing attribute ⇒ false.
  */
 export function jsxBooleanAttribute(
   node: ts.JsxElement | ts.JsxSelfClosingElement,
@@ -85,8 +85,8 @@ export function jsxBooleanAttribute(
 }
 
 /**
- * Sichtbarer Text eines JSX-Elements, wenn er statisch eindeutig ist:
- * genau ein nicht-leeres JsxText-Kind — der Kanten-`label`-Kandidat.
+ * Visible text of a JSX element when it is statically unambiguous:
+ * exactly one non-empty JsxText child — the edge `label` candidate.
  */
 export function jsxSingleTextChild(node: ts.JsxElement | ts.JsxSelfClosingElement): string | undefined {
   if (!ts.isJsxElement(node)) return undefined;
@@ -96,7 +96,7 @@ export function jsxSingleTextChild(node: ts.JsxElement | ts.JsxSelfClosingElemen
       const trimmed = child.text.trim();
       if (trimmed !== '') texts.push(trimmed);
     } else {
-      // Ausdrucks-/Element-Kinder ⇒ Text nicht statisch eindeutig.
+      // Expression/element children ⇒ text is not statically unambiguous.
       return undefined;
     }
   }
@@ -104,16 +104,17 @@ export function jsxSingleTextChild(node: ts.JsxElement | ts.JsxSelfClosingElemen
 }
 
 /**
- * Komponenten-Name aus einem `element={…}`-Ausdruck: Tag des JSX-Elements;
- * hat das Element genau ein JSX-Element-Kind (Wrapper wie `<Suspense>`),
- * wird das Kind bevorzugt (analog zur `child:`-Präferenz im Dart-Adapter).
+ * Component name from an `element={…}` expression: tag of the JSX element;
+ * if the element has exactly one JSX element child (wrappers like
+ * `<Suspense>`), the child is preferred (analogous to the `child:`
+ * preference in the Dart adapter).
  */
 export function componentNameFromElement(expr: ts.Expression | undefined): string | undefined {
   if (expr === undefined) return undefined;
   let node: ts.Expression = expr;
   if (ts.isParenthesizedExpression(node)) node = node.expression;
   if (!ts.isJsxElement(node) && !ts.isJsxSelfClosingElement(node)) {
-    // `Component={X}` — direkte Referenz auf die Komponente.
+    // `Component={X}` — direct reference to the component.
     return ts.isIdentifier(node) && isComponentName(node.text) ? node.text : undefined;
   }
   const top = jsxTagName(node);
@@ -131,12 +132,12 @@ export function componentNameFromElement(expr: ts.Expression | undefined): strin
   return top;
 }
 
-/** Komponenten heißen per Konvention mit Großbuchstaben. */
+/** Components are capitalized by convention. */
 export function isComponentName(name: string): boolean {
   return name.length > 0 && name[0] === name[0]!.toUpperCase();
 }
 
-/** Rekursiver Besuch aller Knoten einer Datei. */
+/** Recursive visit of all nodes of a file. */
 export function visit(root: ts.Node, callback: (node: ts.Node) => void): void {
   const walk = (node: ts.Node): void => {
     callback(node);
@@ -145,20 +146,20 @@ export function visit(root: ts.Node, callback: (node: ts.Node) => void): void {
   walk(root);
 }
 
-/** Name der umschließenden Top-Level-Komponente eines Knotens (best effort). */
+/** Name of a node's enclosing top-level component (best effort). */
 export function enclosingComponentName(file: ScannedFile, node: ts.Node): string | undefined {
   const declarations = componentDeclarations(file.sourceFile);
   return enclosingComponent(declarations, node.getStart(file.sourceFile))?.name;
 }
 
 export interface RedirectScan {
-  /** Enthält der Teilbaum überhaupt einen redirect(...)-Aufruf? */
+  /** Does the subtree contain any redirect(...) call at all? */
   hasRedirectCall: boolean;
-  /** String-Literale der ersten Argumente aller redirect(...)-Aufrufe. */
+  /** String literals of the first arguments of all redirect(...) calls. */
   targets: string[];
 }
 
-/** Sucht `redirect(...)`/`permanentRedirect(...)`-Aufrufe und deren literale Ziele. */
+/** Finds `redirect(...)`/`permanentRedirect(...)` calls and their literal targets. */
 export function collectRedirectTargets(root: ts.Node): RedirectScan {
   const scan: RedirectScan = { hasRedirectCall: false, targets: [] };
   visit(root, (node) => {

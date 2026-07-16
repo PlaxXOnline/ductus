@@ -1,7 +1,7 @@
 ---
 /**
- * Top-Nav: Logo-Badge (App-Initial), "<AppName> Handbuch", Buttons
- * Übersicht/Journeys sowie das ⌘K-Suchfeld (öffnet das Suchoverlay).
+ * Top nav: logo badge (app initial), "<AppName> Handbook", the
+ * Overview/Journeys buttons and the ⌘K search field (opens the search overlay).
  */
 import { data } from '../lib/data';
 import { uiStrings } from '../lib/strings';
@@ -53,8 +53,8 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     align-items: center;
     gap: 10px;
     color: var(--dj-text);
-    /* Lange App-Namen: Brand schrumpft (Titel-Ellipsis), statt Tabs und
-       Suche aus der Nav zu schieben — .dj-app clippt, die Nav scrollt nie. */
+    /* Long app names: the brand shrinks (title ellipsis) instead of pushing
+       tabs and search out of the nav — .dj-app clips, the nav never scrolls. */
     min-width: 0;
   }
   .dj-nav-brand:hover {
@@ -134,7 +134,7 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     gap: 3px;
   }
 
-  /* Lupe (reines CSS wie in der Design-Referenz) */
+  /* Magnifier (pure CSS as in the design reference) */
   .dj-search-icon {
     position: relative;
     width: 14px;
@@ -164,8 +164,9 @@ const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
     display: block;
   }
 
-  /* Mobil (Design: mob = vw < 760): kompakte Nav, Suchfeld schrumpft auf die
-     Lupe, „Handbuch“-Suffix und ⌘K-Tasten entfallen, Tabs als Touch-Targets. */
+  /* Mobile (design: mob = vw < 760): compact nav, the search field shrinks to
+     the magnifier, “Handbook” suffix and ⌘K keys are dropped, tabs become
+     touch targets. */
   @media (max-width: 759.98px) {
     .dj-nav {
       gap: 10px;

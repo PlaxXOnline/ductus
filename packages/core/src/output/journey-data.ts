@@ -1,10 +1,10 @@
 /**
- * Datenvertrag ductus.data.json für den Website-Generator "journey".
+ * Data contract ductus.data.json for the "journey" website generator.
  *
- * Baut aus einem GenerateResult das vollständige Datenobjekt, das scaffoldWebsite
- * im journey-Modus als einzige Daten-Datei in die Site-Wurzel schreibt; das
- * Template liest sie zur Buildzeit. Alles deterministisch (NFR2): stabile
- * Sortierung, LF, abschließender Zeilenumbruch, KEINE Zeitstempel.
+ * Builds the complete data object from a GenerateResult; in journey mode,
+ * scaffoldWebsite writes it as the single data file into the site root and the
+ * template reads it at build time. Everything is deterministic (NFR2): stable
+ * sorting, LF, trailing newline, NO timestamps.
  */
 
 import type { AdapterInfo, JourneyEdge, JourneyNode, SourceRef } from '@ductus/schema';
@@ -19,12 +19,12 @@ import type {
 import { deriveMainPath } from './mermaid.js';
 import { toSlug } from './slug.js';
 
-/** Locale-unabhängiger String-Vergleich (NFR2 — localeCompare wäre umgebungsabhängig). */
+/** Locale-independent string comparison (NFR2 — localeCompare would depend on the environment). */
 function cmp(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** sourceRef mit stabiler Schlüsselreihenfolge; fehlende Werte als null (JSON-stabil). */
+/** sourceRef with stable key order; missing values as null (JSON-stable). */
 function toDataSourceRef(ref: SourceRef | undefined): SourceRef | null {
   if (ref === undefined) return null;
   return {
@@ -35,8 +35,8 @@ function toDataSourceRef(ref: SourceRef | undefined): SourceRef | null {
 }
 
 /**
- * Anzeige-Titel konsistent zu renderNode/journeyTaskLabel in mermaid.ts:
- * für type=action label ?? title ?? id, sonst title ?? id.
+ * Display title consistent with renderNode/journeyTaskLabel in mermaid.ts:
+ * for type=action label ?? title ?? id, otherwise title ?? id.
  */
 function nodeTitle(node: JourneyNode): string {
   return node.type === 'action'
@@ -56,9 +56,9 @@ function toDataNode(node: JourneyNode, startNodeId: string | null): JourneyWebsi
 }
 
 /**
- * Kanten-Eintrag; `main` ist der 0-basierte Index der Hauptpfad-Kante (die
- * Kante zwischen mainPath[i] und mainPath[i+1], gewählt mit exakt derselben
- * Priorität wie deriveMainPath/segmentToJourney), sonst null.
+ * Edge entry; `main` is the 0-based index of the main-path edge (the edge
+ * between mainPath[i] and mainPath[i+1], chosen with exactly the same
+ * priority as deriveMainPath/segmentToJourney), otherwise null.
  */
 function toDataEdge(edge: JourneyEdge, mainIndexByEdgeId: Map<string, number>): JourneyWebsiteEdge {
   const main = mainIndexByEdgeId.get(edge.id);
@@ -73,12 +73,12 @@ function toDataEdge(edge: JourneyEdge, mainIndexByEdgeId: Map<string, number>): 
   };
 }
 
-/** Baut den Datenvertrags-Eintrag eines generierten Segments. */
+/** Builds the data-contract entry of a generated segment. */
 function toDataEntry(generated: GeneratedSegment): JourneyWebsiteEntry {
   const segment = generated.segment;
   const startNodeId = segment.flow?.start ?? null;
 
-  // Hauptpfad einmal ableiten: Node-IDs für mainPath, Kanten-Indizes für `main`.
+  // Derive the main path once: node ids for mainPath, edge indices for `main`.
   const mainPath = deriveMainPath(segment);
   const mainIndexByEdgeId = new Map(mainPath.edges.map((edge, index) => [edge.id, index]));
 
@@ -104,22 +104,22 @@ function toDataEntry(generated: GeneratedSegment): JourneyWebsiteEntry {
 
 export interface BuildJourneyDataInput {
   result: GenerateResult;
-  /** Adapter-Provenance aus dem Extract (extract.adapterInfos). */
+  /** Adapter provenance from the extract (extract.adapterInfos). */
   adapterInfos: AdapterInfo[];
   /** config.app.name. */
   appName: string;
   /** config.app.locale. */
   locale: string;
-  /** Version von @ductus/core (deterministisch ermittelt, kein Hardcoding). */
+  /** Version of @ductus/core (determined deterministically, not hardcoded). */
   ductusVersion: string;
 }
 
 /**
- * Slug-Kollisionen deterministisch auflösen (Muster: IdSanitizer in mermaid.ts):
- * verschiedene Segment-ids können auf denselben Slug normalisieren (z. B.
- * "auth_flow" und "auth-flow") — im journey-Template wäre das eine doppelte
- * Route, eine der Journeys unerreichbar. Doppelte Slugs erhalten in stabiler
- * Reihenfolge (nach der order/slug-Sortierung) die Suffixe -2, -3, ….
+ * Resolve slug collisions deterministically (pattern: IdSanitizer in mermaid.ts):
+ * different segment ids can normalize to the same slug (e.g. "auth_flow" and
+ * "auth-flow") — in the journey template that would be a duplicate route,
+ * leaving one of the journeys unreachable. Duplicate slugs receive the
+ * suffixes -2, -3, … in stable order (following the order/slug sort).
  */
 function dedupeSlugs(journeys: JourneyWebsiteEntry[]): void {
   const used = new Set<string>();
@@ -136,12 +136,12 @@ function dedupeSlugs(journeys: JourneyWebsiteEntry[]): void {
 }
 
 /**
- * Baut das ductus.data.json-Objekt deterministisch (NFR2): journeys nach
- * order (Tie-Break slug), nodes/edges nach id, adapters nach name.
+ * Builds the ductus.data.json object deterministically (NFR2): journeys by
+ * order (tie-break slug), nodes/edges by id, adapters by name.
  */
 export function buildJourneyData(input: BuildJourneyDataInput): JourneyWebsiteData {
-  // Tie-Break slug; bei Slug-Kollision entscheidet die id (NFR2 — sonst hinge
-  // die Suffix-Vergabe von dedupeSlugs an der Eingabereihenfolge).
+  // Tie-break slug; on slug collision the id decides (NFR2 — otherwise the
+  // suffix assignment of dedupeSlugs would depend on the input order).
   const journeys = input.result.segments
     .map((generated) => toDataEntry(generated))
     .sort((a, b) => a.order - b.order || cmp(a.slug, b.slug) || cmp(a.id, b.id));
@@ -167,7 +167,7 @@ export function buildJourneyData(input: BuildJourneyDataInput): JourneyWebsiteDa
   };
 }
 
-/** Kanonische Serialisierung (NFR2): 2 Spaces, LF, abschließender Zeilenumbruch. */
+/** Canonical serialization (NFR2): 2 spaces, LF, trailing newline. */
 export function serializeJourneyData(data: JourneyWebsiteData): string {
   return `${JSON.stringify(data, null, 2)}\n`;
 }

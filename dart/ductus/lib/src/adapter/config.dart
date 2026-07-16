@@ -1,4 +1,4 @@
-/// Adapter-Konfiguration aus `--config <json-file>`.
+/// Adapter configuration from `--config <json-file>`.
 library;
 
 import 'dart:convert';
@@ -7,15 +7,15 @@ import 'dart:io';
 import 'graph_model.dart';
 
 class AdapterConfig {
-  /// Aktive Ableitungswege (Weg C); Default: beide an.
+  /// Active derivation paths (path C); default: both enabled.
   final List<String> deriveFrom;
 
-  /// Glob-Muster relativ zum Projektverzeichnis; Default: `lib/**`.
+  /// Glob patterns relative to the project directory; default: `lib/**`.
   final List<String> include;
 
-  /// Weg D: statt selbst zu scannen das build_runner-Artefakt
-  /// `ductus_builder.g.json` durchreichen (äquivalent zum CLI-Flag
-  /// `--from-builder`; das Flag gewinnt).
+  /// Path D: instead of scanning itself, pass through the build_runner
+  /// artifact `ductus_builder.g.json` (equivalent to the CLI flag
+  /// `--from-builder`; the flag wins).
   final bool fromBuilder;
 
   const AdapterConfig({
@@ -31,16 +31,16 @@ class AdapterConfig {
     if (configPath == null) return const AdapterConfig();
     final file = File(configPath);
     if (!file.existsSync()) {
-      throw AdapterException(['Konfigurationsdatei nicht gefunden: $configPath']);
+      throw AdapterException(['Configuration file not found: $configPath']);
     }
     final Object? raw;
     try {
       raw = jsonDecode(file.readAsStringSync());
     } on FormatException catch (e) {
-      throw AdapterException(['Ungültiges JSON in $configPath: ${e.message}']);
+      throw AdapterException(['Invalid JSON in $configPath: ${e.message}']);
     }
     if (raw is! Map<String, Object?>) {
-      throw AdapterException(['$configPath: erwartet ein JSON-Objekt.']);
+      throw AdapterException(['$configPath: expected a JSON object.']);
     }
     return AdapterConfig(
       deriveFrom: _stringList(raw, 'deriveFrom', configPath) ??
@@ -55,7 +55,7 @@ class AdapterConfig {
     final value = map[key];
     if (value == null) return null;
     if (value is! List || value.any((e) => e is! String)) {
-      throw AdapterException(['$path: "$key" muss eine Liste von Strings sein.']);
+      throw AdapterException(['$path: "$key" must be a list of strings.']);
     }
     return value.cast<String>();
   }
@@ -64,7 +64,7 @@ class AdapterConfig {
     final value = map[key];
     if (value == null) return null;
     if (value is! bool) {
-      throw AdapterException(['$path: "$key" muss true oder false sein.']);
+      throw AdapterException(['$path: "$key" must be true or false.']);
     }
     return value;
   }

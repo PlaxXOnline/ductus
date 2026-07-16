@@ -39,7 +39,7 @@ function sampleGraph(): JourneyGraph {
 }
 
 describe('canonicalStringify', () => {
-  it('sortiert Objekt-Schlüssel rekursiv lexikographisch', () => {
+  it('sorts object keys recursively and lexicographically', () => {
     const result = canonicalStringify({ b: 1, a: { d: 2, c: [{ z: 1, y: 2 }] } });
     expect(result).toBe(
       '{\n' +
@@ -57,7 +57,7 @@ describe('canonicalStringify', () => {
     );
   });
 
-  it('endet mit genau einem LF und nutzt 2-Space-Indent', () => {
+  it('ends with exactly one LF and uses 2-space indentation', () => {
     const result = canonicalStringify({ a: 1 });
     expect(result.endsWith('}\n')).toBe(true);
     expect(result.endsWith('}\n\n')).toBe(false);
@@ -65,22 +65,22 @@ describe('canonicalStringify', () => {
     expect(result).not.toContain('\r');
   });
 
-  it('behandelt Umlaute und Unicode stabil', () => {
+  it('handles umlauts and Unicode stably', () => {
     const result = canonicalStringify({ ü: 'Grüße', a: 'Straße 😀' });
-    // "a" (0x61) < "ü" (0xFC) in Code-Unit-Ordnung
+    // "a" (0x61) < "ü" (0xFC) in code-unit order
     expect(result.indexOf('"a"')).toBeLessThan(result.indexOf('"ü"'));
     expect(result).toContain('Grüße');
     expect(result).toContain('😀');
     expect(JSON.parse(result)).toEqual({ a: 'Straße 😀', ü: 'Grüße' });
   });
 
-  it('sortiert Arrays NICHT um (Reihenfolge ist Sache der Kanonisierung)', () => {
+  it('does NOT reorder arrays (ordering is the canonicalization step’s job)', () => {
     expect(canonicalStringify(['b', 'a'])).toBe('[\n  "b",\n  "a"\n]\n');
   });
 });
 
 describe('canonicalizeGraph', () => {
-  it('sortiert flows/nodes/edges nach id, tags und platforms, adapters nach name', () => {
+  it('sorts flows/nodes/edges by id, tags and platforms, adapters by name', () => {
     const canonical = canonicalizeGraph(sampleGraph());
     expect(canonical.flows.map((f) => f.id)).toEqual(['auth', 'zeta']);
     expect(canonical.nodes.map((n) => n.id)).toEqual(['login', 'settings']);
@@ -90,14 +90,14 @@ describe('canonicalizeGraph', () => {
     expect(canonical.meta?.adapters?.map((a) => a.name)).toEqual(['dart', 'typescript']);
   });
 
-  it('entfernt meta.generatedAt (Byte-Stabilität: kein Zeitstempel im Graphen)', () => {
+  it('removes meta.generatedAt (byte stability: no timestamp in the graph)', () => {
     const canonical = canonicalizeGraph(sampleGraph());
     expect(canonical.meta?.generatedAt).toBeUndefined();
     expect('generatedAt' in (canonical.meta ?? {})).toBe(false);
     expect(serializeGraph(sampleGraph())).not.toContain('generatedAt');
   });
 
-  it('mutiert die Eingabe nicht', () => {
+  it('does not mutate the input', () => {
     const graph = sampleGraph();
     const before = structuredClone(graph);
     canonicalizeGraph(graph);
@@ -105,7 +105,7 @@ describe('canonicalizeGraph', () => {
     expect(graph).toEqual(before);
   });
 
-  it('lässt optionale Abschnitte weg, statt undefined zu setzen', () => {
+  it('omits optional sections instead of setting undefined', () => {
     const minimal: JourneyGraph = { schemaVersion: '1.0', flows: [], nodes: [], edges: [] };
     const canonical = canonicalizeGraph(minimal);
     expect('app' in canonical).toBe(false);
@@ -114,13 +114,13 @@ describe('canonicalizeGraph', () => {
 });
 
 describe('serializeGraph', () => {
-  it('ist idempotent: doppelte Serialisierung ist byte-identisch', () => {
+  it('is idempotent: serializing twice is byte-identical', () => {
     const once = serializeGraph(sampleGraph());
     const twice = serializeGraph(JSON.parse(once) as JourneyGraph);
     expect(twice).toBe(once);
   });
 
-  it('liefert für gleich bedeutende, anders geordnete Eingaben dasselbe Ergebnis', () => {
+  it('yields the same result for equivalent but differently ordered inputs', () => {
     const shuffled = sampleGraph();
     shuffled.nodes.reverse();
     shuffled.edges.reverse();

@@ -1,22 +1,22 @@
-/// Ductus-Annotationen: markieren Screens, Actions, Decisions und Flows,
-/// aus denen der Adapter den User-Journey-Graphen extrahiert.
+/// Ductus annotations: mark screens, actions, decisions, and flows from
+/// which the adapter extracts the user-journey graph.
 ///
-/// Diese Klassen sind reine Marker für die statische Analyse durch das
-/// Adapter-CLI (`dart run ductus:adapter`) — sie haben keinerlei
-/// Laufzeitverhalten und keine Abhängigkeiten.
+/// These classes are pure markers for static analysis by the adapter CLI
+/// (`dart run ductus:adapter`) — they have no runtime behavior and no
+/// dependencies.
 library;
 
-/// Auslöser einer Transition (Edge im Journey-Graphen).
+/// Trigger of a transition (edge in the journey graph).
 enum JourneyTrigger { tap, submit, auto, back, deeplink, system }
 
-/// Markiert einen für den Nutzer sichtbaren Bildschirm (Screen-Node).
+/// Marks a screen visible to the user (screen node).
 ///
 /// ```dart
 /// @JourneyScreen(
 ///   id: 'login',
-///   title: 'Anmeldung',
+///   title: 'Sign-in',
 ///   flow: 'auth',
-///   description: 'Bildschirm, auf dem sich der Nutzer anmeldet.',
+///   description: 'Screen where the user signs in.',
 /// )
 /// class LoginScreen extends StatelessWidget { … }
 /// ```
@@ -36,17 +36,18 @@ class JourneyScreen {
   });
 }
 
-/// Markiert eine vom Nutzer auslösbare Handlung; wird als Transition (Edge)
-/// von [from] nach [to] in den Graphen übersetzt.
+/// Marks an action the user can trigger; translated into a transition
+/// (edge) from [from] to [to] in the graph.
 ///
-/// Fehlt [from], gilt der umschließende, mit [JourneyScreen] annotierte
-/// Kontext (die Klasse, in der die Methode/das Feld deklariert ist).
+/// If [from] is missing, the enclosing context annotated with
+/// [JourneyScreen] applies (the class in which the method/field is
+/// declared).
 class JourneyAction {
   final String label;
   final String to;
   final String? from;
 
-  /// Optionale Edge-Id; ohne Angabe wird deterministisch `e_<from>_<to>` generiert.
+  /// Optional edge id; without it, `e_<from>_<to>` is generated deterministically.
   final String? id;
   final JourneyTrigger trigger;
   final String? condition;
@@ -61,7 +62,7 @@ class JourneyAction {
   });
 }
 
-/// Markiert einen Verzweigungspunkt mit Bedingungen (Decision-Node).
+/// Marks a branching point with conditions (decision node).
 class JourneyDecision {
   final String id;
   final String title;
@@ -78,10 +79,10 @@ class JourneyDecision {
   });
 }
 
-/// Deklariert einen benannten Flow (zusammenhängende Teilmenge des Graphen).
+/// Declares a named flow (a connected subset of the graph).
 ///
-/// [start] muss die Id eines Screen-Nodes sein — sonst schlägt die
-/// Graph-Validierung fehl (Regel V3 der Ductus-CLI).
+/// [start] must be the id of a screen node — otherwise graph validation
+/// fails (rule V3 of the Ductus CLI).
 class JourneyFlow {
   final String id;
   final String title;

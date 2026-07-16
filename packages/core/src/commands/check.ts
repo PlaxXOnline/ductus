@@ -1,6 +1,6 @@
 /**
- * `ductus check`: Validierung + Faithfulness aus dem
- * Cache — ohne Neuschreiben, ohne LLM-Aufrufe (CI-tauglich).
+ * `ductus check`: validation + faithfulness from the
+ * cache — no rewriting, no LLM calls (CI-friendly).
  */
 
 import type { Command } from 'commander';
@@ -10,7 +10,7 @@ import { globalOptions, loadConfigWithWarnings, printIssues, runAction, stderrLo
 export function registerCheck(program: Command): void {
   program
     .command('check')
-    .description('Prüft Graph-Validität und Faithfulness ohne Dateien zu schreiben (CI).')
+    .description('Checks graph validity and faithfulness without writing files (CI).')
     .action(async (_options: Record<string, never>, command: Command) => {
       await runAction(async () => {
         const globals = globalOptions(command);
@@ -22,13 +22,13 @@ export function registerCheck(program: Command): void {
 
         if (result.validation.errors.length > 0) {
           printIssues(result.validation.errors);
-          process.stdout.write(`check: FEHLER (${result.validation.errors.length} Validierungsfehler)\n`);
+          process.stdout.write(`check: FAILED (${result.validation.errors.length} validation error(s))\n`);
           return 1;
         }
 
         printIssues(result.validation.warnings);
         for (const segmentId of result.notGenerated) {
-          process.stdout.write(`Segment "${segmentId}": noch nicht generiert\n`);
+          process.stdout.write(`Segment "${segmentId}": not generated yet\n`);
         }
 
         const violationsTotal = result.faithfulnessViolations.reduce(
@@ -42,23 +42,23 @@ export function registerCheck(program: Command): void {
             );
           }
         }
-        // Unbestätigte Hinweise: informativ, ohne Einfluss auf den Schwellwert.
+        // Unconfirmed hints: informational, no effect on the threshold.
         for (const entry of result.faithfulnessHints) {
           for (const hint of entry.hints) {
-            process.stdout.write(`Hinweis "${entry.segmentId}": ${hint.claim} — ${hint.reason}\n`);
+            process.stdout.write(`Hint "${entry.segmentId}": ${hint.claim} — ${hint.reason}\n`);
           }
         }
 
         if (violationsTotal > config.llm.faithfulnessThreshold) {
           process.stdout.write(
-            `check: FEHLER (${violationsTotal} Faithfulness-Verstöße > Schwellwert ${config.llm.faithfulnessThreshold})\n`,
+            `check: FAILED (${violationsTotal} faithfulness violations > threshold ${config.llm.faithfulnessThreshold})\n`,
           );
           return 2;
         }
 
         process.stdout.write(
-          `check: OK (${result.validation.warnings.length} Warnung(en), ` +
-            `${result.notGenerated.length} Segment(e) noch nicht generiert)\n`,
+          `check: OK (${result.validation.warnings.length} warning(s), ` +
+            `${result.notGenerated.length} segment(s) not generated yet)\n`,
         );
         return 0;
       });

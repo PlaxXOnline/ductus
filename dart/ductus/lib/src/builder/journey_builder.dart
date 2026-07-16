@@ -1,14 +1,14 @@
-/// Weg D — build_runner-Builder: extrahiert den Journey-Graphen als
-/// Builder-Schritt und schreibt `ductus_builder.g.json` in den Projekt-Root
-/// des Zielpakets (build_to: source, aggregierend über den synthetischen
-/// Input `$package$`).
+/// Path D — build_runner builder: extracts the journey graph as a builder
+/// step and writes `ductus_builder.g.json` into the target package's
+/// project root (build_to: source, aggregating over the synthetic input
+/// `$package$`).
 ///
-/// Wiederverwendung statt Kopie: es läuft die BESTEHENDE Adapter-Pipeline
-/// ([runPipeline]); einziger Unterschied ist der zusätzliche
-/// Resolutions-Schritt für nicht-literale konstante Annotation-Argumente.
-/// Für rein literale Projekte ist das Artefakt daher byte-identisch mit der
-/// stdout-Ausgabe des parse-only-Adapters — bis auf den meta.adapters-Namen
-/// ([builderAdapterName] statt [cliAdapterName]).
+/// Reuse instead of a copy: the EXISTING adapter pipeline ([runPipeline])
+/// runs; the only difference is the additional resolution step for
+/// non-literal constant annotation arguments. For purely literal projects
+/// the artifact is therefore byte-identical to the stdout output of the
+/// parse-only adapter — except for the meta.adapters name
+/// ([builderAdapterName] instead of [cliAdapterName]).
 library;
 
 import 'package:analyzer/dart/analysis/utilities.dart';
@@ -21,22 +21,22 @@ import '../adapter/runner.dart';
 import '../adapter/scanner.dart';
 import 'annotation_resolver.dart';
 
-/// Factory für build.yaml (`builder_factories: ["ductusJourneyBuilder"]`).
+/// Factory for build.yaml (`builder_factories: ["ductusJourneyBuilder"]`).
 ///
-/// Optionen (build.yaml `options:`) entsprechen der `--config`-JSON des CLI:
-/// `deriveFrom` und `include` (jeweils Listen von Strings).
+/// Options (build.yaml `options:`) match the CLI's `--config` JSON:
+/// `deriveFrom` and `include` (each a list of strings).
 Builder ductusJourneyBuilder(BuilderOptions options) =>
     DuctusJourneyBuilder(_configFromOptions(options));
 
-/// Baut die [AdapterConfig] aus den build.yaml-Optionen — gleiche Schlüssel
-/// und Defaults wie beim Adapter-CLI.
+/// Builds the [AdapterConfig] from the build.yaml options — same keys and
+/// defaults as the adapter CLI.
 AdapterConfig _configFromOptions(BuilderOptions options) {
   List<String>? stringList(String key) {
     final value = options.config[key];
     if (value == null) return null;
     if (value is! List || value.any((e) => e is! String)) {
       throw ArgumentError(
-          'build.yaml: "$key" muss eine Liste von Strings sein.');
+          'build.yaml: "$key" must be a list of strings.');
     }
     return value.cast<String>();
   }
@@ -55,8 +55,8 @@ class DuctusJourneyBuilder implements Builder {
 
   @override
   Map<String, List<String>> get buildExtensions => const {
-        // Synthetischer Input im Paket-Root ⇒ genau ein Output pro Paket,
-        // ebenfalls im Paket-Root (ductus_builder.g.json).
+        // Synthetic input in the package root ⇒ exactly one output per
+        // package, also in the package root (ductus_builder.g.json).
         r'$package$': [builderArtifactFileName],
       };
 
@@ -64,12 +64,12 @@ class DuctusJourneyBuilder implements Builder {
   Future<void> build(BuildStep buildStep) async {
     final package = buildStep.inputId.package;
 
-    // 1. Quelldateien einsammeln — gleiche include-Globs, .dart-Filter und
-    //    Sortierung wie scanProject im Adapter-CLI (Paritätsgarantie).
-    //    Hinweis: sichtbar sind nur Assets der build_runner-Target-Sources
-    //    (Standard: lib/, test/, web/, …) — Muster außerhalb davon liefern
-    //    keine Dateien und würden ohne Warnung stillschweigend vom
-    //    Adapter-CLI abweichen.
+    // 1. Collect source files — same include globs, .dart filter, and
+    //    sorting as scanProject in the adapter CLI (parity guarantee).
+    //    Note: only assets of the build_runner target sources are visible
+    //    (default: lib/, test/, web/, …) — patterns outside of them yield
+    //    no files and would silently diverge from the adapter CLI without
+    //    a warning.
     final paths = <String>{};
     for (final pattern in config.include) {
       var matched = false;
@@ -80,11 +80,11 @@ class DuctusJourneyBuilder implements Builder {
         }
       }
       if (!matched) {
-        log.warning('Warnung: include-Muster "$pattern" trifft keine '
-            'Dateien — liegt der Pfad außerhalb der build_runner-'
-            'Target-Sources (Default u. a. lib/)? Dann in der build.yaml '
-            'des Zielpakets targets.\$default.sources erweitern oder das '
-            'Adapter-CLI nutzen.');
+        log.warning('Warning: include pattern "$pattern" does not match '
+            'any files — is the path outside the build_runner target '
+            'sources (default includes lib/)? If so, extend '
+            'targets.\$default.sources in the target package\'s build.yaml '
+            'or use the adapter CLI.');
       }
     }
     final sorted = paths.toList()..sort();
@@ -98,9 +98,9 @@ class DuctusJourneyBuilder implements Builder {
         throwIfDiagnostics: false,
       );
       if (result.errors.isNotEmpty) {
-        // Gleiche Meldung wie der Scanner des Adapter-CLI.
-        log.warning('Warnung: $rel enthält Syntaxfehler; '
-            'Analyse ist best effort.');
+        // Same message as the adapter CLI's scanner.
+        log.warning('Warning: $rel contains syntax errors; '
+            'analysis is best effort.');
       }
       files.add(ScannedFile(
         relPath: rel,
@@ -110,12 +110,12 @@ class DuctusJourneyBuilder implements Builder {
       ));
     }
 
-    // 2. Resolutions-Schritt (der Mehrwert von Weg D): konstante, aber
-    //    nicht-literale Annotation-Argumente auflösen.
+    // 2. Resolution step (the added value of path D): resolve constant but
+    //    non-literal annotation arguments.
     final resolution = await resolveJourneyAnnotations(buildStep, files);
 
-    // 3. Bestehende Pipeline — Merge, Sortierung und kanonische
-    //    Serialisierung sind identisch zum Adapter-CLI.
+    // 3. Existing pipeline — merge, sorting, and canonical serialization
+    //    are identical to the adapter CLI.
     final String json;
     try {
       json = runPipeline(
@@ -126,9 +126,8 @@ class DuctusJourneyBuilder implements Builder {
         adapterName: builderAdapterName,
       );
     } on AdapterException catch (e) {
-      // Gleiche Fehlersemantik wie das CLI (Meldungen einzeln, Exit ≠ 0):
-      // severe-Logs markieren den Build-Schritt als fehlgeschlagen, es wird
-      // kein Artefakt geschrieben.
+      // Same error semantics as the CLI (messages one by one, exit != 0):
+      // severe logs mark the build step as failed, no artifact is written.
       for (final message in e.messages) {
         log.severe(message);
       }

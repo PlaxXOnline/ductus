@@ -1,19 +1,19 @@
 /**
- * Adapter-Konfiguration aus der temporären --config-JSON des Core
- * (adapters:-Sektion der ductus.config.yaml, abgeflacht auf top-level).
+ * Adapter configuration from the temporary --config JSON written by core
+ * (the adapters: section of ductus.config.yaml, flattened to top level).
  */
 
 import { readFileSync } from 'node:fs';
 import { AdapterException } from './graph-model.js';
 
-/** Ableitungsquellen (Weg C), die dieser Adapter kennt. */
+/** Derivation sources (path C) this adapter knows about. */
 export const KNOWN_DERIVE_SOURCES = ['react-router', 'next'] as const;
 
 const DEFAULT_DERIVE_FROM: readonly string[] = [...KNOWN_DERIVE_SOURCES];
 
 /**
- * Default-Globs: die üblichen Quellwurzeln von TS/JS-Projekten. Wer Code
- * außerhalb hält, setzt `include` explizit in der adapters:-Sektion.
+ * Default globs: the usual source roots of TS/JS projects. Projects that
+ * keep code elsewhere set `include` explicitly in the adapters: section.
  */
 const DEFAULT_INCLUDE: readonly string[] = ['src/**', 'app/**', 'pages/**', 'lib/**'];
 
@@ -41,7 +41,7 @@ export class AdapterConfig {
     try {
       text = readFileSync(path, 'utf8');
     } catch {
-      throw new AdapterException([`Konfigurationsdatei nicht gefunden: ${path}`]);
+      throw new AdapterException([`Configuration file not found: ${path}`]);
     }
 
     let raw: unknown;
@@ -49,10 +49,10 @@ export class AdapterConfig {
       raw = JSON.parse(text);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      throw new AdapterException([`Ungültiges JSON in ${path}: ${detail}`]);
+      throw new AdapterException([`Invalid JSON in ${path}: ${detail}`]);
     }
     if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
-      throw new AdapterException([`${path}: erwartet ein JSON-Objekt.`]);
+      throw new AdapterException([`${path}: expected a JSON object.`]);
     }
     const record = raw as Record<string, unknown>;
 
@@ -69,7 +69,7 @@ export class AdapterConfig {
 
 function stringList(value: unknown, key: string, path: string): string[] {
   if (!Array.isArray(value) || value.some((v) => typeof v !== 'string')) {
-    throw new AdapterException([`${path}: "${key}" muss eine Liste von Strings sein.`]);
+    throw new AdapterException([`${path}: "${key}" must be a list of strings.`]);
   }
   return value as string[];
 }

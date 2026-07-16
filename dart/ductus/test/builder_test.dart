@@ -10,7 +10,7 @@ import 'package:test/test.dart';
 
 import 'test_util.dart';
 
-/// Ergebnis eines Builder-Laufs im build_test-Harness.
+/// Result of a builder run in the build_test harness.
 class BuilderRun {
   final String? artifact;
   final List<String> warnings;
@@ -25,15 +25,15 @@ class BuilderRun {
   });
 }
 
-/// Die echten Annotations-Quellen des Pakets als Test-Assets, damit der
-/// Resolver `package:ductus/ductus.dart` im Zielpaket auflösen kann.
+/// The package's real annotation sources as test assets so the resolver can
+/// resolve `package:ductus/ductus.dart` in the target package.
 Map<String, String> ductusSources() => {
       'ductus|lib/ductus.dart': File('lib/ductus.dart').readAsStringSync(),
       'ductus|lib/src/annotations.dart':
           File(p.join('lib', 'src', 'annotations.dart')).readAsStringSync(),
     };
 
-/// Führt den Journey-Builder auf dem In-Memory-Paket `app` aus.
+/// Runs the journey builder on the in-memory package `app`.
 Future<BuilderRun> runJourneyBuilder(
   Map<String, String> appSources, {
   BuilderOptions options = BuilderOptions.empty,
@@ -44,7 +44,7 @@ Future<BuilderRun> runJourneyBuilder(
     ductusJourneyBuilder(options),
     {...ductusSources(), ...appSources},
     rootPackage: 'app',
-    // flattenOutput: Outputs sind unter ihrer regulären AssetId lesbar.
+    // flattenOutput: outputs are readable under their regular AssetId.
     flattenOutput: true,
     onLog: (record) {
       if (record.level.name == 'WARNING') warnings.add(record.message);
@@ -61,17 +61,17 @@ Future<BuilderRun> runJourneyBuilder(
   );
 }
 
-/// Normalisiert den meta.adapters-Namen des Builder-Artefakts auf den des
-/// CLI-Scans — der einzige gewollte Unterschied bei der Paritätsgarantie.
+/// Normalizes the builder artifact's meta.adapters name to the CLI scan's —
+/// the only intended difference under the parity guarantee.
 String normalizeAdapterName(String artifact) => artifact.replaceFirst(
     '"name": "dart-builder"', '"name": "dart"');
 
 void main() {
   group('DuctusJourneyBuilder', () {
     test(
-        'Paritäts-Garantie: Artefakt byte-identisch zur parse-only-'
-        'Adapterausgabe bis auf den meta.adapters-Namen '
-        '(full_app-Fixture, ohne Auflösung)', () async {
+        'parity guarantee: artifact byte-identical to the parse-only '
+        'adapter output except for the meta.adapters name '
+        '(full_app fixture, without resolution)', () async {
       final fixture = p.join(
           Directory.current.path, 'test', 'fixtures', 'full_app');
       final sources = <String, String>{};
@@ -92,9 +92,9 @@ void main() {
     });
 
     test(
-        'Paritäts-Garantie: rein literale Annotationen mit ductus-Import '
-        '⇒ byte-identisch zum parse-only-Adapter bis auf den '
-        'meta.adapters-Namen', () async {
+        'parity guarantee: purely literal annotations with a ductus import '
+        '⇒ byte-identical to the parse-only adapter except for the '
+        'meta.adapters name', () async {
       const source = '''
 import 'package:ductus/ductus.dart';
 
@@ -116,7 +116,7 @@ class LoginScreen {
 }
 ''';
 
-      // Dieselbe Quelle als echtes Projektverzeichnis für das Adapter-CLI.
+      // The same source as a real project directory for the adapter CLI.
       final projectDir =
           Directory.systemTemp.createTempSync('ductus_parity_');
       addTearDown(() => projectDir.deleteSync(recursive: true));
@@ -135,8 +135,8 @@ class LoginScreen {
     });
 
     test(
-        'Resolution: nicht-literale konstante Argumente (String, Liste, '
-        'Trigger) werden aufgelöst', () async {
+        'resolution: non-literal constant arguments (string, list, '
+        'trigger) are resolved', () async {
       const source = '''
 import 'package:ductus/ductus.dart';
 
@@ -164,19 +164,19 @@ class LoginScreen {
       final nodes = (graph['nodes'] as List).cast<Map<String, dynamic>>();
       final login = nodes.singleWhere((n) => n['id'] == 'login');
       expect(login['title'], 'Anmeldung');
-      expect(login['tags'], ['auth', 'entry']); // sortiert
+      expect(login['tags'], ['auth', 'entry']); // sorted
 
       final edges = (graph['edges'] as List).cast<Map<String, dynamic>>();
       final edge = edges.singleWhere((e) => e['id'] == 'e_login_dashboard');
       expect(edge['to'], 'dashboard');
       expect(edge['trigger'], 'submit');
-      // from-Inferenz über die per Resolution gelesene Screen-Id.
+      // from inference via the screen id read through resolution.
       expect(edge['from'], 'login');
     });
 
     test(
-        'Unauflösbarer Ausdruck: gleiche Fehlersemantik wie parse-only '
-        '(Build schlägt fehl, kein Artefakt)', () async {
+        'unresolvable expression: same error semantics as parse-only '
+        '(build fails, no artifact)', () async {
       const source = '''
 import 'package:ductus/ductus.dart';
 
@@ -188,7 +188,7 @@ abstract class AppStrings {
 class LoginScreen {}
 ''';
 
-      // Referenz: exakte Fehlermeldungen des parse-only-Extraktors.
+      // Reference: the exact error messages of the parse-only extractor.
       final expectedErrors = <String>[];
       extractAnnotations(
           scanSource(source), WarnLog().call, expectedErrors);
@@ -198,16 +198,16 @@ class LoginScreen {}
 
       expect(run.succeeded, isFalse);
       expect(run.artifact, isNull);
-      // build_runner stellt den Meldungen den Builder-Kontext voran —
-      // entscheidend ist die byte-gleiche Adapter-Meldung darin.
+      // build_runner prefixes the messages with the builder context —
+      // what matters is the byte-identical adapter message inside.
       for (final message in expectedErrors) {
         expect(run.severe, contains(contains(message)));
       }
     });
 
     test(
-        'Unauflösbare tags-Liste: gleiche Warnsemantik wie parse-only '
-        '(Warnung, tags ignoriert)', () async {
+        'unresolvable tags list: same warning semantics as parse-only '
+        '(warning, tags ignored)', () async {
       const source = '''
 import 'package:ductus/ductus.dart';
 
@@ -217,7 +217,7 @@ List<String> runtimeTags() => ['x'];
 class LoginScreen {}
 ''';
 
-      // Referenz: exakte Warnungen des parse-only-Extraktors.
+      // Reference: the exact warnings of the parse-only extractor.
       final expectedWarnings = WarnLog();
       extractAnnotations(scanSource(source), expectedWarnings.call, []);
       expect(expectedWarnings.messages, isNotEmpty);
@@ -225,7 +225,7 @@ class LoginScreen {}
       final run = await runJourneyBuilder({'app|lib/main.dart': source});
 
       expect(run.succeeded, isTrue, reason: run.severe.join('\n'));
-      // Wie oben: Builder-Kontext-Präfix ignorieren, Meldungstext vergleichen.
+      // As above: ignore the builder context prefix, compare the message text.
       for (final message in expectedWarnings.messages) {
         expect(run.warnings, contains(contains(message)));
       }
@@ -236,8 +236,8 @@ class LoginScreen {}
     });
 
     test(
-        'include-Muster ohne Treffer (z. B. außerhalb der Target-Sources): '
-        'Warnung statt stillem Ignorieren', () async {
+        'include pattern without matches (e.g. outside the target sources): '
+        'warning instead of silent ignoring', () async {
       const source = '''
 import 'package:ductus/ductus.dart';
 
@@ -254,19 +254,19 @@ class LoginScreen {}
 
       expect(run.succeeded, isTrue, reason: run.severe.join('\n'));
       expect(run.artifact, isNotNull);
-      // Das Muster außerhalb der sichtbaren Sources löst eine Warnung aus …
+      // The pattern outside the visible sources triggers a warning …
       expect(
         run.warnings,
         contains(allOf(
-          contains('include-Muster "extra/**"'),
-          contains('Target-Sources'),
+          contains('include pattern "extra/**"'),
+          contains('target sources'),
         )),
       );
-      // … das treffende Muster nicht.
+      // … the matching pattern does not.
       expect(run.warnings.where((w) => w.contains('lib/**')), isEmpty);
     });
 
-    test('Artefakt: schemaVersion und meta.adapters (dart-builder)', () async {
+    test('artifact: schemaVersion and meta.adapters (dart-builder)', () async {
       const source = '''
 import 'package:ductus/ductus.dart';
 
@@ -285,7 +285,7 @@ class LoginScreen {}
           {'name': 'dart-builder', 'version': adapterVersion}
         ],
       );
-      // Kanonische Form (NFR2): LF + abschließender Zeilenumbruch.
+      // Canonical form (NFR2): LF + trailing newline.
       expect(run.artifact!.endsWith('}\n'), isTrue);
       expect(run.artifact, isNot(contains('\r')));
       expect(run.artifact, isNot(contains('generatedAt')));

@@ -1,7 +1,7 @@
-/// Ductus — Journey-Annotationen für Dart/Flutter.
+/// Ductus — journey annotations for Dart/Flutter.
 ///
-/// Die Annotationen sind reine Marker ohne Laufzeitverhalten; ausgewertet
-/// werden sie vom Adapter-CLI `dart run ductus:adapter`.
+/// The annotations are pure markers without runtime behavior; they are
+/// evaluated by the adapter CLI `dart run ductus:adapter`.
 library;
 
 export 'src/annotations.dart';

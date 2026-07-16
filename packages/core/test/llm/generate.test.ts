@@ -46,11 +46,11 @@ function options(cacheDir: string, log?: (msg: string) => void) {
 }
 
 describe('generateDocs', () => {
-  it('generiert beim ersten Lauf alle Segmente (misses) und bedient den zweiten komplett aus dem Cache', async () => {
+  it('generates all segments on the first run (misses) and serves the second entirely from cache', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'ductus-generate-test-'));
 
     const first = await generateDocs(options(cacheDir));
-    // Flow "auth" + "_misc" (settings ohne Flow).
+    // Flow "auth" + "_misc" (settings without a flow).
     expect(first.segments.map((s) => s.segment.id)).toEqual(['auth', '_misc']);
     expect(first.cache).toEqual({ hits: 0, misses: 2 });
     expect(first.segments.every((s) => !s.fromCache)).toBe(true);
@@ -64,16 +64,16 @@ describe('generateDocs', () => {
     const second = await generateDocs(options(cacheDir));
     expect(second.cache).toEqual({ hits: 2, misses: 0 });
     expect(second.segments.every((s) => s.fromCache)).toBe(true);
-    // Keine echten Aufrufe ⇒ usage 0.
+    // No real calls ⇒ usage 0.
     expect(second.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
-    // Determinismus: Markdown byte-gleich zum ersten Lauf.
+    // Determinism: Markdown byte-identical to the first run.
     expect(second.segments.map((s) => s.markdown)).toEqual(first.segments.map((s) => s.markdown));
     expect(second.segments.every((s) => s.violations.length === 0)).toBe(true);
-    // Schätzung ist unabhängig vom Cache identisch.
+    // The estimate is identical regardless of the cache.
     expect(second.estimated).toEqual(first.estimated);
   });
 
-  it('schätzt ohne faithfulnessCheck weniger Tokens und ruft keinen Judge auf', async () => {
+  it('estimates fewer tokens without faithfulnessCheck and calls no judge', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'ductus-generate-test-'));
     const withCheck = await generateDocs(options(mkdtempSync(join(tmpdir(), 'ductus-generate-test-'))));
     const noCheckLlm: LlmConfig = { ...llm, faithfulnessCheck: false };
@@ -87,7 +87,7 @@ describe('generateDocs', () => {
     expect(withoutCheck.segments.every((s) => s.violations.length === 0)).toBe(true);
   });
 
-  it('cacht Segmente nicht, deren Judge-Antwort unparsebar war', async () => {
+  it('does not cache segments whose judge response was unparsable', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'ductus-generate-test-'));
     let judgeCalls = 0;
     const flakyJudgeProvider: LlmProvider = {
@@ -95,7 +95,7 @@ describe('generateDocs', () => {
       complete: (request) => {
         if (request.system.includes(JUDGE_MARKER)) {
           judgeCalls += 1;
-          // Erster Judge-Aufruf liefert Prosa statt JSON, danach gültiges JSON.
+          // The first judge call returns prose instead of JSON, then valid JSON.
           const text = judgeCalls === 1 ? 'Kein JSON, sorry.' : '{"violations": []}';
           return Promise.resolve({ text });
         }
@@ -104,18 +104,18 @@ describe('generateDocs', () => {
     };
 
     const first = await generateDocs({ ...options(cacheDir), provider: flakyJudgeProvider });
-    expect(first.segments[0]!.violations[0]!.claim).toBe('(Judge-Antwort unparsebar)');
-    // Nur das zweite (erfolgreiche) Segment liegt im Cache.
+    expect(first.segments[0]!.violations[0]!.claim).toBe('(judge response unparsable)');
+    // Only the second (successful) segment is in the cache.
     expect(readdirSync(cacheDir)).toHaveLength(1);
 
     const second = await generateDocs({ ...options(cacheDir), provider: flakyJudgeProvider });
-    // Das gescheiterte Segment wird neu generiert und diesmal sauber gejudged.
+    // The failed segment is regenerated and this time judged cleanly.
     expect(second.cache).toEqual({ hits: 1, misses: 1 });
     expect(second.segments.every((s) => s.violations.length === 0)).toBe(true);
     expect(readdirSync(cacheDir)).toHaveLength(2);
   });
 
-  it('meldet Fortschritt über den optionalen log-Callback', async () => {
+  it('reports progress via the optional log callback', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'ductus-generate-test-'));
     const logs: string[] = [];
     await generateDocs(options(cacheDir, (msg) => logs.push(msg)));
@@ -123,6 +123,6 @@ describe('generateDocs', () => {
 
     logs.length = 0;
     await generateDocs(options(cacheDir, (msg) => logs.push(msg)));
-    expect(logs.some((m) => m.includes('Cache'))).toBe(true);
+    expect(logs.some((m) => m.includes('served from cache'))).toBe(true);
   });
 });

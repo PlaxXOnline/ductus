@@ -1,7 +1,7 @@
-/// Weg C — Ableitung aus go_router-Konfigurationen.
+/// Path C — derivation from go_router configurations.
 ///
-/// Alles hier ist best effort und trägt `source: "derived"`; manuelle
-/// Annotationen überschreiben abgeleitete Werte feldweise.
+/// Everything here is best effort and carries `source: "derived"`; manual
+/// annotations override derived values field by field.
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -10,8 +10,8 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'graph_model.dart';
 import 'scanner.dart';
 
-/// Pfad-Slug für abgeleitete Screen-Ids: führendes '/' weg, '/'→'-',
-/// ':param' entfällt, leer → 'root'.
+/// Path slug for derived screen ids: leading '/' dropped, '/'→'-',
+/// ':param' removed, empty → 'root'.
 String slugFromPath(String path) {
   final slug = path
       .split('/')
@@ -20,7 +20,7 @@ String slugFromPath(String path) {
   return slug.isEmpty ? 'root' : slug;
 }
 
-/// Humanisierte Id: '-'→' ', erster Buchstabe groß.
+/// Humanized id: '-'→' ', first letter uppercased.
 String humanize(String id) {
   final text = id.replaceAll('-', ' ');
   if (text.isEmpty) return text;
@@ -38,14 +38,14 @@ class GoRouterDerivation {
   final List<GraphFlow> flows = [];
   final List<GraphEdge> edges = [];
 
-  /// Widget-Klasse (aus builder:/pageBuilder:) -> Screen-Id.
+  /// Widget class (from builder:/pageBuilder:) -> screen id.
   final Map<String, String> builderClassToScreen = {};
   final Map<String, String> pathToScreen = {};
   final Map<String, String> nameToScreen = {};
 }
 
-/// Einheitliche Sicht auf `GoRoute(...)`/`ShellRoute(...)` — parse-only sind
-/// Konstruktor-Aufrufe ohne `new`/`const` MethodInvocations.
+/// Unified view of `GoRoute(...)`/`ShellRoute(...)` — parse-only, constructor
+/// calls without `new`/`const` are MethodInvocations.
 class _RouteCall {
   final AstNode node;
   final String name;
@@ -97,7 +97,7 @@ class _RouteCollector extends RecursiveAstVisitor<void> {
   }
 }
 
-/// Erzeugung `Klasse(...)` -> Klassenname (nur Großbuchstaben-Start).
+/// Creation `Class(...)` -> class name (uppercase start only).
 String? _creationClassName(Expression expr) {
   if (expr is MethodInvocation && expr.target == null) {
     final name = expr.methodName.name;
@@ -115,9 +115,9 @@ ArgumentList? _creationArgs(Expression expr) {
   return null;
 }
 
-/// Widget-Klasse aus einem builder:/pageBuilder:-Ausdruck: Rückgabewert
-/// `(…) => Klasse(…)` bzw. das `child:`-Argument (z. B. `MaterialPage(
-/// child: Klasse(…))`).
+/// Widget class from a builder:/pageBuilder: expression: the return value
+/// `(…) => Class(…)` or the `child:` argument (e.g. `MaterialPage(
+/// child: Class(…))`).
 String? _widgetClassOf(Expression expr) {
   if (expr is! FunctionExpression) return null;
   final body = expr.body;
@@ -135,7 +135,7 @@ String? _widgetClassOf(Expression expr) {
   if (returned == null) return null;
   final topClass = _creationClassName(returned);
   if (topClass == null) return null;
-  // `child:`-Argument bevorzugen (pageBuilder-Muster).
+  // Prefer the `child:` argument (pageBuilder pattern).
   final args = _creationArgs(returned);
   if (args != null) {
     for (final arg in args.arguments) {
@@ -176,8 +176,8 @@ class _NavCallCollector extends RecursiveAstVisitor<void> {
   @override
   void visitMethodInvocation(MethodInvocation node) {
     final name = node.methodName.name;
-    // Nur Aufrufe mit Empfänger (context.go(…), router.go(…)) betrachten,
-    // um freie Funktionen gleichen Namens nicht fälschlich zu erfassen.
+    // Only consider calls with a receiver (context.go(…), router.go(…)) to
+    // avoid falsely capturing free functions of the same name.
     if (node.target != null &&
         (_navByPath.contains(name) || _navByName.contains(name))) {
       calls.add(node);
@@ -195,12 +195,12 @@ ClassDeclaration? _enclosingClassOf(AstNode node) {
   return null;
 }
 
-/// Leitet Screens, Flows (ShellRoute), Redirect-Decisions und
-/// Navigations-Kanten aus go_router-Konfigurationen ab.
+/// Derives screens, flows (ShellRoute), redirect decisions, and navigation
+/// edges from go_router configurations.
 ///
-/// [manualScreenClasses] (Weg A/B) und [extraClassToScreen] (z. B. auto_route)
-/// werden für die from-Zuordnung von context.go-Aufrufen mitverwendet,
-/// [extraPathToScreen] für die Pfad-Zuordnung.
+/// [manualScreenClasses] (paths A/B) and [extraClassToScreen] (e.g.
+/// auto_route) are also used for the from mapping of context.go calls,
+/// [extraPathToScreen] for the path mapping.
 GoRouterDerivation deriveGoRouter(
   List<ScannedFile> files,
   void Function(String) warn, {
@@ -213,14 +213,14 @@ GoRouterDerivation deriveGoRouter(
   final pendingRedirects = <_PendingRedirect>[];
   var shellIndex = 0;
 
-  // Pass 1 — Routenbäume: Screens, Flows, builder-Zuordnung, Pfad-/Namens-
-  // Tabellen. Dateien sind nach Pfad sortiert, im Dokument nach Offset.
+  // Pass 1 — route trees: screens, flows, builder mapping, path/name
+  // tables. Files sorted by path, within a document by offset.
   for (final file in files) {
     final collector = _RouteCollector();
     file.unit.accept(collector);
     final visited = <AstNode>{};
 
-    // Flow-Kontext des innersten ShellRoute; start = erster Kind-Screen.
+    // Flow context of the innermost ShellRoute; start = first child screen.
     void processRoute(_RouteCall call,
         {String parentPath = '', String? flowId, List<String?>? flowStart}) {
       visited.add(call.node);
@@ -241,12 +241,12 @@ GoRouterDerivation deriveGoRouter(
         final name = nameExpr is StringLiteral ? nameExpr.stringValue : null;
 
         if (path == null && name == null) {
-          warn('Hinweis: ${file.relPath}:${file.lineOf(call.node.offset)}: '
-              'GoRoute ohne literalen path/name — übersprungen.');
+          warn('Note: ${file.relPath}:${file.lineOf(call.node.offset)}: '
+              'GoRoute without a literal path/name — skipped.');
         } else {
-          // Id aus dem gejointen Vollpfad bilden — der relative Pfad allein
-          // würde verschachtelte Routen mit gleichem Segment (z. B. 'detail'
-          // unter '/user' und '/admin') stillschweigend kollabieren lassen.
+          // Build the id from the joined full path — the relative path alone
+          // would silently collapse nested routes with the same segment
+          // (e.g. 'detail' under '/user' and '/admin').
           final fullPath = path == null ? null : _joinPaths(parentPath, path);
           final id = name ?? slugFromPath(fullPath!);
           result.nodes.add(GraphNode(
@@ -298,8 +298,8 @@ GoRouterDerivation deriveGoRouter(
       if (call.name == 'ShellRoute') {
         final start = childFlowStart![0];
         if (start == null) {
-          warn('Hinweis: ${file.relPath}:${file.lineOf(call.node.offset)}: '
-              'ShellRoute ohne Kind-Screens — Flow "$childFlowId" entfällt.');
+          warn('Note: ${file.relPath}:${file.lineOf(call.node.offset)}: '
+              'ShellRoute without child screens — flow "$childFlowId" dropped.');
         } else {
           result.flows.add(GraphFlow(
             id: childFlowId!,
@@ -317,14 +317,14 @@ GoRouterDerivation deriveGoRouter(
     }
   }
 
-  // Pass 2a — Redirect-Decisions (jetzt sind alle Routen-Pfade bekannt).
+  // Pass 2a — redirect decisions (all route paths are known by now).
   for (final pending in pendingRedirects) {
     final decisionId = '${pending.screenId}_redirect';
     final ref = pending.file.refAt(pending.body.offset);
     result.nodes.add(GraphNode(
       id: decisionId,
       type: 'decision',
-      title: 'Weiterleitung: ${pending.screenTitle}',
+      title: 'Redirect: ${pending.screenTitle}',
       source: SourceKind.derived,
       sourceRef: ref,
     ));
@@ -354,7 +354,7 @@ GoRouterDerivation deriveGoRouter(
     }
   }
 
-  // Pass 2b — Navigations-Aufrufe (context.go/push/goNamed/pushNamed/replace).
+  // Pass 2b — navigation calls (context.go/push/goNamed/pushNamed/replace).
   String? classToScreen(String className) =>
       manualScreenClasses[className] ??
       extraClassToScreen[className] ??
@@ -364,7 +364,7 @@ GoRouterDerivation deriveGoRouter(
     final collector = _NavCallCollector();
     file.unit.accept(collector);
     for (final call in collector.calls) {
-      // Erstes positionales Argument muss ein String-Literal sein.
+      // The first positional argument must be a string literal.
       Expression? first;
       for (final arg in call.argumentList.arguments) {
         if (arg is Expression) {
@@ -382,20 +382,20 @@ GoRouterDerivation deriveGoRouter(
       if (_navByName.contains(methodName)) {
         to = result.nameToScreen[literal];
       } else {
-        // Query-Anteil ignorieren ('/login?next=…').
+        // Ignore the query part ('/login?next=…').
         to = result.pathToScreen[literal.split('?').first];
       }
       if (to == null) {
-        warn('Hinweis: $where: $methodName("$literal") entspricht keiner '
-            'bekannten Route — Kante verworfen.');
+        warn('Note: $where: $methodName("$literal") does not match any '
+            'known route — edge dropped.');
         continue;
       }
 
       final enclosing = _enclosingClassOf(call);
       final from = enclosing == null ? null : classToScreen(enclosing.namePart.typeName.lexeme);
       if (from == null) {
-        warn('Hinweis: $where: $methodName("$literal") keinem Screen '
-            'zuordenbar (umschließende Klasse unbekannt) — Kante verworfen.');
+        warn('Note: $where: $methodName("$literal") cannot be attributed to '
+            'a screen (enclosing class unknown) — edge dropped.');
         continue;
       }
 

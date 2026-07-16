@@ -1,5 +1,5 @@
-# CI-Vorlage für das Ductus-Monorepo: Node-Pakete, Dart-Adapter,
-# Flutter-Beispiel-Apps.
+# CI for the Ductus monorepo: Node packages, Dart adapter,
+# Flutter example apps.
 name: CI
 
 on:
@@ -19,17 +19,17 @@ jobs:
       - run: npm run build
       - run: npx vitest run
 
-  # Changelog-Gate: Änderungen unter packages/* brauchen ein Changeset —
-  # daraus schreibt die Version-PR die CHANGELOG.md-Einträge automatisch.
-  # Übersprungen auf main (Vergleichsbasis der Prüfung) und auf den
-  # Version-PRs des Changesets-Bots (die konsumieren Changesets absichtlich).
+  # Changelog gate: changes under packages/* need a changeset — the version
+  # PR generates the CHANGELOG.md entries from them automatically.
+  # Skipped on main (the check's comparison base) and on the changesets bot's
+  # version PRs (which consume changesets on purpose).
   changeset-check:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/main' && !startsWith(github.head_ref || github.ref_name, 'changeset-release/')
     steps:
       - uses: actions/checkout@v7
         with:
-          # Volle Historie: die Prüfung vergleicht gegen origin/main.
+          # Full history: the check compares against origin/main.
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
@@ -38,30 +38,30 @@ jobs:
       - run: npm ci
       - run: npx changeset status --since=origin/main
 
-  # Dart-Pendant zum Changelog-Gate: pub.dev kennt kein Changesets —
-  # Änderungen unter dart/ductus/ müssen die CHANGELOG.md im selben Diff
-  # mitpflegen (Ausnahme: reine CHANGELOG-Änderungen selbst).
+  # Dart counterpart to the changelog gate: pub.dev has no changesets —
+  # changes under dart/ductus/ must update CHANGELOG.md in the same diff
+  # (exception: changes to the CHANGELOG itself).
   dart-changelog-check:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/main'
     steps:
       - uses: actions/checkout@v7
         with:
-          # Volle Historie: die Prüfung vergleicht gegen origin/main.
+          # Full history: the check compares against origin/main.
           fetch-depth: 0
-      - name: CHANGELOG.md bei dart/ductus-Änderungen erzwingen
+      - name: Require CHANGELOG.md updates for dart/ductus changes
         run: |
           changed=$(git diff --name-only origin/main -- 'dart/ductus/' | grep -v '^dart/ductus/CHANGELOG\.md$' || true)
           if [ -z "$changed" ]; then
-            echo "Keine Änderungen unter dart/ductus/ — nichts zu prüfen."
+            echo "No changes under dart/ductus/ — nothing to check."
             exit 0
           fi
           if git diff --name-only origin/main -- 'dart/ductus/CHANGELOG.md' | grep -q .; then
-            echo "dart/ductus/ geändert und CHANGELOG.md mitgepflegt — ok."
+            echo "dart/ductus/ changed and CHANGELOG.md updated — ok."
             exit 0
           fi
-          echo "::error file=dart/ductus/CHANGELOG.md::dart/ductus/ wurde geändert, aber die CHANGELOG.md nicht. Bitte einen Eintrag ergänzen (siehe RELEASING.md §5)."
-          echo "Geänderte Dateien:"
+          echo "::error file=dart/ductus/CHANGELOG.md::dart/ductus/ was changed but CHANGELOG.md was not. Please add an entry (see RELEASING.md §5)."
+          echo "Changed files:"
           echo "$changed"
           exit 1
 

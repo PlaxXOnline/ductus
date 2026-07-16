@@ -1,8 +1,8 @@
-/// Interne Merge- & Präzedenzregeln des Adapters.
+/// Internal merge & precedence rules of the adapter.
 ///
-/// `annotation` überschreibt `derived` feldweise; zwei manuelle Quellen mit
-/// unterschiedlichen Werten für dasselbe Feld sind ein Fehler (fail-fast) mit
-/// beiden Quellenangaben.
+/// `annotation` overrides `derived` field by field; two manual sources with
+/// different values for the same field are an error (fail-fast) that cites
+/// both source locations.
 library;
 
 import 'graph_model.dart';
@@ -24,7 +24,7 @@ int _byRef(SourceRef a, SourceRef b) {
   return byFile != 0 ? byFile : a.line.compareTo(b.line);
 }
 
-/// Stabil nach (Datei, Zeile) sortieren.
+/// Stable sort by (file, line).
 List<T> _sortedByRef<T>(Iterable<T> items, SourceRef Function(T) ref) {
   final indexed = items.toList();
   final order = {for (var i = 0; i < indexed.length; i++) indexed[i]: i};
@@ -35,8 +35,8 @@ List<T> _sortedByRef<T>(Iterable<T> items, SourceRef Function(T) ref) {
   return indexed;
 }
 
-/// Feldweiser Merge einer Kandidatenliste: erster manueller Wert gewinnt,
-/// sonst erster abgeleiteter; zwei verschiedene manuelle Werte ⇒ Konflikt.
+/// Field-wise merge of a candidate list: first manual value wins, otherwise
+/// first derived one; two different manual values ⇒ conflict.
 class _FieldMerger<T> {
   final String kind;
   final String id;
@@ -67,7 +67,7 @@ class _FieldMerger<T> {
         value = v;
         valueSource = c;
       } else if (!_equalValues(value, v)) {
-        conflicts.add('Konflikt: $kind "$id", Feld "$field": '
+        conflicts.add('Conflict: $kind "$id", field "$field": '
             '"$value" (${ref(valueSource as T)}) vs. "$v" (${ref(c)}).');
       }
     }
@@ -177,7 +177,7 @@ List<GraphEdge> _mergeEdges(List<GraphEdge> edges, List<String> conflicts) {
   final derived =
       sorted.where((e) => e.source != SourceKind.annotation).toList();
 
-  // Manuelle Edges mit expliziter Id: Identität über id, feldweiser Merge.
+  // Manual edges with an explicit id: identity via id, field-wise merge.
   final result = <GraphEdge>[];
   final manualById = <String, List<GraphEdge>>{};
   for (final edge in manual) {
@@ -214,9 +214,9 @@ List<GraphEdge> _mergeEdges(List<GraphEdge> edges, List<String> conflicts) {
     ));
   }
 
-  // Abgeleitete Edges: manuelle Edge mit gleichem (from, to) gewinnt feldweise
-  // (die abgeleitete füllt nur fehlende Felder der ersten manuellen auf);
-  // exakte Duplikate unter abgeleiteten Edges werden dedupliziert.
+  // Derived edges: a manual edge with the same (from, to) wins field-wise
+  // (the derived one only fills missing fields of the first manual one);
+  // exact duplicates among derived edges are deduplicated.
   final keptDerived = <GraphEdge>[];
   for (final edge in derived) {
     final manualIndex =
@@ -245,9 +245,9 @@ List<GraphEdge> _mergeEdges(List<GraphEdge> edges, List<String> conflicts) {
   }
   result.addAll(keptDerived);
 
-  // Id-Generierung: `e_<from>_<to>`, Kollisionen mit Suffix _2/_3 in
-  // (Datei, Zeile)-Reihenfolge. result ist bereits so geordnet, dass
-  // manuelle vor abgeleiteten kommen, jeweils nach (Datei, Zeile).
+  // Id generation: `e_<from>_<to>`, collisions get a _2/_3 suffix in
+  // (file, line) order. result is already ordered so that manual edges come
+  // before derived ones, each sorted by (file, line).
   final usedIds = <String>{
     for (final e in result)
       if (e.id != null) e.id!,
@@ -280,8 +280,8 @@ List<GraphEdge> _mergeEdges(List<GraphEdge> edges, List<String> conflicts) {
   return withIds;
 }
 
-/// Merged Nodes/Edges/Flows aller Quellen. Konflikte zwischen manuellen
-/// Quellen führen zu einer [AdapterException] mit allen Fundstellen.
+/// Merges nodes/edges/flows from all sources. Conflicts between manual
+/// sources raise an [AdapterException] listing all source locations.
 MergeResult mergeGraph({
   required List<GraphNode> nodes,
   required List<GraphEdge> edges,

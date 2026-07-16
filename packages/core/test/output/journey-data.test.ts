@@ -7,8 +7,9 @@ import { segmentToJourney } from '../../src/output/mermaid.js';
 
 // ─────────────────────────────── Fixtures ────────────────────────────────────
 
-/** Flow-Segment mit Decision: e1 login→check, danach gewinnt z9 (ohne condition)
- *  vor a0 (mit condition) — exakt die Kantenwahl-Priorität von deriveMainPath. */
+/** Flow segment with a decision: e1 login→check, after which z9 (without a
+ *  condition) wins over a0 (with a condition) — exactly the edge-selection
+ *  priority of deriveMainPath. */
 const authNodes: JourneyNode[] = [
   {
     id: 'login',
@@ -79,28 +80,28 @@ function makeInput(segments: GeneratedSegment[]): BuildJourneyDataInput {
 // ─────────────────────────────── Tests ───────────────────────────────────────
 
 describe('buildJourneyData', () => {
-  it('füllt dataVersion und site-Metadaten; adapters nach name sortiert (NFR2)', () => {
+  it('fills dataVersion and site metadata; adapters sorted by name (NFR2)', () => {
     const data = buildJourneyData(makeInput([makeGenerated(makeAuthSegment())]));
     expect(data.dataVersion).toBe('1');
     expect(data.site.title).toBe('TestApp');
     expect(data.site.locale).toBe('de');
     expect(data.site.ductusVersion).toBe('0.1.0');
-    // Eingabe ist ['zeta', 'dart'] — die Ausgabe sortiert nach name.
+    // Input is ['zeta', 'dart'] — the output sorts by name.
     expect(data.site.adapters).toEqual([
       { name: 'dart', version: '0.1.0' },
       { name: 'zeta', version: '2.0.0' },
     ]);
   });
 
-  it('leitet den Hauptpfad mit derselben Kantenwahl-Priorität wie segmentToJourney ab', () => {
+  it('derives the main path with the same edge-selection priority as segmentToJourney', () => {
     const segment = makeAuthSegment();
     const data = buildJourneyData(makeInput([makeGenerated(segment)]));
     const entry = data.journeys[0]!;
 
-    // z9 (ohne condition) gewinnt an der Decision vor a0 (mit condition).
+    // z9 (without a condition) wins at the decision over a0 (with a condition).
     expect(entry.mainPath).toEqual(['login', 'check', 'happy']);
 
-    // Kreuzprüfung gegen segmentToJourney: gleiche Nodes in gleicher Reihenfolge.
+    // Cross-check against segmentToJourney: same nodes in the same order.
     const journey = segmentToJourney(segment);
     const taskLabels = journey!
       .split('\n')
@@ -110,15 +111,15 @@ describe('buildJourneyData', () => {
     expect(entry.mainPath.map((id) => titleById.get(id))).toEqual(taskLabels);
   });
 
-  it('setzt main als 0-basierten Hauptpfad-Index der gewählten Kanten, sonst null', () => {
+  it('sets main to the 0-based main-path index of the chosen edges, otherwise null', () => {
     const data = buildJourneyData(makeInput([makeGenerated(makeAuthSegment())]));
     const mainById = new Map(data.journeys[0]!.edges.map((edge) => [edge.id, edge.main]));
-    expect(mainById.get('e1')).toBe(0); // login → check (Schritt 0)
-    expect(mainById.get('z9')).toBe(1); // check → happy (Schritt 1)
-    expect(mainById.get('a0')).toBeNull(); // nicht auf dem Hauptpfad
+    expect(mainById.get('e1')).toBe(0); // login → check (step 0)
+    expect(mainById.get('z9')).toBe(1); // check → happy (step 1)
+    expect(mainById.get('a0')).toBeNull(); // not on the main path
   });
 
-  it('sortiert journeys nach order (Tie-Break slug) sowie nodes und edges nach id', () => {
+  it('sorts journeys by order (tie-break slug) and nodes and edges by id', () => {
     const flowB: GraphSegment = { ...makeAuthSegment(), id: 'b-flow', order: 2 };
     const flowA: GraphSegment = { ...makeAuthSegment(), id: 'a-flow', order: 2 };
     const first: GraphSegment = { ...makeAuthSegment(), id: 'auth', order: 1 };
@@ -127,12 +128,12 @@ describe('buildJourneyData', () => {
     );
 
     expect(data.journeys.map((entry) => entry.id)).toEqual(['auth', 'a-flow', 'b-flow']);
-    // nodes/edges unabhängig von der Eingabereihenfolge nach id sortiert.
+    // nodes/edges sorted by id regardless of input order.
     expect(data.journeys[0]!.nodes.map((node) => node.id)).toEqual(['check', 'happy', 'login', 'sad']);
     expect(data.journeys[0]!.edges.map((edge) => edge.id)).toEqual(['a0', 'e1', 'z9']);
   });
 
-  it('übernimmt violations je Journey und summiert violationsTotal über alle Segmente', () => {
+  it('carries violations per journey and sums violationsTotal across all segments', () => {
     const withTwo = makeGenerated(makeAuthSegment(), {
       violations: [
         { claim: 'Behauptung A', reason: 'nicht im Graphen' },
@@ -161,7 +162,7 @@ describe('buildJourneyData', () => {
     expect(data.site.violationsTotal).toBe(3);
   });
 
-  it('löst node.title konsistent zu renderNode auf: action nutzt label, Fallback ist die id', () => {
+  it('resolves node.title consistently with renderNode: action uses label, fallback is the id', () => {
     const segment: GraphSegment = {
       id: 'titles',
       kind: 'screen',
@@ -178,13 +179,13 @@ describe('buildJourneyData', () => {
     };
     const data = buildJourneyData(makeInput([makeGenerated(segment)]));
     const titleById = new Map(data.journeys[0]!.nodes.map((node) => [node.id, node.title]));
-    expect(titleById.get('a-action')).toBe('Absenden'); // action: label vor title
-    expect(titleById.get('b-action-no-label')).toBe('Aktions-Titel'); // action ohne label: title
+    expect(titleById.get('a-action')).toBe('Absenden'); // action: label over title
+    expect(titleById.get('b-action-no-label')).toBe('Aktions-Titel'); // action without label: title
     expect(titleById.get('c-screen')).toBe('Bildschirm'); // screen: title
-    expect(titleById.get('d-untitled')).toBe('d-untitled'); // Fallback id
+    expect(titleById.get('d-untitled')).toBe('d-untitled'); // fallback id
   });
 
-  it('liefert für screen- und misc-Segmente leeren mainPath, startNodeId null und main null', () => {
+  it('returns an empty mainPath, startNodeId null and main null for screen and misc segments', () => {
     const base = makeAuthSegment();
     const { flow: _flow, ...withoutFlow } = base;
     const screenSegment: GraphSegment = { ...withoutFlow, id: 'screen-seg', kind: 'screen', order: 2 };
@@ -196,13 +197,13 @@ describe('buildJourneyData', () => {
     for (const entry of data.journeys) {
       expect(entry.mainPath).toEqual([]);
       expect(entry.startNodeId).toBeNull();
-      expect(entry.description).toBe(''); // kein flow ⇒ keine Beschreibung
+      expect(entry.description).toBe(''); // no flow ⇒ no description
       expect(entry.nodes.every((node) => node.start === false)).toBe(true);
       expect(entry.edges.every((edge) => edge.main === null)).toBe(true);
     }
   });
 
-  it('übernimmt Segment-Felder: slug via toSlug, flow-description, startNodeId und start-Flag', () => {
+  it('carries segment fields: slug via toSlug, flow description, startNodeId and start flag', () => {
     const segment: GraphSegment = { ...makeAuthSegment(), id: 'Anmelde Flow' };
     segment.flow = { ...segment.flow!, id: 'Anmelde Flow' };
     const data = buildJourneyData(makeInput([makeGenerated(segment)]));
@@ -218,8 +219,8 @@ describe('buildJourneyData', () => {
     expect([...startFlags.entries()].filter(([, start]) => start)).toHaveLength(1);
   });
 
-  it('löst Slug-Kollisionen deterministisch per Suffix -2, -3, … auf', () => {
-    // "auth_flow" und "auth flow" normalisieren beide zu "auth-flow" (toSlug).
+  it('resolves slug collisions deterministically with the suffixes -2, -3, …', () => {
+    // "auth_flow" and "auth flow" both normalize to "auth-flow" (toSlug).
     const flowA: GraphSegment = { ...makeAuthSegment(), id: 'auth_flow', order: 1 };
     const flowB: GraphSegment = { ...makeAuthSegment(), id: 'auth flow', order: 2 };
     const flowC: GraphSegment = { ...makeAuthSegment(), id: 'auth-flow', order: 3 };
@@ -227,7 +228,7 @@ describe('buildJourneyData', () => {
     const data = buildJourneyData(makeInput([makeGenerated(flowA), makeGenerated(flowB), makeGenerated(flowC)]));
     expect(data.journeys.map((entry) => entry.slug)).toEqual(['auth-flow', 'auth-flow-2', 'auth-flow-3']);
 
-    // Unabhängig von der Eingabereihenfolge (NFR2): identische Zuordnung.
+    // Regardless of input order (NFR2): identical assignment.
     const reversed = buildJourneyData(
       makeInput([makeGenerated(flowC), makeGenerated(flowB), makeGenerated(flowA)]),
     );
@@ -236,7 +237,7 @@ describe('buildJourneyData', () => {
     );
   });
 
-  it('setzt sourceRef auf null, wenn er fehlt, und übernimmt ihn sonst vollständig', () => {
+  it('sets sourceRef to null when missing, otherwise carries it in full', () => {
     const data = buildJourneyData(makeInput([makeGenerated(makeAuthSegment())]));
     const byId = new Map(data.journeys[0]!.nodes.map((node) => [node.id, node]));
     expect(byId.get('login')!.sourceRef).toEqual({
@@ -247,14 +248,14 @@ describe('buildJourneyData', () => {
     expect(byId.get('check')!.sourceRef).toBeNull();
   });
 
-  it('normalisiert Kanten-Felder: label ?? "", trigger/condition als null (JSON-stabil)', () => {
+  it('normalizes edge fields: label ?? "", trigger/condition as null (JSON-stable)', () => {
     const data = buildJourneyData(makeInput([makeGenerated(makeAuthSegment())]));
     const byId = new Map(data.journeys[0]!.edges.map((edge) => [edge.id, edge]));
     expect(byId.get('e1')).toEqual({
       id: 'e1',
       from: 'login',
       to: 'check',
-      label: '', // kein label ⇒ Leerstring
+      label: '', // no label ⇒ empty string
       trigger: 'submit',
       condition: null,
       main: 0,
@@ -264,10 +265,10 @@ describe('buildJourneyData', () => {
 });
 
 describe('serializeJourneyData', () => {
-  it('ist bei Doppellauf byte-identisch und unabhängig von der Eingabereihenfolge (NFR2)', () => {
+  it('is byte-identical on a double run and independent of the input order (NFR2)', () => {
     const forward = serializeJourneyData(buildJourneyData(makeInput([makeGenerated(makeAuthSegment())])));
 
-    // Nodes, Edges und Adapter in umgekehrter Reihenfolge ⇒ identische Bytes.
+    // Nodes, edges and adapters in reverse order ⇒ identical bytes.
     const reversedSegment: GraphSegment = {
       ...makeAuthSegment(),
       nodes: [...authNodes].reverse(),
@@ -283,13 +284,13 @@ describe('serializeJourneyData', () => {
     );
   });
 
-  it('serialisiert kanonisch: 2 Spaces, LF, abschließender Zeilenumbruch, keine Zeitstempel', () => {
+  it('serializes canonically: 2 spaces, LF, trailing newline, no timestamps', () => {
     const data = buildJourneyData(makeInput([makeGenerated(makeAuthSegment())]));
     const text = serializeJourneyData(data);
     expect(text.endsWith('}\n')).toBe(true);
-    expect(text).not.toContain('\r'); // LF, kein CRLF
-    expect(text).toContain('  "dataVersion": "1"'); // 2-Space-Einrückung
+    expect(text).not.toContain('\r'); // LF, no CRLF
+    expect(text).toContain('  "dataVersion": "1"'); // 2-space indentation
     expect(text).not.toMatch(/generatedAt|timestamp/i);
-    expect(JSON.parse(text)).toEqual(data); // Roundtrip
+    expect(JSON.parse(text)).toEqual(data); // roundtrip
   });
 });

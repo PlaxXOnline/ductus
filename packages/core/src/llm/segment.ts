@@ -1,15 +1,15 @@
 /**
- * Segmentierung des Graphen in Generierungseinheiten statt eines Monolith-Prompts.
- * Kürzere, geerdete Segmente reduzieren Halluzination und Kosten.
+ * Segmentation of the graph into generation units instead of one monolithic prompt.
+ * Shorter, grounded segments reduce hallucination and cost.
  */
 
 import type { JourneyEdge, JourneyGraph, JourneyNode } from '@ductus/schema';
 import type { Granularity, GraphSegment } from '../contracts.js';
 
 const MISC_SEGMENT_ID = '_misc';
-const MISC_SEGMENT_TITLE = 'Weitere Bereiche';
+const DEFAULT_MISC_TITLE = 'Other areas';
 
-/** Codepoint-Vergleich (kein localeCompare — NFR2 verlangt plattformstabile Sortierung). */
+/** Codepoint comparison (no localeCompare — NFR2 requires platform-stable sorting). */
 function compareById<T extends { id: string }>(a: T, b: T): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
@@ -35,17 +35,23 @@ function exitsFrom(
     }));
 }
 
-export function segmentGraph(graph: JourneyGraph, granularity: Granularity): GraphSegment[] {
-  return granularity === 'flow' ? segmentByFlow(graph) : segmentByScreen(graph);
+export function segmentGraph(
+  graph: JourneyGraph,
+  granularity: Granularity,
+  opts?: { miscTitle?: string },
+): GraphSegment[] {
+  return granularity === 'flow'
+    ? segmentByFlow(graph, opts?.miscTitle ?? DEFAULT_MISC_TITLE)
+    : segmentByScreen(graph);
 }
 
-function segmentByFlow(graph: JourneyGraph): GraphSegment[] {
+function segmentByFlow(graph: JourneyGraph, miscTitle: string): GraphSegment[] {
   const flows = [...graph.flows].sort(compareById);
   const segments: GraphSegment[] = [];
   const assigned = new Set<string>();
 
   flows.forEach((flow, index) => {
-    // Flow-Mitglieder plus Start-Node (der selbst keine flow-Zuordnung tragen muss).
+    // Flow members plus the start node (which need not carry a flow assignment itself).
     const nodes = graph.nodes
       .filter((n) => n.flow === flow.id || n.id === flow.start)
       .sort(compareById);
@@ -63,14 +69,14 @@ function segmentByFlow(graph: JourneyGraph): GraphSegment[] {
     });
   });
 
-  // Nodes ohne Flow-Zuordnung sammeln sich in einem "_misc"-Segment (nur wenn nicht leer).
+  // Nodes without a flow assignment collect in a "_misc" segment (only when non-empty).
   const miscNodes = graph.nodes.filter((n) => !assigned.has(n.id)).sort(compareById);
   if (miscNodes.length > 0) {
     const ids = new Set(miscNodes.map((n) => n.id));
     segments.push({
       id: MISC_SEGMENT_ID,
       kind: 'misc',
-      title: MISC_SEGMENT_TITLE,
+      title: miscTitle,
       order: flows.length + 1,
       nodes: miscNodes,
       edges: edgesWithin(graph, ids),
@@ -82,7 +88,7 @@ function segmentByFlow(graph: JourneyGraph): GraphSegment[] {
 }
 
 function segmentByScreen(graph: JourneyGraph): GraphSegment[] {
-  // Nicht-Screen-Nodes erhalten kein eigenes Segment — sie erscheinen nur als exits-Ziele.
+  // Non-screen nodes get no segment of their own — they appear only as exit targets.
   const screens = graph.nodes.filter((n) => n.type === 'screen').sort(compareById);
   return screens.map((screen, index) => {
     const outgoing = graph.edges.filter((e) => e.from === screen.id).sort(compareById);
@@ -100,8 +106,8 @@ function segmentByScreen(graph: JourneyGraph): GraphSegment[] {
       order: index + 1,
       ...(flow ? { flow } : {}),
       nodes: [screen],
-      // edges nur innerhalb des Segments (hier: Self-Loops) — alles andere sind exits,
-      // sonst erschiene jede Transition doppelt (Diagramm + Prompt).
+      // edges only within the segment (here: self-loops) — everything else is an exit,
+      // otherwise every transition would appear twice (diagram + prompt).
       edges: outgoing.filter((e) => e.to === screen.id),
       exits,
     };

@@ -1,10 +1,10 @@
 /**
- * Kanonische Serialisierung des Journey-Graphen (NFR2).
+ * Canonical serialization of the journey graph (NFR2).
  *
- * Byte-Stabilität ist ein Kernversprechen: gleiche Eingabe ⇒ byte-gleiche
- * Ausgabe. Deshalb werden Objekt-Schlüssel rekursiv sortiert, Arrays mit
- * definierter Ordnung (ids, tags, platforms, adapter-Namen) sortiert und
- * `meta.generatedAt` entfernt (ein Zeitstempel gehört nur in den Report).
+ * Byte stability is a core promise: same input ⇒ byte-identical output.
+ * Therefore object keys are sorted recursively, arrays with a defined order
+ * (ids, tags, platforms, adapter names) are sorted, and `meta.generatedAt`
+ * is removed (a timestamp belongs only in the report).
  */
 
 import type {
@@ -17,12 +17,12 @@ import type {
   JourneyNode,
 } from '@ductus/schema';
 
-/** Deterministischer String-Vergleich über UTF-16-Code-Units (locale-unabhängig). */
+/** Deterministic string comparison over UTF-16 code units (locale-independent). */
 export function compareStrings(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** Baut den Wert rekursiv mit lexikographisch sortierten Objekt-Schlüsseln nach. */
+/** Rebuilds the value recursively with lexicographically sorted object keys. */
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sortKeysDeep);
@@ -41,8 +41,8 @@ function sortKeysDeep(value: unknown): unknown {
 }
 
 /**
- * JSON mit lexikographisch sortierten Objekt-Schlüsseln (rekursiv),
- * 2-Space-Indent, LF und abschließendem Zeilenumbruch.
+ * JSON with lexicographically sorted object keys (recursive), 2-space indent,
+ * LF, and a trailing newline.
  */
 export function canonicalStringify(value: unknown): string {
   return `${JSON.stringify(sortKeysDeep(value), null, 2)}\n`;
@@ -74,7 +74,7 @@ function canonicalizeApp(app: AppInfo): AppInfo {
   };
 }
 
-/** Entfernt `generatedAt` (Byte-Stabilität) und sortiert Adapter nach name (dann version). */
+/** Removes `generatedAt` (byte stability) and sorts adapters by name (then version). */
 function canonicalizeMeta(meta: GraphMeta): GraphMeta {
   const result: GraphMeta = {};
   if (meta.adapters !== undefined) {
@@ -86,9 +86,9 @@ function canonicalizeMeta(meta: GraphMeta): GraphMeta {
 }
 
 /**
- * Kanonische Form des Graphen: flows/nodes/edges nach id, tags und
- * app.platforms sortiert, meta.adapters nach name, kein generatedAt.
- * Die Eingabe wird nicht mutiert.
+ * Canonical form of the graph: flows/nodes/edges sorted by id, tags and
+ * app.platforms sorted, meta.adapters by name, no generatedAt.
+ * The input is not mutated.
  */
 export function canonicalizeGraph(graph: JourneyGraph): JourneyGraph {
   const byId = <T extends { id: string }>(a: T, b: T): number => compareStrings(a.id, b.id);
@@ -103,7 +103,7 @@ export function canonicalizeGraph(graph: JourneyGraph): JourneyGraph {
   };
 }
 
-/** Kanonisierung + kanonische Stringifizierung in einem Schritt. */
+/** Canonicalization + canonical stringification in one step. */
 export function serializeGraph(graph: JourneyGraph): string {
   return canonicalStringify(canonicalizeGraph(graph));
 }

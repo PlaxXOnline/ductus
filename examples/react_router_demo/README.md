@@ -1,56 +1,55 @@
-# react_router_demo — Ableitung (Weg C) + Kommentare (Weg A)
+# react_router_demo — Derivation (path C) + comments (path A)
 
-Diese Demo zeigt das Kernversprechen von Ductus in einem React-Projekt:
-Ein brauchbarer Journey-Graph entsteht **bevor** ein einziger Kommentar
-geschrieben wird — `@journey:`-Kommentare reichern nur dort an, wo Semantik
-fehlt. Ein `npm install` im Projekt ist nicht nötig: Der Adapter parst die
-Quellen ohne Installation.
+This demo shows the core promise of Ductus in a React project: a useful
+journey graph exists **before** a single comment is written — `@journey:`
+comments only enrich where semantics are missing. No `npm install` in the
+project is needed: the adapter parses the sources without installation.
 
-## Was passiert hier?
+## What happens here?
 
-**Automatisch abgeleitet (Weg C, `source: "derived"`):**
+**Automatically derived (path C, `source: "derived"`):**
 
-- Die vier Routen aus `createBrowserRouter` (`/login`, `/register`,
-  `/dashboard`, `/settings` in `src/router.tsx`) werden zu Screen-Nodes —
-  `DashboardScreen` und `SettingsScreen` sind bewusst **nicht** annotiert und
-  existieren im Graphen rein aus der Ableitung.
-- Die pfadlose Layout-Route (`element: <AppShell />` mit `children`) gruppiert
-  `dashboard` und `settings` zu einem Flow (`shell-0`) — das
-  react-router-Gegenstück zur `ShellRoute`.
-- Der `loader: requireAuth` auf `/dashboard` ruft `redirect('/login')` auf und
-  wird zum Decision-Node `dashboard_redirect`; das String-Literal `'/login'`
-  ergibt eine bedingte Kante Richtung `login`.
-- `<Link to="…">` mit sichtbarem Text (Label!) und `navigate('/…')`-Aufrufe
-  mit Literal-Argument werden zu Transitionen, z. B. `dashboard → settings`
-  („Einstellungen“) und `settings → login` (Abmelden).
+- The four routes from `createBrowserRouter` (`/login`, `/register`,
+  `/dashboard`, `/settings` in `src/router.tsx`) become screen nodes —
+  `DashboardScreen` and `SettingsScreen` are deliberately **not** annotated
+  and exist in the graph purely through derivation.
+- The pathless layout route (`element: <AppShell />` with `children`) groups
+  `dashboard` and `settings` into a flow (`shell-0`) — the react-router
+  counterpart to the `ShellRoute`.
+- The `loader: requireAuth` on `/dashboard` calls `redirect('/login')` and
+  becomes the decision node `dashboard_redirect`; the string literal
+  `'/login'` yields a conditional edge towards `login`.
+- `<Link to="…">` with visible text (a label!) and `navigate('/…')` calls
+  with a literal argument become transitions, e.g. `dashboard → settings`
+  (“Einstellungen”) and `settings → login` (sign out).
 
-**Manuell angereichert (Weg A, `source: "annotation"`):**
+**Manually enriched (path A, `source: "annotation"`):**
 
-- `LoginScreen` und `RegisterScreen` tragen `@journey:screen`-Kommentare mit
-  deutschem Titel, `flow` und `description` (bessere LLM-Prosa) — mit
-  **denselben ids** (`login`, `register`), die die Ableitung aus den Pfaden
-  bildet.
-- Eine `@journey:action` mit `trigger="submit"` führt von `login` in die
-  `@journey:decision` `login-check` („Zugangsdaten gültig?“), die mit **zwei
-  bedingten auto-Actions** nach `dashboard` bzw. zurück nach `login` verzweigt.
-- Ein `@journey:flow` (`auth`, Start `login`) bündelt den Anmelde-Flow.
-- Die aus `navigate('/login')` abgeleitete Kante `register → login`
-  verschmilzt mit der `@journey:action` gleicher Richtung.
+- `LoginScreen` and `RegisterScreen` carry `@journey:screen` comments with a
+  German title, `flow` and `description` (better LLM prose) — with the
+  **same ids** (`login`, `register`) that the derivation builds from the
+  paths.
+- A `@journey:action` with `trigger="submit"` leads from `login` into the
+  `@journey:decision` `login-check` (“Zugangsdaten gültig?”), which branches
+  with **two conditional auto actions** to `dashboard` or back to `login`.
+- A `@journey:flow` (`auth`, start `login`) bundles the sign-in flow.
+- The edge `register → login` derived from `navigate('/login')` merges with
+  the `@journey:action` of the same direction.
 
-Manuelle Werte überschreiben abgeleitete feldweise (Präzedenzregel:
-Kommentar schlägt Ableitung, pro Feld).
+Manual values override derived ones field by field (precedence rule:
+comment beats derivation, per field).
 
-## Ausprobieren
+## Try it
 
 ```sh
 npm install -g @ductus/core @ductus/adapter-typescript
 
-# im Verzeichnis examples/react_router_demo
-ductus extract             # Graph erzeugen + validieren → journey-graph.json
-ductus generate            # zusätzlich LLM-Doku → docs/*.mdx
+# in the examples/react_router_demo directory
+ductus extract             # create + validate the graph → journey-graph.json
+ductus generate            # additionally LLM docs → docs/*.mdx
 ```
 
-Die eingecheckte `ductus.config.yaml` nutzt `llm.provider: mock` — `generate`
-läuft damit ohne API-Key. Für echte Prosa `provider: anthropic` setzen und
-einen Key über `DUCTUS_LLM_API_KEY` bereitstellen. `extract` läuft komplett
+The checked-in `ductus.config.yaml` uses `llm.provider: mock` — `generate`
+therefore runs without an API key. For real prose, set `provider: anthropic`
+and provide a key via `DUCTUS_LLM_API_KEY`. `extract` runs completely
 offline.

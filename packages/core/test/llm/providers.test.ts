@@ -54,7 +54,7 @@ afterEach(() => {
 });
 
 describe('createProvider — anthropic', () => {
-  it('ruft die Messages-API mit korrekten Headern und Body auf und mappt die Antwort', async () => {
+  it('calls the Messages API with correct headers and body and maps the response', async () => {
     const fetchMock = stubFetch(
       jsonResponse({
         content: [{ type: 'text', text: 'Antworttext' }],
@@ -85,7 +85,7 @@ describe('createProvider — anthropic', () => {
 });
 
 describe('createProvider — openai', () => {
-  it('sendet system als erste Message und mappt choices/usage', async () => {
+  it('sends system as the first message and maps choices/usage', async () => {
     const fetchMock = stubFetch(
       jsonResponse({
         choices: [{ message: { role: 'assistant', content: 'Antworttext' } }],
@@ -111,7 +111,7 @@ describe('createProvider — openai', () => {
 });
 
 describe('createProvider — mistral', () => {
-  it('ruft die Mistral-Chat-API (OpenAI-kompatibel) mit Bearer-Auth auf', async () => {
+  it('calls the Mistral chat API (OpenAI-compatible) with bearer auth', async () => {
     const fetchMock = stubFetch(
       jsonResponse({
         choices: [{ message: { role: 'assistant', content: 'Antworttext' } }],
@@ -135,15 +135,15 @@ describe('createProvider — mistral', () => {
     ]);
   });
 
-  it('meldet unerwartete Antwortformate mit dem Provider-Namen', async () => {
+  it('reports unexpected response formats with the provider name', async () => {
     stubFetch(jsonResponse({ choices: [] }));
     const provider = createProvider({ ...baseConfig, provider: 'mistral' }, { [KEY_ENV]: SECRET });
-    await expect(provider.complete(request)).rejects.toThrow('LLM-Provider "mistral"');
+    await expect(provider.complete(request)).rejects.toThrow('LLM provider "mistral"');
   });
 });
 
 describe('createProvider — custom', () => {
-  it('nutzt baseUrl (Slash toleriert) und erlaubt fehlenden API-Key ohne Authorization-Header', async () => {
+  it('uses baseUrl (trailing slash tolerated) and allows a missing API key without an Authorization header', async () => {
     const fetchMock = stubFetch(
       jsonResponse({ choices: [{ message: { content: 'lokal' } }] }),
     );
@@ -160,7 +160,7 @@ describe('createProvider — custom', () => {
     expect(headersOf(init)['Authorization']).toBeUndefined();
   });
 
-  it('setzt den Authorization-Header, wenn ein Key vorhanden ist', async () => {
+  it('sets the Authorization header when a key is present', async () => {
     const fetchMock = stubFetch(jsonResponse({ choices: [{ message: { content: 'x' } }] }));
     const provider = createProvider(
       { ...baseConfig, provider: 'custom', baseUrl: 'http://localhost:8080/v1' },
@@ -171,14 +171,14 @@ describe('createProvider — custom', () => {
   });
 });
 
-describe('Structured Output (responseFormat)', () => {
+describe('structured output (responseFormat)', () => {
   const responseFormat = {
     name: 'faithfulness_violations',
     schema: { type: 'object', properties: { violations: { type: 'array' } }, required: ['violations'] },
   };
   const structuredRequest: LlmRequest = { ...request, responseFormat };
 
-  it('anthropic: erzwingt einen Tool-Aufruf und liefert dessen Input als JSON-Text', async () => {
+  it('anthropic: forces a tool call and returns its input as JSON text', async () => {
     const fetchMock = stubFetch(
       jsonResponse({
         content: [{ type: 'tool_use', input: { violations: [] } }],
@@ -200,7 +200,7 @@ describe('Structured Output (responseFormat)', () => {
     expect(body['tool_choice']).toEqual({ type: 'tool', name: 'faithfulness_violations' });
   });
 
-  it('openai/mistral: setzen response_format auf json_schema (strict)', async () => {
+  it('openai/mistral: set response_format to json_schema (strict)', async () => {
     for (const providerName of ['openai', 'mistral'] as const) {
       const fetchMock = stubFetch(
         jsonResponse({ choices: [{ message: { content: '{"violations": []}' } }] }),
@@ -215,7 +215,7 @@ describe('Structured Output (responseFormat)', () => {
     }
   });
 
-  it('custom: fällt konservativ auf json_object zurück', async () => {
+  it('custom: falls back conservatively to json_object', async () => {
     const fetchMock = stubFetch(jsonResponse({ choices: [{ message: { content: '{}' } }] }));
     const provider = createProvider(
       { ...baseConfig, provider: 'custom', baseUrl: 'http://localhost:8080/v1' },
@@ -225,7 +225,7 @@ describe('Structured Output (responseFormat)', () => {
     expect(bodyOf(callArgs(fetchMock).init)['response_format']).toEqual({ type: 'json_object' });
   });
 
-  it('ohne responseFormat bleiben die Bodies unverändert (kein response_format/tools)', async () => {
+  it('without responseFormat the bodies stay unchanged (no response_format/tools)', async () => {
     const fetchMock = stubFetch(jsonResponse({ content: [{ text: 'x' }] }));
     const provider = createProvider(baseConfig, { [KEY_ENV]: SECRET });
     await provider.complete(request);
@@ -235,14 +235,14 @@ describe('Structured Output (responseFormat)', () => {
   });
 });
 
-describe('NFR4 — Key-Sicherheit', () => {
-  it('nennt bei fehlendem Key nur den Variablennamen', () => {
+describe('NFR4 — key safety', () => {
+  it('names only the variable name when the key is missing', () => {
     for (const provider of ['anthropic', 'openai', 'mistral'] as const) {
       expect(() => createProvider({ ...baseConfig, provider }, {})).toThrow(KEY_ENV);
     }
   });
 
-  it('bereinigt HTTP-Fehlertexte um den Key-Wert', async () => {
+  it('scrubs HTTP error bodies of the key value', async () => {
     stubFetch(new Response(`invalid api key: ${SECRET} rejected`, { status: 400 }));
     const provider = createProvider(baseConfig, { [KEY_ENV]: SECRET });
     const error = (await provider.complete(request).catch((e: unknown) => e)) as Error;
@@ -253,7 +253,7 @@ describe('NFR4 — Key-Sicherheit', () => {
     expect(error.message).toContain('***');
   });
 
-  it('kürzt Fehler-Bodies auf maximal 500 Zeichen', async () => {
+  it('truncates error bodies to at most 500 characters', async () => {
     stubFetch(new Response('x'.repeat(2000), { status: 400 }));
     const provider = createProvider(baseConfig, { [KEY_ENV]: SECRET });
     const error = (await provider.complete(request).catch((e: unknown) => e)) as Error;
@@ -261,8 +261,8 @@ describe('NFR4 — Key-Sicherheit', () => {
   });
 });
 
-describe('Retries', () => {
-  it('wiederholt bei 429 und liefert danach die Antwort', async () => {
+describe('retries', () => {
+  it('retries on 429 and then returns the response', async () => {
     const fetchMock = stubFetch(
       new Response('rate limited', { status: 429 }),
       jsonResponse({ content: [{ text: 'nach Retry' }] }),
@@ -273,7 +273,7 @@ describe('Retries', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('gibt nach 2 Retries (3 Versuchen) bei anhaltendem 5xx auf', async () => {
+  it('gives up after 2 retries (3 attempts) on a persistent 5xx', async () => {
     const fetchMock = stubFetch(
       new Response('kaputt', { status: 500 }),
       new Response('kaputt', { status: 500 }),
@@ -285,7 +285,7 @@ describe('Retries', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('wiederholt bei 4xx (außer 429) nicht', async () => {
+  it('does not retry on 4xx (except 429)', async () => {
     const fetchMock = stubFetch(new Response('nope', { status: 400 }));
     const provider = createProvider(baseConfig, { [KEY_ENV]: SECRET });
     await expect(provider.complete(request)).rejects.toThrow('400');

@@ -1,32 +1,31 @@
 /**
- * Komponenten-Deklarationen einer Datei: das TS/JS-Gegenstück zu den
- * Klassendeklarationen, an die der Dart-Adapter Blöcke und Actions bindet.
+ * Component declarations of a file: the TS/JS counterpart to the class
+ * declarations that the Dart adapter binds blocks and actions to.
  *
- * "Komponente" heißt hier: Top-Level-Klasse, -Funktionsdeklaration oder
- * -`const`/`let`/`var` mit Funktions-Initializer (auch `memo(...)`/
- * `forwardRef(...)`-umschlossen) — das deckt Klassen- und
- * Funktionskomponenten ab.
+ * "Component" here means: top-level class, function declaration, or
+ * `const`/`let`/`var` with a function initializer (including `memo(...)`/
+ * `forwardRef(...)` wrappers) — this covers class and function components.
  */
 
 import ts from 'typescript';
 
 export interface ComponentDeclaration {
   name: string;
-  /** Beginn der Deklaration ohne führende Trivia. */
+  /** Start of the declaration without leading trivia. */
   start: number;
   end: number;
 }
 
 function isFunctionLike(expr: ts.Expression): boolean {
   if (ts.isArrowFunction(expr) || ts.isFunctionExpression(expr)) return true;
-  // memo(() => …), forwardRef(function …) — irgendein Funktions-Argument genügt.
+  // memo(() => …), forwardRef(function …) — any function argument suffices.
   if (ts.isCallExpression(expr)) {
     return expr.arguments.some((arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg));
   }
   return false;
 }
 
-/** Alle Top-Level-Komponenten-Deklarationen in Dokumentreihenfolge. */
+/** All top-level component declarations in document order. */
 export function componentDeclarations(sourceFile: ts.SourceFile): ComponentDeclaration[] {
   const result: ComponentDeclaration[] = [];
   for (const statement of sourceFile.statements) {
@@ -61,7 +60,7 @@ export function componentDeclarations(sourceFile: ts.SourceFile): ComponentDecla
   return result;
 }
 
-/** Kleinste umschließende Komponente für einen Offset (Top-Level ⇒ eindeutig). */
+/** Smallest enclosing component for an offset (top-level ⇒ unambiguous). */
 export function enclosingComponent(
   declarations: readonly ComponentDeclaration[],
   offset: number,
@@ -70,8 +69,8 @@ export function enclosingComponent(
 }
 
 /**
- * Nächste Komponente ab einem Offset — für Blöcke, die OBERHALB einer
- * Deklaration stehen (wie [_nextClassAfter] im Dart-Adapter).
+ * Next component from an offset onwards — for blocks that sit ABOVE a
+ * declaration (like [_nextClassAfter] in the Dart adapter).
  */
 export function nextComponentAfter(
   declarations: readonly ComponentDeclaration[],

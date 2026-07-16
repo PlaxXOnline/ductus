@@ -1,13 +1,13 @@
 /**
- * Faithfulness-Judge: zweiter LLM-Aufruf, der die generierte Prosa gegen das
- * Graph-Segment prüft (behauptet der Text Schritte/Elemente, die nicht im
- * Graphen stehen?).
+ * Faithfulness judge: a second LLM call that checks the generated prose against
+ * the graph segment (does the text claim steps/elements that are not in the
+ * graph?).
  *
- * Dem Judge wird nicht geglaubt, er wird verifiziert: Jedes Finding muss ein
- * wörtliches Zitat aus dem Text und das angeblich fehlende Element nennen.
- * Code prüft beides deterministisch — nur mechanisch bestätigte Findings
- * werden Violations, Grenzfälle werden Hinweise, widerlegte Findings
- * (Zitat nicht im Text oder Element doch im Graphen) werden verworfen.
+ * The judge is not trusted, it is verified: every finding must name a verbatim
+ * quote from the text and the allegedly missing element. Code checks both
+ * deterministically — only mechanically confirmed findings become violations,
+ * borderline cases become hints, refuted findings (quote not in the text or
+ * element present in the graph after all) are discarded.
  */
 
 import type {
@@ -16,21 +16,25 @@ import type {
   LlmProvider,
   LlmResponseFormat,
   LlmUsage,
+  Voice,
 } from '../contracts.js';
 import { buildVocabulary, normalizeTerm, termCoverage } from './lexicon.js';
 import { buildJudgePrompt } from './prompts.js';
 
-const UNPARSABLE_CLAIM = '(Judge-Antwort unparsebar)';
+const UNPARSABLE_CLAIM = '(judge response unparsable)';
 const RAW_SNIPPET_MAX_CHARS = 200;
 
-/** Erkennt das konservative Fallback-Ergebnis eines gescheiterten Judge-Parses. */
+/** Detects the conservative fallback result of a failed judge parse. */
 export function judgeParseFailed(violations: FaithfulnessViolation[]): boolean {
   return violations.some((v) => v.claim === UNPARSABLE_CLAIM);
 }
 
 /**
- * Schema der Judge-Antwort — Provider mit Structured Output (anthropic,
- * openai, mistral) garantieren damit API-seitig gültiges JSON.
+ * Schema of the judge response — providers with structured output (anthropic,
+ * openai, mistral) use it to guarantee valid JSON API-side. The descriptions
+ * are model-visible prompt data and follow the judge prompt's language:
+ * German for 'formal-sie'/'informal-du' (byte-identical to the original),
+ * English for 'en-you'. Select via judgeResponseFormat(voice).
  */
 export const JUDGE_RESPONSE_FORMAT: LlmResponseFormat = {
   name: 'faithfulness_violations',
@@ -59,7 +63,40 @@ export const JUDGE_RESPONSE_FORMAT: LlmResponseFormat = {
   },
 };
 
-/** Erstes balanciertes {…}-Objekt im Text (String-Literale werden übersprungen). */
+const JUDGE_RESPONSE_FORMAT_EN: LlmResponseFormat = {
+  name: 'faithfulness_violations',
+  description: 'Structured response in the given schema.',
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      violations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            quote: { type: 'string', description: 'Verbatim quote of the offending passage.' },
+            element: {
+              type: 'string',
+              description: 'The claimed UI element / step / condition that is missing from the graph segment.',
+            },
+            reason: { type: 'string', description: 'Short justification.' },
+          },
+          required: ['quote', 'element', 'reason'],
+        },
+      },
+    },
+    required: ['violations'],
+  },
+};
+
+/** Response format matching the judge prompt's language for the given voice. */
+export function judgeResponseFormat(voice: Voice): LlmResponseFormat {
+  return voice === 'en-you' ? JUDGE_RESPONSE_FORMAT_EN : JUDGE_RESPONSE_FORMAT;
+}
+
+/** First balanced {…} object in the text (string literals are skipped). */
 function extractFirstJsonObject(text: string): string | undefined {
   const start = text.indexOf('{');
   if (start === -1) return undefined;
@@ -83,9 +120,9 @@ function extractFirstJsonObject(text: string): string | undefined {
 }
 
 /**
- * Akzeptiert rohes JSON, einen ```json-Fence oder ein in Prosa eingebettetes
- * JSON-Objekt. Liefert das rohe violations-Array oder undefined, wenn kein
- * Kandidat ein gültiges {"violations": [...]}-Objekt ergibt.
+ * Accepts raw JSON, a ```json fence, or a JSON object embedded in prose.
+ * Returns the raw violations array, or undefined when no candidate yields a
+ * valid {"violations": [...]} object.
  */
 export function parseJudgeFindings(text: string): unknown[] | undefined {
   const candidates: string[] = [text.trim()];
@@ -99,37 +136,37 @@ export function parseJudgeFindings(text: string): unknown[] | undefined {
       const violations = (parsed as { violations?: unknown } | null)?.violations;
       if (Array.isArray(violations)) return violations;
     } catch {
-      // nächster Kandidat
+      // next candidate
     }
   }
   return undefined;
 }
 
-/** Konservatives Fallback: Unparsebares wird als eine Violation gemeldet (lieber warnen als schlucken). */
+/** Conservative fallback: unparsable output is reported as one violation (warn rather than swallow). */
 function unparsableViolation(text: string): FaithfulnessViolation {
   const snippet = text.trim().slice(0, RAW_SNIPPET_MAX_CHARS);
   return {
     claim: UNPARSABLE_CLAIM,
     reason:
       snippet === ''
-        ? 'Die Judge-Antwort war leer.'
-        : `Die Judge-Antwort war kein gültiges JSON mit "violations"-Array. Antwort begann mit: ${JSON.stringify(snippet)}`,
+        ? 'The judge response was empty.'
+        : `The judge response was not valid JSON with a "violations" array. Response began with: ${JSON.stringify(snippet)}`,
   };
 }
 
 export interface VerifiedJudgeResult {
-  /** Mechanisch bestätigt: Zitat steht im Text UND Element fehlt im Segment. */
+  /** Mechanically confirmed: quote appears in the text AND element is missing from the segment. */
   violations: FaithfulnessViolation[];
-  /** Nicht verifizierbar oder nur lexikalisch grenzwertig — manuell nachprüfen. */
+  /** Not verifiable or only lexically borderline — review manually. */
   hints: FaithfulnessViolation[];
-  /** Nachweislich falsche Findings (Zitat erfunden oder Element existiert) — verworfen. */
+  /** Demonstrably false findings (fabricated quote or element does exist) — discarded. */
   refuted: number;
 }
 
 /**
- * Verifiziert die rohen Judge-Findings deterministisch gegen Text und Segment.
- * Findings ohne quote/element (z. B. Altformat) können nicht geprüft werden
- * und werden als Hinweis geführt.
+ * Verifies the raw judge findings deterministically against text and segment.
+ * Findings without quote/element (e.g. legacy format) cannot be checked and
+ * are kept as hints.
  */
 export function verifyJudgeFindings(
   findings: unknown[],
@@ -148,34 +185,34 @@ export function verifyJudgeFindings(
       finding !== null && typeof finding === 'object' ? (finding as Record<string, unknown>) : {};
     const quote = typeof record['quote'] === 'string' ? record['quote'] : undefined;
     const element = typeof record['element'] === 'string' ? record['element'] : undefined;
-    const reason = typeof record['reason'] === 'string' ? record['reason'] : '(keine Begründung)';
+    const reason = typeof record['reason'] === 'string' ? record['reason'] : '(no reason given)';
 
     if (quote === undefined || element === undefined || normalizeTerm(quote) === '') {
-      // Unverifizierbar (fehlende Felder / Altformat {claim, reason}) ⇒ Hinweis.
+      // Unverifiable (missing fields / legacy format {claim, reason}) ⇒ hint.
       const claim = typeof record['claim'] === 'string' ? record['claim'] : JSON.stringify(finding);
-      hints.push({ claim, reason: `Unverifizierbares Judge-Finding (ohne Zitat/Element): ${reason}` });
+      hints.push({ claim, reason: `Unverifiable judge finding (no quote/element): ${reason}` });
       continue;
     }
 
     if (!normalizedMarkdown.includes(normalizeTerm(quote))) {
-      // Das "Zitat" steht gar nicht im generierten Text — Judge widerlegt.
+      // The "quote" does not appear in the generated text at all — judge refuted.
       refuted += 1;
       continue;
     }
 
     const coverage = termCoverage(element, vocab);
     if (coverage === 'covered') {
-      // Das angeblich fehlende Element steht im Segment — Judge widerlegt.
+      // The allegedly missing element is present in the segment — judge refuted.
       refuted += 1;
     } else if (coverage === 'near') {
       hints.push({
         claim: quote,
-        reason: `Element „${element}“ ist nur lexikalisch verwandt mit dem Graph-Vokabular — ${reason}`,
+        reason: `Element “${element}” is only lexically related to the graph vocabulary — ${reason}`,
       });
     } else {
       violations.push({
         claim: quote,
-        reason: `Behauptet „${element}“, das im Graph-Segment nicht belegt ist — ${reason}`,
+        reason: `Claims “${element}”, which is not backed by the graph segment — ${reason}`,
       });
     }
   }
@@ -187,15 +224,15 @@ export async function runFaithfulnessCheck(
   provider: LlmProvider,
   segment: GraphSegment,
   markdown: string,
-  opts: { maxTokens: number; temperature: number; appName?: string },
+  opts: { maxTokens: number; temperature: number; voice: Voice; appName?: string },
 ): Promise<{ violations: FaithfulnessViolation[]; hints: FaithfulnessViolation[]; refuted: number; usage?: LlmUsage }> {
-  const { system, messages } = buildJudgePrompt(segment, markdown);
+  const { system, messages } = buildJudgePrompt(segment, markdown, opts.voice);
   const response = await provider.complete({
     system,
     messages,
     maxTokens: opts.maxTokens,
     temperature: opts.temperature,
-    responseFormat: JUDGE_RESPONSE_FORMAT,
+    responseFormat: judgeResponseFormat(opts.voice),
   });
   const findings = parseJudgeFindings(response.text);
   const result =

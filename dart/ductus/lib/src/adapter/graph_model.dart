@@ -1,45 +1,45 @@
-/// Internes Graph-Modell des Dart-Adapters + kanonische Serialisierung
-/// in das Journey-Graph-JSON.
+/// Internal graph model of the Dart adapter + canonical serialization
+/// into the journey graph JSON.
 library;
 
 import 'dart:collection';
 import 'dart:convert';
 
-/// Muss mit `version:` in pubspec.yaml übereinstimmen — abgesichert
-/// durch einen Regressionstest in test/cli_integration_test.dart.
-const String adapterVersion = '0.2.0';
+/// Must match `version:` in pubspec.yaml — guarded by a regression test
+/// in test/cli_integration_test.dart.
+const String adapterVersion = '0.3.0';
 
 const String schemaVersion = '1.0';
 
-/// meta.adapters-Name des Adapter-CLI (Scan via `dart run ductus:adapter`).
+/// meta.adapters name of the adapter CLI (scan via `dart run ductus:adapter`).
 const String cliAdapterName = 'dart';
 
-/// meta.adapters-Name des build_runner-Builders (Weg D).
+/// meta.adapters name of the build_runner builder (path D).
 const String builderAdapterName = 'dart-builder';
 
-/// Artefakt des build_runner-Builders im Projekt-Root des Zielpakets (Weg D).
-/// NICHT zu verwechseln mit `ductus_graph.g.json` — das ist die Debug-Datei,
-/// die das Adapter-CLI bei jedem Scan schreibt.
+/// Artifact of the build_runner builder in the target package's project root
+/// (path D). NOT to be confused with `ductus_graph.g.json` — that is the
+/// debug file the adapter CLI writes on every scan.
 const String builderArtifactFileName = 'ductus_builder.g.json';
 
-/// Vom Adapter unterstützte Schema-Major-Version (Validierungsregel V6,
-/// wie im Core).
+/// Schema major version supported by the adapter (validation rule V6,
+/// same as in the core).
 const int supportedSchemaMajor = 1;
 
-/// V6-Logik wie im Core: „major.minor“ mit unterstütztem Major ⇒ kompatibel
-/// (Minor-Erweiterungen des Schemas sind rückwärtskompatibel).
+/// V6 logic as in the core: "major.minor" with a supported major ⇒ compatible
+/// (minor extensions of the schema are backwards compatible).
 bool isSupportedSchemaVersion(String version) {
   final match = RegExp(r'^(\d+)\.(\d+)$').firstMatch(version);
   return match != null && int.parse(match.group(1)!) == supportedSchemaMajor;
 }
 
-/// Herkunft eines Graph-Elements: manuell annotiert oder abgeleitet.
+/// Origin of a graph element: manually annotated or derived.
 class SourceKind {
   static const String annotation = 'annotation';
   static const String derived = 'derived';
 }
 
-/// Gültige Trigger-Werte einer Transition (entspricht `JourneyTrigger`).
+/// Valid trigger values of a transition (matches `JourneyTrigger`).
 const Set<String> validTriggers = {
   'tap',
   'submit',
@@ -49,8 +49,8 @@ const Set<String> validTriggers = {
   'system',
 };
 
-/// Rückverweis in den Quellcode. [file] ist immer projekt-relativ
-/// mit '/'-Separatoren.
+/// Back-reference into the source code. [file] is always project-relative
+/// with '/' separators.
 class SourceRef {
   final String file;
   final int line;
@@ -68,8 +68,8 @@ class SourceRef {
   String toString() => '$file:$line';
 }
 
-/// Screen- oder Decision-Node (der Dart-Adapter emittiert keine Action-Nodes;
-/// Actions werden direkt als Edges abgebildet).
+/// Screen or decision node (the Dart adapter emits no action nodes;
+/// actions are mapped directly to edges).
 class GraphNode {
   final String id;
   final String type; // 'screen' | 'decision'
@@ -114,7 +114,7 @@ class GraphNode {
       };
 }
 
-/// Transition (Edge). [id] ist bis zur Id-Generierung im Merger optional.
+/// Transition (edge). [id] is optional until id generation in the merger.
 class GraphEdge {
   final String? id;
   final String from;
@@ -148,8 +148,8 @@ class GraphEdge {
       };
 }
 
-/// Benannter Flow. [source]/[sourceRef] sind nur intern für die
-/// Merge-Präzedenz relevant und werden nicht serialisiert.
+/// Named flow. [source]/[sourceRef] are only relevant internally for merge
+/// precedence and are not serialized.
 class GraphFlow {
   final String id;
   final String? title;
@@ -175,7 +175,8 @@ class GraphFlow {
       };
 }
 
-/// Fehler, der den Adapter mit Exit ≠0 beendet; [messages] gehen auf stderr.
+/// Error that terminates the adapter with a non-zero exit code;
+/// [messages] go to stderr.
 class AdapterException implements Exception {
   final List<String> messages;
 
@@ -195,12 +196,12 @@ Object? _canonicalize(Object? value) {
   return value;
 }
 
-/// Kanonisches, diff-stabiles Graph-JSON: rekursiv sortierte Schlüssel,
-/// 2-Space-Indent, LF, abschließender Zeilenumbruch, kein `generatedAt`.
+/// Canonical, diff-stable graph JSON: recursively sorted keys, 2-space
+/// indent, LF, trailing newline, no `generatedAt`.
 ///
-/// [adapterName] ist der meta.adapters-Eintrag: [cliAdapterName] für den
-/// CLI-Scan, [builderAdapterName] für das build_runner-Artefakt (Weg D) —
-/// ansonsten sind beide Ausgaben byte-identisch (Paritätsgarantie).
+/// [adapterName] is the meta.adapters entry: [cliAdapterName] for the CLI
+/// scan, [builderAdapterName] for the build_runner artifact (path D) —
+/// otherwise both outputs are byte-identical (parity guarantee).
 String encodeCanonicalGraph({
   required List<GraphFlow> flows,
   required List<GraphNode> nodes,

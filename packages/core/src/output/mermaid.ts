@@ -1,26 +1,26 @@
 /**
- * Mermaid-Rendering von Graph-Segmenten und ganzen Graphen (MDX-Diagramme, `ductus graph`):
- * flowchart für die Struktur, journey für den Hauptpfad eines Flows.
- * Ausgabe ist deterministisch sortiert (NFR2).
+ * Mermaid rendering of graph segments and whole graphs (MDX diagrams, `ductus graph`):
+ * flowchart for the structure, journey for the main path of a flow.
+ * Output is deterministically sorted (NFR2).
  */
 
 import type { JourneyEdge, JourneyGraph, JourneyNode } from '@ductus/schema';
 import type { GraphSegment } from '../contracts.js';
 
-/** Locale-unabhängiger String-Vergleich (NFR2 — localeCompare wäre umgebungsabhängig). */
+/** Locale-independent string comparison (NFR2 — localeCompare would depend on the environment). */
 function cmp(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** Anführungszeichen escapen — Mermaid kennt keine Backslash-Escapes in Labels. */
+/** Escape quotes — Mermaid has no backslash escapes in labels. */
 function escapeQuotes(text: string): string {
   return text.replace(/"/g, '#quot;');
 }
 
 /**
- * Bildet Graph-ids auf Mermaid-sichere ids ([A-Za-z0-9_]) ab.
- * Kollisionen (z. B. "a-b" und "a_b") werden per Suffix "_2", "_3", … aufgelöst —
- * deterministisch, weil ids in stabiler Reihenfolge angefragt werden.
+ * Maps graph ids to Mermaid-safe ids ([A-Za-z0-9_]).
+ * Collisions (e.g. "a-b" and "a_b") are resolved with suffixes "_2", "_3", … —
+ * deterministic because ids are requested in stable order.
  */
 class IdSanitizer {
   private readonly map = new Map<string, string>();
@@ -54,12 +54,12 @@ function renderNode(node: JourneyNode, mermaidId: string): string {
   }
 }
 
-/** Einheitliche condition-Semantik: Leerstring zählt wie keine condition (vgl. V5c in validate.ts). */
+/** Uniform condition semantics: an empty string counts as no condition (cf. V5c in validate.ts). */
 function hasCondition(edge: JourneyEdge): edge is JourneyEdge & { condition: string } {
   return edge.condition !== undefined && edge.condition !== '';
 }
 
-/** Kanten-Beschriftung: label bzw. trigger, condition mit " / " angehängt. */
+/** Edge caption: label or trigger, condition appended with " / ". */
 function edgeText(edge: JourneyEdge): string {
   let text = edge.label ?? edge.trigger ?? '';
   if (hasCondition(edge)) {
@@ -76,7 +76,7 @@ function renderEdge(fromId: string, toPart: string, edge: JourneyEdge, dashed: b
     : `  ${fromId} ${arrow}|${escapeQuotes(text)}| ${toPart}`;
 }
 
-/** Rendert ein Segment als 'flowchart TD'; exits erscheinen als gestrichelte Kanten. */
+/** Renders a segment as 'flowchart TD'; exits appear as dashed edges. */
 export function segmentToMermaid(segment: GraphSegment): string {
   const san = new IdSanitizer();
   const lines: string[] = ['flowchart TD'];
@@ -91,7 +91,7 @@ export function segmentToMermaid(segment: GraphSegment): string {
     lines.push(renderEdge(san.get(edge.from), san.get(edge.to), edge, false));
   }
 
-  // Segment-verlassende Kanten: Ziel-Node inline mit seinem Titel definieren.
+  // Edges leaving the segment: define the target node inline with its title.
   const exits = [...segment.exits].sort((a, b) => cmp(a.edge.id, b.edge.id));
   for (const exit of exits) {
     const target = `${san.get(exit.edge.to)}["${escapeQuotes(exit.toTitle)}"]`;
@@ -101,38 +101,39 @@ export function segmentToMermaid(segment: GraphSegment): string {
   return lines.join('\n');
 }
 
-// ─────────────────────────────── journey (Hauptpfad) ─────────────────────────
+// ─────────────────────────────── journey (main path) ─────────────────────────
 
-/** Sicherheitslimit der Hauptpfad-Ableitung — schützt vor pathologischen Graphen. */
+/** Safety limit for the main-path derivation — guards against pathological graphs. */
 const MAX_JOURNEY_STEPS = 100;
 
-/** Mermaid-Entities für Zeichen mit Sonderbedeutung in journey-Zeilen. */
+/** Mermaid entities for characters with special meaning in journey lines. */
 const JOURNEY_ENTITIES: Record<string, string> = { '#': '#35;', ':': '#58;', ';': '#59;' };
 
 /**
- * Escaping für journey-title und Task-Labels: Zeilenumbrüche werden zu einem
- * Leerzeichen; '#', ':' und ';' werden zu Mermaid-Entities. Die Ersetzung läuft
- * in einem einzigen Durchlauf über die Original-Zeichen ('#' gedanklich vor
- * ':'/';') — sequenzielles Ersetzen würde '#' bzw. ';' der bereits erzeugten
- * Entities zerstören.
+ * Escaping for the journey title and task labels: line breaks become a single
+ * space; '#', ':' and ';' become Mermaid entities. The replacement runs in a
+ * single pass over the original characters ('#' conceptually before ':'/';') —
+ * sequential replacement would corrupt the '#' or ';' of entities already
+ * produced.
  */
 function escapeJourneyText(text: string): string {
   return text.replace(/\r\n|\r|\n/g, ' ').replace(/[#:;]/g, (ch) => JOURNEY_ENTITIES[ch] ?? ch);
 }
 
 /**
- * Schlüsselwörter, die Mermaids journey-Lexer am Zeilenanfang (case-insensitive)
- * erkennt. Ein Task-Label, das so beginnt, würde als Statement geparst — 'journey'
- * und 'section ' erzeugen Parse-Fehler, 'title ' überschreibt still den Diagramm-Titel.
+ * Keywords that Mermaid's journey lexer recognizes at the start of a line
+ * (case-insensitive). A task label starting like that would be parsed as a
+ * statement — 'journey' and 'section ' cause parse errors, 'title ' silently
+ * overwrites the diagram title.
  */
 const JOURNEY_LINE_KEYWORDS = ['journey', 'section', 'title'];
 
 /**
- * Task-Label-Escaping: wie escapeJourneyText; beginnt das Ergebnis mit einem
- * journey-Schlüsselwort oder mit '%%' (Mermaid-Kommentar, verschluckt die Zeile
- * still), wird zusätzlich das erste Zeichen als Mermaid-Entity (#<code>;)
- * geschrieben — der Lexer sieht dann kein Schlüsselwort mehr, gerendert wird
- * das Original-Zeichen.
+ * Task-label escaping: like escapeJourneyText; if the result starts with a
+ * journey keyword or with '%%' (Mermaid comment, silently swallows the line),
+ * the first character is additionally written as a Mermaid entity (#<code>;) —
+ * the lexer then no longer sees a keyword, while the original character is
+ * still rendered.
  */
 function escapeJourneyTaskLabel(text: string): string {
   const escaped = escapeJourneyText(text);
@@ -143,10 +144,10 @@ function escapeJourneyTaskLabel(text: string): string {
 }
 
 /**
- * Prioritätsvergleich für die Kantenwahl des Hauptpfads (deterministisch, NFR2):
- * (1) trigger !== 'back' vor trigger === 'back',
- * (2) ohne condition vor mit condition (Leerstring zählt wie keine, s. hasCondition),
- * (3) kleinste edge.id.
+ * Priority comparison for the main path's edge choice (deterministic, NFR2):
+ * (1) trigger !== 'back' before trigger === 'back',
+ * (2) without condition before with condition (empty string counts as none, see hasCondition),
+ * (3) smallest edge.id.
  */
 function compareMainPathEdges(a: JourneyEdge, b: JourneyEdge): number {
   const backDelta = (a.trigger === 'back' ? 1 : 0) - (b.trigger === 'back' ? 1 : 0);
@@ -157,9 +158,9 @@ function compareMainPathEdges(a: JourneyEdge, b: JourneyEdge): number {
 }
 
 /**
- * Task-Beschriftung konsistent zu renderNode: action nutzt label, sonst title (Fallback id).
- * Ein leeres bzw. nur aus Whitespace bestehendes Label fällt per ?? nicht auf die id
- * zurück, ergäbe aber eine invalide Task-Zeile („: 3") — deshalb zusätzlich id-Fallback.
+ * Task caption consistent with renderNode: action uses label, otherwise title (fallback id).
+ * An empty or whitespace-only label does not fall back to the id via ??, yet
+ * would produce an invalid task line (": 3") — hence the additional id fallback.
  */
 function journeyTaskLabel(node: JourneyNode): string {
   const label =
@@ -167,23 +168,23 @@ function journeyTaskLabel(node: JourneyNode): string {
   return label.trim() === '' ? node.id : label;
 }
 
-/** Ergebnis der Hauptpfad-Ableitung: Nodes in Pfad-Reihenfolge + gewählte Kanten. */
+/** Result of the main-path derivation: nodes in path order + chosen edges. */
 export interface MainPath {
-  /** Pfad-Nodes ab flow.start; leer, wenn kein Hauptpfad ableitbar ist. */
+  /** Path nodes starting at flow.start; empty if no main path can be derived. */
   nodes: JourneyNode[];
-  /** Gewählte Kanten; edges[i] verbindet nodes[i] mit nodes[i+1]. */
+  /** Chosen edges; edges[i] connects nodes[i] with nodes[i+1]. */
   edges: JourneyEdge[];
 }
 
 const EMPTY_MAIN_PATH: MainPath = { nodes: [], edges: [] };
 
 /**
- * Deterministische Hauptpfad-Ableitung eines Flow-Segments (NFR2):
- * ab flow.start wird pro Schritt genau eine ausgehende Kante innerhalb des
- * Segments gewählt (compareMainPathEdges); besuchte Nodes werden nie wiederholt,
- * Zyklen terminieren also. Liefert einen leeren Pfad für screen-/misc-Segmente
- * und für Pfade mit weniger als 2 Nodes — Konsumenten (segmentToJourney,
- * buildJourneyData) müssen den Fall nicht selbst unterscheiden.
+ * Deterministic main-path derivation of a flow segment (NFR2):
+ * starting at flow.start, exactly one outgoing edge within the segment is
+ * chosen per step (compareMainPathEdges); visited nodes are never repeated,
+ * so cycles terminate. Returns an empty path for screen/misc segments and
+ * for paths with fewer than 2 nodes — consumers (segmentToJourney,
+ * buildJourneyData) do not have to distinguish that case themselves.
  */
 export function deriveMainPath(segment: GraphSegment): MainPath {
   if (segment.kind !== 'flow' || segment.flow === undefined) return EMPTY_MAIN_PATH;
@@ -206,7 +207,7 @@ export function deriveMainPath(segment: GraphSegment): MainPath {
       if (compareMainPathEdges(candidate, best) < 0) best = candidate;
     }
     const next = nodesById.get(best.to);
-    if (next === undefined) break; // durch nodesById.has bereits ausgeschlossen
+    if (next === undefined) break; // already ruled out by nodesById.has
     visited.add(next.id);
     path.push(next);
     chosen.push(best);
@@ -217,14 +218,14 @@ export function deriveMainPath(segment: GraphSegment): MainPath {
 }
 
 /**
- * Rendert für ein Flow-Segment den deterministisch abgeleiteten Hauptpfad
- * (deriveMainPath) als Mermaid-'journey'. journey ist strikt linear (keine
- * Verzweigungen). Score konstant 3 (neutral) — der Graph enthält kein
- * Sentiment, es wird nichts erfunden; ebenso keine Akteure und keine Kantenlabels
- * (dafür gibt es das flowchart). Liefert undefined für screen-/misc-Segmente und
- * für Pfade mit weniger als 2 Nodes.
+ * Renders the deterministically derived main path (deriveMainPath) of a flow
+ * segment as a Mermaid 'journey'. journey is strictly linear (no branches).
+ * Score constant 3 (neutral) — the graph contains no sentiment, nothing is
+ * invented; likewise no actors and no edge labels (that is what the flowchart
+ * is for). Returns undefined for screen/misc segments and for paths with
+ * fewer than 2 nodes.
  */
-export function segmentToJourney(segment: GraphSegment): string | undefined {
+export function segmentToJourney(segment: GraphSegment, sectionTitle = 'Main path'): string | undefined {
   if (segment.kind !== 'flow' || segment.flow === undefined) return undefined;
   const path = deriveMainPath(segment).nodes;
   if (path.length < 2) return undefined;
@@ -232,7 +233,7 @@ export function segmentToJourney(segment: GraphSegment): string | undefined {
   const lines = [
     'journey',
     `  title ${escapeJourneyText(segment.flow.title)}`,
-    '  section Hauptpfad',
+    `  section ${escapeJourneyText(sectionTitle)}`,
   ];
   for (const node of path) {
     lines.push(`    ${escapeJourneyTaskLabel(journeyTaskLabel(node))}: 3`);
@@ -240,7 +241,7 @@ export function segmentToJourney(segment: GraphSegment): string | undefined {
   return lines.join('\n');
 }
 
-/** Rendert den gesamten Graphen als 'flowchart TD'. */
+/** Renders the whole graph as 'flowchart TD'. */
 export function graphToMermaid(graph: JourneyGraph): string {
   const san = new IdSanitizer();
   const lines: string[] = ['flowchart TD'];

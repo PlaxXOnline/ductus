@@ -1,13 +1,13 @@
 /**
- * Weg C — Ableitung aus Next.js-Projekten (dateibasiertes Routing).
+ * Path C — derivation from Next.js projects (file-based routing).
  *
- *   app/…/page.*   bzw. pages/**       → Screen-Node
- *   Routen-Gruppe (name)/ im App-Router   → Flow (analog ShellRoute)
- *   redirect('…') in einer page-Datei     → Decision-Node
- *   <Link href>/router.push('…')          → Transition
+ *   app/…/page.*   or pages/**            → screen node
+ *   route group (name)/ in the App Router → flow (analogous to ShellRoute)
+ *   redirect('…') in a page file          → decision node
+ *   <Link href>/router.push('…')          → transition
  *
- * Alles best effort, `source: "derived"`; manuelle Annotationen überschreiben
- * abgeleitete Werte feldweise.
+ * Everything is best effort, `source: "derived"`; manual annotations
+ * override derived values field by field.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -32,7 +32,7 @@ const EXT = String.raw`\.(?:tsx|ts|jsx|js|mjs|cjs|mts|cts)$`;
 const APP_PAGE = new RegExp(String.raw`^(?:src/)?app/(?:(.+)/)?page${EXT}`);
 const PAGES_FILE = new RegExp(String.raw`^(?:src/)?pages/(.+)${EXT}`);
 
-/** Importiert eine Datei aus `next` oder `next/…`? */
+/** Does a file import from `next` or `next/…`? */
 function importsNext(sourceFile: ts.SourceFile): boolean {
   for (const statement of sourceFile.statements) {
     const specifier =
@@ -47,12 +47,12 @@ function importsNext(sourceFile: ts.SourceFile): boolean {
 }
 
 /**
- * Next-Evidenz des Projekts: `next`-Dependency in der package.json, eine
- * next.config.*, oder ein Import aus `next`/`next/…` in den gescannten
- * Quellen. Ohne Evidenz werden KEINE Pages-Router-Screens abgeleitet —
- * `(src/)pages/` ist auch in react-router-Projekten eine verbreitete
- * Ordner-Konvention und würde sonst Phantom-Screens erzeugen. Der App-Router
- * (`app/…/page.*`) ist als Konvention eindeutig und braucht keine Evidenz.
+ * Next evidence of the project: a `next` dependency in package.json, a
+ * next.config.*, or an import from `next`/`next/…` in the scanned sources.
+ * Without evidence, NO Pages Router screens are derived — `(src/)pages/` is
+ * also a common folder convention in react-router projects and would
+ * otherwise produce phantom screens. The App Router (`app/…/page.*`) is an
+ * unambiguous convention and needs no evidence.
  */
 function hasNextEvidence(projectDir: string | undefined, files: readonly ScannedFile[]): boolean {
   if (projectDir !== undefined) {
@@ -68,7 +68,7 @@ function hasNextEvidence(projectDir: string | undefined, files: readonly Scanned
         }
       }
     } catch {
-      // Keine/kaputte package.json ⇒ zählt nicht als Evidenz.
+      // Missing/broken package.json ⇒ does not count as evidence.
     }
   }
   return files.some((file) => importsNext(file.sourceFile));
@@ -79,25 +79,25 @@ export class NextDerivation {
   readonly flows: GraphFlow[] = [];
   readonly edges: GraphEdge[] = [];
 
-  /** Default-Export-Komponente einer page-Datei → Screen-Id. */
+  /** Default-export component of a page file → screen id. */
   readonly componentToScreen = new Map<string, string>();
   readonly pathToScreen = new Map<string, string>();
-  /** page-Datei (relPath) → Screen-Id, für die from-Zuordnung innerhalb der Datei. */
+  /** Page file (relPath) → screen id, for `from` mapping within the file. */
   readonly pageFileToScreen = new Map<string, string>();
 
-  /** Mindestens eine page-Datei gefunden? Sonst entfällt die Kanten-Analyse. */
+  /** Found at least one page file? Otherwise the edge analysis is skipped. */
   hasRoutes = false;
 }
 
 interface PageRoute {
   file: ScannedFile;
-  /** URL-Pfad, Parameter-Segmente ([id]) bleiben im Schlüssel erhalten. */
+  /** URL path; parameter segments ([id]) are kept in the key. */
   urlPath: string;
-  /** Innerste Routen-Gruppe `(name)` — wird zum Flow. */
+  /** Innermost route group `(name)` — becomes the flow. */
   group?: string;
 }
 
-/** App-Router: Segmente zwischen app/ und page.* → URL-Pfad + Gruppe. */
+/** App Router: segments between app/ and page.* → URL path + group. */
 function appRoute(file: ScannedFile): PageRoute | undefined {
   const match = APP_PAGE.exec(file.relPath);
   if (match === null) return undefined;
@@ -106,12 +106,12 @@ function appRoute(file: ScannedFile): PageRoute | undefined {
   let group: string | undefined;
   for (const segment of rawSegments) {
     if (segment.startsWith('(') && segment.endsWith(')')) {
-      // Routen-Gruppe: unsichtbar in der URL, innerste Gruppe wird zum Flow.
+      // Route group: invisible in the URL; the innermost group becomes the flow.
       group = segment.slice(1, -1);
       continue;
     }
-    // Intercepting Routes ((.)foo), Parallel Routes (@slot) und private
-    // Ordner (_name) sind keine eigenständigen Ziele — Datei überspringen.
+    // Intercepting routes ((.)foo), parallel routes (@slot), and private
+    // folders (_name) are not standalone targets — skip the file.
     if (segment.startsWith('(') || segment.startsWith('@') || segment.startsWith('_')) {
       return undefined;
     }
@@ -121,7 +121,7 @@ function appRoute(file: ScannedFile): PageRoute | undefined {
   return { file, urlPath: urlPath === '/' ? '/' : urlPath, ...(group !== undefined ? { group } : {}) };
 }
 
-/** Pages-Router: Dateipfad → URL-Pfad; _app/_document/_error und api/ entfallen. */
+/** Pages Router: file path → URL path; _app/_document/_error and api/ are dropped. */
 function pagesRoute(file: ScannedFile): PageRoute | undefined {
   const match = PAGES_FILE.exec(file.relPath);
   if (match === null) return undefined;
@@ -134,7 +134,7 @@ function pagesRoute(file: ScannedFile): PageRoute | undefined {
   return { file, urlPath: `/${rest}` };
 }
 
-/** Name der Default-Export-Komponente einer Datei (best effort). */
+/** Name of a file's default-export component (best effort). */
 function defaultExportName(sourceFile: ts.SourceFile): string | undefined {
   for (const statement of sourceFile.statements) {
     if (
@@ -147,7 +147,7 @@ function defaultExportName(sourceFile: ts.SourceFile): string | undefined {
     if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
       const expr = statement.expression;
       if (ts.isIdentifier(expr) && isComponentName(expr.text)) return expr.text;
-      // export default memo(Home) — erstes Komponenten-Argument.
+      // export default memo(Home) — first component argument.
       if (ts.isCallExpression(expr)) {
         for (const arg of expr.arguments) {
           if (ts.isIdentifier(arg) && isComponentName(arg.text)) return arg.text;
@@ -159,8 +159,8 @@ function defaultExportName(sourceFile: ts.SourceFile): string | undefined {
 }
 
 /**
- * Leitet Screens (page-Dateien), Flows (Routen-Gruppen), Redirect-Decisions
- * und Navigations-Kanten aus einem Next.js-Projekt ab.
+ * Derives screens (page files), flows (route groups), redirect decisions,
+ * and navigation edges from a Next.js project.
  */
 export function deriveNext(
   files: readonly ScannedFile[],
@@ -168,14 +168,14 @@ export function deriveNext(
   opts: {
     manualScreenSymbols?: ReadonlyMap<string, string>;
     extraComponentToScreen?: ReadonlyMap<string, string>;
-    /** Projektverzeichnis für die Next-Evidenz (package.json, next.config.*). */
+    /** Project directory for the Next evidence (package.json, next.config.*). */
     projectDir?: string;
   } = {},
 ): NextDerivation {
   const result = new NextDerivation();
 
-  // Pass 1 — Screens aus page-Dateien; Dateien sind nach Pfad sortiert.
-  // Pages-Router nur mit Next-Evidenz (siehe hasNextEvidence).
+  // Pass 1 — screens from page files; files are sorted by path.
+  // Pages Router only with Next evidence (see hasNextEvidence).
   const pagesRouterActive = hasNextEvidence(opts.projectDir, files);
   const routes: PageRoute[] = [];
   for (const file of files) {
@@ -232,7 +232,7 @@ export function deriveNext(
   const lookupPath = (literal: string): string | undefined =>
     result.pathToScreen.get(literal.split('?')[0]!.split('#')[0]!);
 
-  // Pass 2a — Redirect-Decisions: redirect('…') innerhalb einer page-Datei.
+  // Pass 2a — redirect decisions: redirect('…') inside a page file.
   for (const route of routes) {
     if (!route.file.content.includes('next/navigation')) continue;
     const { hasRedirectCall, targets } = collectRedirectTargets(route.file.sourceFile);
@@ -243,7 +243,7 @@ export function deriveNext(
     result.nodes.push({
       id: decisionId,
       type: 'decision',
-      title: `Weiterleitung: ${humanize(screenId)}`,
+      title: `Redirect: ${humanize(screenId)}`,
       tags: [],
       source: SourceKind.derived,
       sourceRef: ref,
@@ -272,7 +272,7 @@ export function deriveNext(
     }
   }
 
-  // Pass 2b — Navigation: <Link href> und router.push/replace('…').
+  // Pass 2b — navigation: <Link href> and router.push/replace('…').
   const addNavEdge = (
     file: ScannedFile,
     node: ts.Node,
@@ -283,7 +283,7 @@ export function deriveNext(
     const where = `${file.relPath}:${file.lineOf(node.getStart(file.sourceFile))}`;
     const to = lookupPath(literal);
     if (to === undefined) {
-      warn(`Hinweis: ${where}: ${what}("${literal}") entspricht keiner bekannten Route — Kante verworfen.`);
+      warn(`Note: ${where}: ${what}("${literal}") does not match any known route — edge discarded.`);
       return;
     }
     const enclosing = enclosingComponentName(file, node);
@@ -292,8 +292,8 @@ export function deriveNext(
       result.pageFileToScreen.get(file.relPath);
     if (from === undefined) {
       warn(
-        `Hinweis: ${where}: ${what}("${literal}") keinem Screen zuordenbar ` +
-          '(umschließende Komponente unbekannt) — Kante verworfen.',
+        `Note: ${where}: ${what}("${literal}") cannot be assigned to a screen ` +
+          '(enclosing component unknown) — edge discarded.',
       );
       return;
     }
@@ -316,7 +316,7 @@ export function deriveNext(
         if (href !== undefined) addNavEdge(file, node, '<Link href>', href, jsxSingleTextChild(node));
         return;
       }
-      // router.push('/pfad') — nur wenn die Datei useRouter verwendet.
+      // router.push('/path') — only if the file uses useRouter.
       if (usesRouterHook && ts.isCallExpression(node)) {
         const callee = node.expression;
         if (

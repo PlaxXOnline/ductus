@@ -1,7 +1,7 @@
 ---
 /**
- * Grundgerüst aller Seiten: Fonts, Design-Tokens, Top-Nav und ⌘K-Suchoverlay.
- * Nur Light-Theme — das Design der Referenz legt sich bewusst fest.
+ * Skeleton of all pages: fonts, design tokens, top nav and the ⌘K search
+ * overlay. Light theme only — the reference design commits to it deliberately.
  */
 import Nav from '../components/Nav.astro';
 import SearchOverlay from '../components/SearchOverlay.astro';
@@ -9,16 +9,16 @@ import { data } from '../lib/data';
 import { uiStrings } from '../lib/strings';
 
 interface Props {
-  /** <title>-Inhalt */
+  /** <title> content */
   pageTitle: string;
-  /** aktiver Nav-Punkt */
+  /** active nav item */
   active: 'home' | 'journeys';
 }
 
 const { pageTitle, active } = Astro.props;
 const t = uiStrings(data.site.locale);
 
-// Favicon als Daten-URI (App-Initial auf Akzent-Kachel) — kein 404, kein Asset.
+// Favicon as a data URI (app initial on an accent tile) — no 404, no asset.
 const initial = data.site.title.trim().charAt(0).toUpperCase() || 'D';
 const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#3a62c4"/><text x="16" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#fffefb">${initial}</text></svg>`;
 const faviconHref = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
@@ -48,7 +48,7 @@ const faviconHref = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
 </html>
 
 <style is:global>
-  /* ── Design-Tokens (Referenz: ductus-doku-website.dc.html) ─────────────── */
+  /* ── Design tokens (reference: ductus-doku-website.dc.html) ────────────── */
   :root {
     --dj-bg: #f6f4ef;
     --dj-panel: #fffefb;
@@ -107,7 +107,7 @@ const faviconHref = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
     position: relative;
     width: 100%;
     height: 100vh;
-    /* dvh: mobile Browser-Leisten verdecken sonst den unteren Rand. */
+    /* dvh: mobile browser bars would otherwise cover the bottom edge. */
     height: 100dvh;
     min-height: 520px;
     display: flex;
@@ -175,7 +175,7 @@ const faviconHref = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
     animation: dj-fade-up 0.55s ease both;
   }
 
-  /* prefers-reduced-motion: Animationen aus, Scroll auto (Design-Vorgabe). */
+  /* prefers-reduced-motion: animations off, scroll auto (design requirement). */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

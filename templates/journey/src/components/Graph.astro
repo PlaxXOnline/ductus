@@ -1,11 +1,11 @@
 ---
 /**
- * Interaktiver Journey-Graph (linkes Panel der Detailseite): Punktraster-
- * Hintergrund, Screens als abgerundete Karten mit Icon, Entscheidungen als
- * Rauten, Bezier-Kanten mit Pfeilspitzen, Kanten-Label-Chips, Legende und
- * „SCHRITT i/N“-Badge. Zustände (Selektion/Play) setzt das Seiten-Skript in
- * journeys/[slug].astro per Klassen/Inline-Styles (Referenz: edgeSvg/nodeVals
- * in der Design-Datei).
+ * Interactive journey graph (left panel of the detail page): dot-grid
+ * background, screens as rounded cards with an icon, decisions as diamonds,
+ * Bezier edges with arrowheads, edge label chips, legend and the “STEP i/N”
+ * badge. States (selection/play) are set by the page script in
+ * journeys/[slug].astro via classes/inline styles (reference: edgeSvg/nodeVals
+ * in the design file).
  */
 import type { Journey } from '../lib/types';
 import { layoutGraph } from '../lib/layout';
@@ -27,8 +27,9 @@ const chipEdges = journey.edges.filter(
 
 <div class="dj-graph" id="dj-graph">
   {
-    /* Sticky-Wrapper (0 Höhe): hält das Badge wie Kopfzeile/Legende oben rechts
-       im sichtbaren Panel-Ausschnitt, auch wenn der Graph scrollt. */
+    /* Sticky wrapper (0 height): keeps the badge — like the header/legend —
+       at the top right of the visible panel viewport, even when the graph
+       scrolls. */
     journey.mainPath.length > 0 && (
       <div class="dj-graph-badge-wrap">
         <div class="dj-graph-badge dj-mono" id="dj-step-badge">
@@ -45,9 +46,9 @@ const chipEdges = journey.edges.filter(
     </div>
   </div>
 
-  {/* Scroll-/Fit-Wrapper: hält den Graphen im gestapelten Modus (vw < 1080)
-      per transform-Skalierung im Viewport (Design: mGScale/mGInnerW/mGWrapH);
-      auf Desktop sind beide unsichtbare Durchreicher. */}
+  {/* Scroll/fit wrapper: keeps the graph within the viewport in stacked mode
+      (vw < 1080) via transform scaling (design: mGScale/mGInnerW/mGWrapH);
+      on desktop both are invisible pass-throughs. */}
   <div class="dj-graph-scroll">
   <div class="dj-graph-fit" id="dj-graph-fit" style={`--dj-graph-w:${layout.width};--dj-graph-h:${layout.height}`}>
   <div class="dj-graph-canvas" style={`width:${layout.width}px;height:${layout.height}px`}>
@@ -73,7 +74,7 @@ const chipEdges = journey.edges.filter(
                 data-to={edge.to}
                 data-main={edge.main === null ? '' : String(edge.main)}
               />
-              {/* gestrichelte Lauf-Überlagerung bei Selektion (dashFlow im Design) */}
+              {/* dashed flow overlay while selected (dashFlow in the design) */}
               <path class="dj-edge-flow" d={geo.d} data-edge-flow data-edge-id={edge.id} style="display:none" />
               <path
                 class="dj-edge-arrow"
@@ -197,7 +198,7 @@ const chipEdges = journey.edges.filter(
     color: var(--dj-muted-2);
     margin-top: 2px;
   }
-  /* Zwei Hinweistexte (Design: mGHint) — CSS blendet je Layoutmodus einen ein. */
+  /* Two hint texts (design: mGHint) — CSS shows one per layout mode. */
   .dj-graph-hint-stacked {
     display: none;
   }
@@ -228,8 +229,8 @@ const chipEdges = journey.edges.filter(
   }
   .dj-graph-fit {
     position: relative;
-    /* Breite explizit inkl. der 30px Luft rechts: Inline-Margins tiefer
-       verschachtelter Boxen zählen nicht zur Scroll-Fläche des Panels. */
+    /* Width explicitly includes the 30px of air on the right: inline margins
+       of deeper nested boxes do not count toward the panel's scroll area. */
     width: calc(var(--dj-graph-w) * 1px + 60px);
   }
   .dj-graph-canvas {
@@ -342,7 +343,7 @@ const chipEdges = journey.edges.filter(
     text-transform: uppercase;
   }
 
-  /* Dokument-Icon (Screens) bzw. Kreis-Icon (Aktionen), reines CSS */
+  /* Document icon (screens) or circle icon (actions), pure CSS */
   .dj-gnode-icon {
     flex: none;
     position: relative;
@@ -388,8 +389,8 @@ const chipEdges = journey.edges.filter(
     border-radius: 50%;
   }
 
-  /* Entscheidungs-Raute — im Ruhezustand neutrale Node-Linienfarbe wie die
-     Karten (Design: nodeVals bc = P.line); orange ist nur der Legenden-Marker. */
+  /* Decision diamond — at rest the neutral node line color like the cards
+     (design: nodeVals bc = P.line); only the legend marker is orange. */
   .dj-gnode-diamond {
     position: absolute;
     inset: 6px;
@@ -431,7 +432,7 @@ const chipEdges = journey.edges.filter(
     font-size: 8.5px;
   }
 
-  /* ── Kanten-Label-Chips ───────────────────────────────────────────────── */
+  /* ── Edge label chips ─────────────────────────────────────────────────── */
   .dj-edge-chip {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -469,7 +470,7 @@ const chipEdges = journey.edges.filter(
     color: var(--dj-success);
   }
 
-  /* ── Legende ──────────────────────────────────────────────────────────── */
+  /* ── Legend ───────────────────────────────────────────────────────────── */
   .dj-graph-legend {
     position: sticky;
     left: 26px;
@@ -511,10 +512,10 @@ const chipEdges = journey.edges.filter(
     display: block;
   }
 
-  /* ── Gestapelt (Design: stacked = vw < 1080): Graph über der Schrittliste,
-     volle Breite, Canvas per transform auf Viewportbreite skaliert (min. 0.8,
-     darunter horizontal scrollbar); Kopf/Legende statisch statt sticky, das
-     Schritt-Badge liegt oben rechts neben dem Kopf (Design-Headerzeile). ──── */
+  /* ── Stacked (design: stacked = vw < 1080): graph above the step list, full
+     width, canvas scaled to the viewport width via transform (min. 0.8, below
+     that horizontally scrollable); header/legend static instead of sticky, the
+     step badge sits at the top right next to the header (design header row). ─ */
   @media (max-width: 1079.98px) {
     .dj-graph {
       width: 100%;
@@ -547,10 +548,10 @@ const chipEdges = journey.edges.filter(
       width: 100%;
     }
     .dj-graph-fit {
-      /* --dj-graph-w/-h: unskalierte Canvas-Maße (Zahlen), --dj-graph-scale
-         setzt das Seiten-Skript aus der Viewportbreite (Design: mGScale).
-         20px Headroom oben: Label-Chips oben herumgeführter Rück-Kanten
-         ragen bis ~16px über die Canvas hinaus (overflow-y ist hidden). */
+      /* --dj-graph-w/-h: unscaled canvas dimensions (numbers); the page script
+         sets --dj-graph-scale from the viewport width (design: mGScale).
+         20px of headroom at the top: label chips of top-routed back edges
+         stick out up to ~16px beyond the canvas (overflow-y is hidden). */
       width: calc(var(--dj-graph-w) * var(--dj-graph-scale, 1) * 1px + 24px);
       height: calc(var(--dj-graph-h) * var(--dj-graph-scale, 1) * 1px + 28px);
       margin: 0 auto;

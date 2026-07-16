@@ -1,12 +1,12 @@
 /**
- * End-to-End-Verifikation der realen Phase-1-Pipeline auf den Beispiel-Apps:
- * Dart-Adapter direkt, komplette CLI-Kette
- * (extract/generate/check/graph), Website-Modus, NFR1/NFR2-Smoke und
- * der negative Adapter-Vertragsfall (stdout muss genau ein Graph-JSON sein).
+ * End-to-end verification of the real phase-1 pipeline on the example apps:
+ * Dart adapter directly, the complete CLI chain
+ * (extract/generate/check/graph), website mode, NFR1/NFR2 smoke and
+ * the negative adapter contract case (stdout must be exactly one graph JSON).
  *
- * Voraussetzungen: Dart- und Flutter-SDK im PATH (im CI/Dev vorhanden);
- * ohne sie wird die Suite übersprungen. Alle Artefakte landen in
- * Temp-Verzeichnissen — das Repository bleibt sauber.
+ * Prerequisites: Dart and Flutter SDK in the PATH (present in CI/dev);
+ * without them the suite is skipped. All artifacts go to temp
+ * directories — the repository stays clean.
  */
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -34,7 +34,7 @@ const GO_DEMO = join(ROOT, 'examples', 'flutter_go_router_demo');
 const COMMENT_DEMO = join(ROOT, 'examples', 'flutter_comment_demo');
 const WRAPPER = join(ROOT, 'packages', 'adapter-dart', 'bin', 'ductus-adapter-dart.js');
 
-/** Werkzeuge im PATH? Ohne Dart/Flutter ist E2E nicht sinnvoll ⇒ Suite überspringen. */
+/** Tools in the PATH? Without Dart/Flutter, E2E is pointless ⇒ skip the suite. */
 function toolAvailable(command: string): boolean {
   return spawnSync(command, ['--version'], { encoding: 'utf8' }).status === 0;
 }
@@ -47,7 +47,7 @@ interface RunResult {
   stderr: string;
 }
 
-/** Adapter-Direktaufruf aus dem Paketkontext dart/ductus heraus. */
+/** Direct adapter invocation from the dart/ductus package context. */
 function runDartAdapter(projectDir: string, extraArgs: string[] = []): RunResult {
   const result = spawnSync(
     'dart',
@@ -62,13 +62,13 @@ function runCli(args: string[], cwd: string, env?: Record<string, string>): RunR
     cwd,
     encoding: 'utf8',
     timeout: 180_000,
-    // Zusätzliche Variablen (z. B. DUCTUS_DART_ADAPTER_DIR) ergänzen process.env.
+    // Extra variables (e.g. DUCTUS_DART_ADAPTER_DIR) extend process.env.
     ...(env !== undefined ? { env: { ...process.env, ...env } } : {}),
   });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
-/** Kopiert ein Beispielprojekt ohne Build-Artefakte in ein Temp-Verzeichnis. */
+/** Copies an example project without build artifacts into a temp directory. */
 function copyProject(sourceDir: string, targetDir: string): void {
   const EXCLUDED = new Set(['.dart_tool', 'build', 'pubspec.lock', '.idea']);
   cpSync(sourceDir, targetDir, {
@@ -107,14 +107,14 @@ const CONFIG_WEBSITE = [
   '  format: website',
   '  dir: site/',
   '  website:',
-  // Explizit 'starlight' (Default wäre 'journey') — dieser E2E-Fall
-  // prüft weiterhin das Starlight-Scaffold (MDX + Sidebar + Site-Konfig).
+  // Explicitly 'starlight' (the default would be 'journey') — this E2E case
+  // keeps exercising the Starlight scaffold (MDX + sidebar + site config).
   '    generator: starlight',
   '',
 ].join('\n');
 
-/** Config für die buildfreie Nutzung (Weg A): KEIN command-Override — die
- *  Auflösungskette muss den Adapter über DUCTUS_DART_ADAPTER_DIR finden. */
+/** Config for the build-free usage (path A): NO command override — the
+ *  resolution chain must find the adapter via DUCTUS_DART_ADAPTER_DIR. */
 const CONFIG_COMMENT = [
   'app:',
   '  name: CommentDemo',
@@ -138,19 +138,19 @@ function makeTmpDir(prefix: string): string {
   return dir;
 }
 
-describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)', () => {
-  /** Temp-Kopie des go_router-Demos mit CLI-Configs (wird im beforeAll befüllt). */
+describe.skipIf(!hasDart || !hasFlutter)('E2E: example apps → pipeline (M9)', () => {
+  /** Temp copy of the go_router demo with CLI configs (filled in beforeAll). */
   let tmpGo: string;
-  /** Temp-Kopie des comment-Demos OHNE ductus-Dependency (buildfrei, Weg A). */
+  /** Temp copy of the comment demo WITHOUT a ductus dependency (build-free, path A). */
   let tmpComment: string;
 
   beforeAll(() => {
-    // Einmal bauen — die CLI-Kette läuft gegen dist/ (bin-Vertrag).
+    // Build once — the CLI chain runs against dist/ (bin contract).
     execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
     expect(existsSync(CLI)).toBe(true);
 
-    // Temp-Kopie des go_router-Demos: Pfad-Abhängigkeit auf dart/ductus wird
-    // absolut umgeschrieben, damit die Kopie eigenständig auflösbar ist.
+    // Temp copy of the go_router demo: the path dependency on dart/ductus is
+    // rewritten to an absolute path so the copy resolves on its own.
     tmpGo = makeTmpDir('ductus-e2e-go-');
     copyProject(GO_DEMO, tmpGo);
     const pubspecPath = join(tmpGo, 'pubspec.yaml');
@@ -171,9 +171,9 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     writeFileSync(join(tmpGo, 'ductus.config.yaml'), CONFIG_MDX, 'utf8');
     writeFileSync(join(tmpGo, 'ductus.website.yaml'), CONFIG_WEBSITE, 'utf8');
 
-    // Temp-Kopie des comment-Demos: pubspec.yaml bleibt unangetastet (KEINE
-    // ductus-Dependency, kein pub get) — genau das ist das Versprechen von
-    // Weg A (Kommentar-Konvention: keine Build-Abhängigkeit).
+    // Temp copy of the comment demo: pubspec.yaml stays untouched (NO ductus
+    // dependency, no pub get) — exactly the promise of path A
+    // (comment convention: no build dependency).
     tmpComment = makeTmpDir('ductus-e2e-comment-');
     copyProject(COMMENT_DEMO, tmpComment);
     writeFileSync(join(tmpComment, 'ductus.config.yaml'), CONFIG_COMMENT, 'utf8');
@@ -183,23 +183,23 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     for (const dir of tmpRoots) rmSync(dir, { recursive: true, force: true });
   });
 
-  // ───────────────────────── Adapter direkt (Vertrags-Smoke) ──────────────────
+  // ───────────────────────── Adapter directly (contract smoke) ────────────────
 
-  describe('Dart-Adapter direkt', () => {
+  describe('Dart adapter directly', () => {
     it(
-      'go_router-Demo: Ableitung + Annotationen, zwei Läufe byte-identisch (NFR2/A4)',
+      'go_router demo: derivation + annotations, two runs byte-identical (NFR2/A4)',
       () => {
         const first = runDartAdapter(GO_DEMO);
         expect(first.status, first.stderr).toBe(0);
 
         const graph = JSON.parse(first.stdout) as JourneyGraph;
 
-        // Alle vier Screens vorhanden; dashboard/settings rein abgeleitet (Weg C),
-        // login/register durch Annotationen angereichert (Weg B überschreibt
-        // abgeleitete Werte feldweise).
+        // All four screens present; dashboard/settings purely derived (path C),
+        // login/register enriched by annotations (path B overrides derived
+        // values field by field).
         const byId = new Map(graph.nodes.map((node) => [node.id, node]));
         for (const id of ['login', 'register', 'dashboard', 'settings']) {
-          expect(byId.has(id), `Screen "${id}" fehlt`).toBe(true);
+          expect(byId.has(id), `Screen "${id}" missing`).toBe(true);
           expect(byId.get(id)?.type).toBe('screen');
         }
         expect(byId.get('dashboard')?.source).toBe('derived');
@@ -208,7 +208,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(byId.get('login')?.title).toBe('Anmeldung');
         expect(byId.get('register')?.source).toBe('annotation');
 
-        // Flow "auth" aus @JourneyFlow; Edge login→dashboard aus @JourneyAction.
+        // Flow "auth" from @JourneyFlow; edge login→dashboard from @JourneyAction.
         expect(graph.flows.map((flow) => flow.id)).toContain('auth');
         const loginToDashboard = graph.edges.find(
           (edge) => edge.from === 'login' && edge.to === 'dashboard',
@@ -217,10 +217,10 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(loginToDashboard?.condition).toBe('Zugangsdaten gültig');
         expect(loginToDashboard?.source).toBe('annotation');
 
-        // meta.adapters gefüllt (A5).
+        // meta.adapters filled (A5).
         expect(graph.meta?.adapters?.[0]?.name).toBe('dart');
 
-        // Determinismus: zweiter Lauf liefert byte-identisches stdout.
+        // Determinism: the second run yields byte-identical stdout.
         const second = runDartAdapter(GO_DEMO);
         expect(second.status, second.stderr).toBe(0);
         expect(second.stdout).toBe(first.stdout);
@@ -229,7 +229,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'comment_demo: @journey:-Blöcke ergeben 4 Screens + Decision + Edges (Weg A)',
+      'comment_demo: @journey: blocks yield 4 screens + decision + edges (path A)',
       () => {
         const result = runDartAdapter(COMMENT_DEMO);
         expect(result.status, result.stderr).toBe(0);
@@ -244,10 +244,10 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
           'settings',
         ]);
         expect(decisions.map((node) => node.id)).toEqual(['save-check']);
-        // Alle Nodes stammen aus Annotationen (kein Routing-Paket im Projekt).
+        // All nodes originate from annotations (no routing package in the project).
         expect(graph.nodes.every((node) => node.source === 'annotation')).toBe(true);
 
-        // Die Decision verzweigt bedingt zurück zur Liste bzw. in den Editor.
+        // The decision branches conditionally back to the list or into the editor.
         const pairs = graph.edges.map((edge) => `${edge.from}→${edge.to}`);
         expect(pairs).toContain('note-list→note-editor');
         expect(pairs).toContain('note-editor→save-check');
@@ -262,11 +262,11 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ─────────────────── CLI-Kette auf der Temp-Kopie ───────────────────────────
+  // ─────────────────── CLI chain on the temp copy ─────────────────────────────
 
-  describe('CLI-Kette (extract → generate → check → graph)', () => {
+  describe('CLI chain (extract → generate → check → graph)', () => {
     it(
-      'extract: Exit 0, journey-graph.json valide und byte-stabil; 2. Lauf < 10 s (NFR1/NFR2)',
+      'extract: exit 0, journey-graph.json valid and byte-stable; 2nd run < 10 s (NFR1/NFR2)',
       () => {
         const first = runCli(['extract'], tmpGo);
         expect(first.status, first.stderr).toBe(0);
@@ -275,27 +275,27 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(existsSync(graphPath)).toBe(true);
         const bytes1 = readFileSync(graphPath);
 
-        // Valide nach den Core-Regeln (V1–V4/V6): keine Fehler.
+        // Valid per the core rules (V1–V4/V6): no errors.
         const graph = JSON.parse(bytes1.toString('utf8')) as JourneyGraph;
         expect(validateGraph(graph).errors).toEqual([]);
         expect(graph.app?.name).toBe('GoRouterDemo');
         expect(graph.nodes.map((node) => node.id)).toContain('login');
 
-        // NFR1-Smoke am warmen zweiten Lauf (der erste kompiliert das Adapter-Binary).
+        // NFR1 smoke on the warm second run (the first compiles the adapter binary).
         const startedAt = Date.now();
         const second = runCli(['extract'], tmpGo);
         const elapsedMs = Date.now() - startedAt;
         expect(second.status, second.stderr).toBe(0);
         expect(elapsedMs).toBeLessThan(10_000);
 
-        // NFR2: byte-identisches Artefakt über zwei Läufe.
+        // NFR2: byte-identical artifact across two runs.
         expect(readFileSync(graphPath).equals(bytes1)).toBe(true);
       },
       240_000,
     );
 
     it(
-      'generate --offline: MDX mit Frontmatter + Diagramm, Report mit cache/tokens; 2. Lauf nur Cache-Treffer',
+      'generate --offline: MDX with frontmatter + diagram, report with cache/tokens; 2nd run only cache hits',
       () => {
         const first = runCli(['--offline', 'generate'], tmpGo);
         expect(first.status, first.stderr).toBe(0);
@@ -306,7 +306,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(files).toContain('auth.mdx');
         for (const name of files) {
           const content = readFileSync(join(docsDir, name), 'utf8');
-          // YAML-Frontmatter mit title/order/sourceRefs (Rückverfolgbarkeit).
+          // YAML frontmatter with title/order/sourceRefs (traceability).
           expect(content.startsWith('---\n')).toBe(true);
           const frontmatter = content.split('---\n')[1] ?? '';
           expect(frontmatter).toMatch(/^title: /m);
@@ -315,7 +315,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
           expect(content).toContain('## Ablaufdiagramm');
         }
 
-        // Report (ductus-report.json): Cache-Trefferquote und Token-Bericht vorhanden.
+        // Report (ductus-report.json): cache hit rate and token report present.
         const reportPath = join(tmpGo, 'ductus-report.json');
         const report1 = JSON.parse(readFileSync(reportPath, 'utf8')) as {
           cache?: { hits: number; misses: number; hitRate: number };
@@ -327,7 +327,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         const segmentCount = (report1.cache?.hits ?? 0) + (report1.cache?.misses ?? 0);
         expect(segmentCount).toBeGreaterThan(0);
 
-        // Zweiter Lauf: unveränderter Graph ⇒ ausschließlich Cache-Treffer.
+        // Second run: unchanged graph ⇒ cache hits only.
         const second = runCli(['--offline', 'generate'], tmpGo);
         expect(second.status, second.stderr).toBe(0);
         const report2 = JSON.parse(readFileSync(reportPath, 'utf8')) as {
@@ -341,19 +341,19 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'check: Exit 0 nach generate (Cache vorhanden, keine Verstöße, kein LLM-Aufruf)',
+      'check: exit 0 after generate (cache present, no violations, no LLM call)',
       () => {
         const result = runCli(['check'], tmpGo);
         expect(result.status, `stdout: ${result.stdout}\nstderr: ${result.stderr}`).toBe(0);
-        // Alle Segmente sind gecacht — keine "Segment "…": noch nicht generiert"-Zeilen.
+        // All segments are cached — no "Segment "…": not generated yet" lines.
         expect(result.stdout).not.toMatch(/^Segment "/m);
-        expect(result.stdout).toMatch(/check: OK \(\d+ Warnung\(en\), 0 Segment\(e\) noch nicht generiert\)/);
+        expect(result.stdout).toMatch(/check: OK \(\d+ warning\(s\), 0 segment\(s\) not generated yet\)/);
       },
       120_000,
     );
 
     it(
-      'graph: Mermaid ("flowchart TD") auf stdout',
+      'graph: Mermaid ("flowchart TD") on stdout',
       () => {
         const result = runCli(['graph'], tmpGo);
         expect(result.status, result.stderr).toBe(0);
@@ -364,7 +364,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'Website-Modus: Starlight-Scaffold mit MDX unter src/content/docs/, Sidebar (sortiert) und Site-Konfig',
+      'website mode: Starlight scaffold with MDX under src/content/docs/, sidebar (sorted) and site config',
       () => {
         const result = runCli(['-c', 'ductus.website.yaml', '--offline', 'generate'], tmpGo);
         expect(result.status, result.stderr).toBe(0);
@@ -378,7 +378,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         );
         expect(docs).toContain('auth.mdx');
 
-        // Sidebar deterministisch nach order/Dateiname sortiert (NFR2).
+        // Sidebar deterministically sorted by order/file name (NFR2).
         const sidebar = JSON.parse(
           readFileSync(join(siteDir, 'ductus.sidebar.json'), 'utf8'),
         ) as Array<{ label: string; link: string }>;
@@ -397,15 +397,15 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ───────── CLI-Kette buildfrei (Weg A): Adapter über die Auflösungskette ────
+  // ───────── CLI chain build-free (path A): adapter via the resolution chain ──
 
-  describe('CLI-Kette buildfrei (comment_demo ohne ductus-Dependency)', () => {
-    // Kette 2 der Auflösung: Paketkontext via Umgebungsvariable —
-    // das Zielprojekt selbst kennt `ductus` NICHT.
+  describe('CLI chain build-free (comment_demo without a ductus dependency)', () => {
+    // Chain 2 of the resolution: package context via environment variable —
+    // the target project itself does NOT know `ductus`.
     const ADAPTER_ENV = { DUCTUS_DART_ADAPTER_DIR: DART_PKG };
 
     it(
-      'extract: Exit 0 via DUCTUS_DART_ADAPTER_DIR; 4 Screens + Decision + bedingte Edges',
+      'extract: exit 0 via DUCTUS_DART_ADAPTER_DIR; 4 screens + decision + conditional edges',
       () => {
         const result = runCli(['extract'], tmpComment, ADAPTER_ENV);
         expect(result.status, result.stderr).toBe(0);
@@ -426,7 +426,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
           graph.nodes.filter((node) => node.type === 'decision').map((node) => node.id),
         ).toEqual(['save-check']);
 
-        // Bedingte Edges der Decision (condition aus @journey:action).
+        // Conditional edges of the decision (condition from @journey:action).
         const conditionByPair = new Map(
           graph.edges.map((edge) => [`${edge.from}→${edge.to}`, edge.condition]),
         );
@@ -438,7 +438,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'generate --offline (mock): Exit 0 mit MDX-Ausgabe',
+      'generate --offline (mock): exit 0 with MDX output',
       () => {
         const result = runCli(['--offline', 'generate'], tmpComment, ADAPTER_ENV);
         expect(result.status, result.stderr).toBe(0);
@@ -454,12 +454,12 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ───────────── Weg D über das Core-CLI (extra: { fromBuilder: true }) ───────
+  // ───────────── Path D via the core CLI (extra: { fromBuilder: true }) ───────
 
-  describe('CLI-Kette Weg D (fromBuilder über den extra:-Block)', () => {
+  describe('CLI chain path D (fromBuilder via the extra: block)', () => {
     const ADAPTER_ENV = { DUCTUS_DART_ADAPTER_DIR: DART_PKG };
 
-    /** Minimal valides Builder-Artefakt (kanonische Form: sortierte Schlüssel, LF). */
+    /** Minimal valid builder artifact (canonical form: sorted keys, LF). */
     const BUILDER_ARTIFACT = `${JSON.stringify(
       {
         edges: [],
@@ -481,13 +481,13 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     )}\n`;
 
     it(
-      'extract mit extra: { fromBuilder: true } reicht das Artefakt durch — kein Scan',
+      'extract with extra: { fromBuilder: true } passes the artifact through — no scan',
       () => {
         const project = makeTmpDir('ductus-e2e-frombuilder-');
         writeFileSync(join(project, 'ductus_builder.g.json'), BUILDER_ARTIFACT, 'utf8');
-        // Absichtlich NICHT literal lesbar: liefe fälschlich ein parse-only-
-        // Scan (die frühere Silent-Failure-Regression), bräche extract mit
-        // Exit 3 ab statt das Builder-Artefakt durchzureichen.
+        // Deliberately NOT readable literally: if a parse-only scan ran by
+        // mistake (the earlier silent-failure regression), extract would abort
+        // with exit 3 instead of passing the builder artifact through.
         mkdirSync(join(project, 'lib'), { recursive: true });
         writeFileSync(
           join(project, 'lib', 'main.dart'),
@@ -529,27 +529,27 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
         expect(existsSync(graphPath)).toBe(true);
         const graph = JSON.parse(readFileSync(graphPath, 'utf8')) as JourneyGraph;
         expect(validateGraph(graph).errors).toEqual([]);
-        // Provenance des Builder-Artefakts ("dart-builder"), nicht des Scan-Wegs ("dart").
+        // Provenance of the builder artifact ("dart-builder"), not the scan path ("dart").
         expect(graph.meta?.adapters?.[0]?.name).toBe('dart-builder');
         expect(graph.nodes.map((node) => node.id)).toEqual(['login']);
-        // Kein Scan ⇒ auch keine Debug-Datei des Scan-Wegs.
+        // No scan ⇒ no debug file of the scan path either.
         expect(existsSync(join(project, 'ductus_graph.g.json'))).toBe(false);
       },
       240_000,
     );
   });
 
-  // ──────────────── Adapter-Vertrag negativ (fail-fast bei Konflikt) ──────────
+  // ──────────────── Adapter contract negative (fail-fast on conflict) ─────────
 
-  describe('Adapter-Vertrag: widersprüchliche manuelle Annotationen', () => {
-    /** Legt ein Temp-Projekt mit zwei manuellen Quellen für denselben Node an. */
+  describe('adapter contract: conflicting manual annotations', () => {
+    /** Creates a temp project with two manual sources for the same node. */
     function makeConflictProject(): string {
       const dir = makeTmpDir('ductus-e2e-conflict-');
       mkdirSync(join(dir, 'lib'), { recursive: true });
       writeFileSync(
         join(dir, 'lib', 'a.dart'),
         [
-          '// Manuelle Quelle 1 (Weg B) für node "login".',
+          '// Manual source 1 (path B) for node "login".',
           "@JourneyScreen(id: 'login', title: 'Anmeldung A')",
           'class LoginScreenA {}',
           '',
@@ -559,7 +559,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
       writeFileSync(
         join(dir, 'lib', 'b.dart'),
         [
-          '// Manuelle Quelle 2 (Weg A) für node "login" — Konflikt im Feld "title".',
+          '// Manual source 2 (path A) for node "login" — conflict in the field "title".',
           '// @journey:screen id="login" title="Anmeldung B"',
           'class LoginScreenB {}',
           '',
@@ -570,7 +570,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     }
 
     it(
-      'Adapter direkt: Exit ungleich 0, stderr nennt beide Quellen (fail-fast statt stiller Mehrdeutigkeit)',
+      'adapter directly: exit non-zero, stderr names both sources (fail-fast instead of silent ambiguity)',
       () => {
         const dir = makeConflictProject();
         const result = runDartAdapter(dir);
@@ -583,10 +583,10 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
 
     it(
-      'CLI extract: AdapterError ⇒ Exit 3',
+      'CLI extract: AdapterError ⇒ exit 3',
       () => {
         const dir = makeConflictProject();
-        // Eigenständiger Paketkontext, damit `dart run ductus:adapter` auflösbar ist.
+        // Standalone package context so `dart run ductus:adapter` resolves.
         writeFileSync(
           join(dir, 'pubspec.yaml'),
           [
@@ -619,11 +619,11 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
     );
   });
 
-  // ─────────────────────────── npm-Wrapper-Smoke ──────────────────────────────
+  // ─────────────────────────── npm wrapper smoke ──────────────────────────────
 
-  describe('npm-Wrapper ductus-adapter-dart', () => {
+  describe('npm wrapper ductus-adapter-dart', () => {
     it(
-      'delegiert an dart run und terminiert mit Exit 0',
+      'delegates to dart run and terminates with exit 0',
       () => {
         const result = spawnSync(
           process.execPath,
@@ -639,11 +639,11 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: Beispiel-Apps → Pipeline (M9)',
   });
 });
 
-// ────────────────── E2E: TypeScript-Adapter (kein SDK nötig) ─────────────────
+// ────────────────── E2E: TypeScript adapter (no SDK required) ────────────────
 //
-// Läuft immer (reines Node): react_router_demo → `- typescript:`-Auflösung
-// über den PATH → extract/generate.
-describe('E2E: TypeScript-Adapter → Pipeline', () => {
+// Always runs (pure Node): react_router_demo → `- typescript:` resolution
+// via the PATH → extract/generate.
+describe('E2E: TypeScript adapter → pipeline', () => {
   const TS_DEMO = join(ROOT, 'examples', 'react_router_demo');
   const TS_CLI = join(ROOT, 'packages', 'adapter-typescript', 'dist', 'cli.js');
 
@@ -651,16 +651,16 @@ describe('E2E: TypeScript-Adapter → Pipeline', () => {
   let tmpTs: string;
 
   beforeAll(() => {
-    // Einmal bauen — die CLI-Kette läuft gegen dist/ (bin-Vertrag). Das
-    // beforeAll der Dart-Suite wird ohne SDKs übersprungen, deshalb hier
-    // eigenständig.
+    // Build once — the CLI chain runs against dist/ (bin contract). The
+    // beforeAll of the Dart suite is skipped without the SDKs, hence the
+    // standalone build here.
     execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
     expect(existsSync(CLI)).toBe(true);
     expect(existsSync(TS_CLI)).toBe(true);
 
-    // Eigener PATH-Shim statt node_modules/.bin: in CI läuft npm ci VOR dem
-    // Build, dist/cli.js fehlt beim Install und npm legt den Workspace-
-    // bin-Link dann nicht an.
+    // Own PATH shim instead of node_modules/.bin: in CI, npm ci runs BEFORE
+    // the build, dist/cli.js is missing at install time and npm then does not
+    // create the workspace bin link.
     const binDir = makeTmpDir('ductus-e2e-ts-bin-');
     const shim = join(binDir, 'ductus-adapter-typescript');
     writeFileSync(shim, `#!/bin/sh\nexec "${process.execPath}" "${TS_CLI}" "$@"\n`, {
@@ -673,7 +673,7 @@ describe('E2E: TypeScript-Adapter → Pipeline', () => {
   }, 600_000);
 
   it(
-    'extract: löst `- typescript:` über den PATH auf und schreibt journey-graph.json byte-stabil',
+    'extract: resolves `- typescript:` via the PATH and writes journey-graph.json byte-stably',
     () => {
       const first = runCli(['extract'], tmpTs, tsEnv);
       expect(first.status, first.stderr).toBe(0);
@@ -688,7 +688,7 @@ describe('E2E: TypeScript-Adapter → Pipeline', () => {
       expect(validateGraph(graph).errors).toEqual([]);
       expect(existsSync(join(tmpTs, 'ductus-report.json'))).toBe(true);
 
-      // NFR2: zweiter Lauf ⇒ byte-identische Datei.
+      // NFR2: second run ⇒ byte-identical file.
       const firstBytes = readFileSync(graphPath);
       const second = runCli(['extract'], tmpTs, tsEnv);
       expect(second.status, second.stderr).toBe(0);
@@ -698,7 +698,7 @@ describe('E2E: TypeScript-Adapter → Pipeline', () => {
   );
 
   it(
-    'generate --offline (mock): erzeugt MDX aus dem TypeScript-Graphen',
+    'generate --offline (mock): produces MDX from the TypeScript graph',
     () => {
       const result = runCli(['--offline', 'generate'], tmpTs, tsEnv);
       expect(result.status, result.stderr).toBe(0);

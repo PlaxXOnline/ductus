@@ -1,10 +1,12 @@
 # @ductus/schema
 
-Der Vertrag hinter [ductus](https://github.com/PlaxXOnline/ductus): TypeScript-Typen und JSON Schema (Draft 2020-12) für den Journey-Graphen (`journey-graph.json`) — die einzige Vertragsfläche zwischen Sprachadaptern und dem Ductus-Core.
+**English** | [Deutsch](./README.de.md) | [Español](./README.es.md) | [简体中文](./README.zh-CN.md)
 
-Sprachadapter (z. B. der [Dart-Adapter](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)) extrahieren aus annotiertem App-Code einen Graphen in diesem Format; der Core validiert, merged und übersetzt ihn in Endnutzer-Dokumentation. Wer einen eigenen Adapter schreibt oder `journey-graph.json` programmatisch verarbeitet, braucht genau dieses Paket — sonst nichts.
+The contract behind [ductus](https://github.com/PlaxXOnline/ductus): TypeScript types and JSON Schema (Draft 2020-12) for the journey graph (`journey-graph.json`) — the single contract surface between language adapters and the Ductus core.
 
-**Für wen?** Autoren eigener Adapter und Tooling-Entwickler, die den Graphen lesen, erzeugen oder validieren wollen. Zum reinen Benutzen von ductus ist dieses Paket nicht nötig — es kommt als Dependency von [`@ductus/core`](https://github.com/PlaxXOnline/ductus/tree/main/packages/core) mit.
+Language adapters (e.g. the [Dart adapter](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)) extract a graph in this format from annotated app code; the core validates it, merges it, and translates it into end-user documentation. If you are writing your own adapter or processing `journey-graph.json` programmatically, this package is exactly what you need — nothing else.
+
+**Who is this for?** Authors of custom adapters and tooling developers who want to read, produce, or validate the graph. You do not need this package just to use ductus — it ships as a dependency of [`@ductus/core`](https://github.com/PlaxXOnline/ductus/tree/main/packages/core).
 
 ## Installation
 
@@ -12,91 +14,91 @@ Sprachadapter (z. B. der [Dart-Adapter](https://github.com/PlaxXOnline/ductus/tr
 npm install @ductus/schema
 ```
 
-## Das Datenmodell in 60 Sekunden
+## The data model in 60 seconds
 
-Ein Journey-Graph ist ein gerichteter Graph der User-Journey einer App: Screens, Aktionen und Verzweigungen als Nodes, Transitions als Edges, thematische Teilmengen als Flows.
+A journey graph is a directed graph of an app's user journey: screens, actions, and branches as nodes, transitions as edges, and thematic subsets as flows.
 
-| Typ | Bedeutung | Pflichtfelder |
+| Type | Meaning | Required fields |
 | --- | --- | --- |
-| `JourneyGraph` | Top-Level-Dokument | `schemaVersion`, `flows`, `nodes`, `edges` |
-| `JourneyNode` | Screen, Action oder Decision | `id`, `type`, `source`; `title` bei `screen`/`decision`, `label` bei `action` |
-| `JourneyEdge` | Gerichtete Transition zwischen zwei Nodes | `id`, `from`, `to`, `source` |
-| `JourneyFlow` | Benannte Teilmenge des Graphen mit Einstiegspunkt | `id`, `title`, `start` |
-| `SourceRef` | Rückverweis in den Quellcode | `file` (optional `line`, `symbol`) |
+| `JourneyGraph` | Top-level document | `schemaVersion`, `flows`, `nodes`, `edges` |
+| `JourneyNode` | Screen, action, or decision | `id`, `type`, `source`; `title` for `screen`/`decision`, `label` for `action` |
+| `JourneyEdge` | Directed transition between two nodes | `id`, `from`, `to`, `source` |
+| `JourneyFlow` | Named subset of the graph with an entry point | `id`, `title`, `start` |
+| `SourceRef` | Back-reference into the source code | `file` (optional `line`, `symbol`) |
 
-Die wichtigsten Felder im Detail:
+The most important fields in detail:
 
-- **`JourneyNode.type`** — `'screen' | 'action' | 'decision'`. Screens und Decisions tragen einen `title`, Actions ein `label` (das JSON Schema erzwingt das). Optional: `description` (verbessert die LLM-Qualität deutlich), `flow`, `tags`, `sourceRef`.
-- **`JourneyEdge`** — verbindet `from` → `to` (Node-ids). Optional: `trigger` (`'tap' | 'submit' | 'auto' | 'back' | 'deeplink' | 'system'`), `label` (Beschriftung der Transition) und `condition` (Bedingung, unter der die Transition gilt — u. a. wichtig, damit Zyklen eine erkennbare Abbruchbedingung haben).
-- **`JourneyFlow.start`** — id des Einstiegs-Nodes. Er muss existieren und vom Typ `screen` sein; der Core prüft das bei der Validierung.
-- **`source`** — auf Nodes und Edges: `'annotation'` (explizit im Code annotiert) oder `'derived'` (vom Adapter abgeleitet, z. B. aus Router-Konfiguration).
-- **`SourceRef`** — verortet ein Element im Quellcode (`file`, optional `line` ab 1 und `symbol`), damit Doku-Aussagen bis zur Codestelle rückverfolgbar bleiben.
+- **`JourneyNode.type`** — `'screen' | 'action' | 'decision'`. Screens and decisions carry a `title`, actions a `label` (the JSON Schema enforces this). Optional: `description` (noticeably improves LLM quality), `flow`, `tags`, `sourceRef`.
+- **`JourneyEdge`** — connects `from` → `to` (node ids). Optional: `trigger` (`'tap' | 'submit' | 'auto' | 'back' | 'deeplink' | 'system'`), `label` (caption for the transition), and `condition` (the condition under which the transition applies — important, among other things, so that cycles have a recognizable exit condition).
+- **`JourneyFlow.start`** — id of the entry node. It must exist and be of type `screen`; the core checks this during validation.
+- **`source`** — on nodes and edges: `'annotation'` (explicitly annotated in the code) or `'derived'` (derived by the adapter, e.g. from router configuration).
+- **`SourceRef`** — locates an element in the source code (`file`, optional 1-based `line` and `symbol`) so that documentation claims remain traceable down to the code location.
 
-Unbekannte Zusatzfelder sind erlaubt (`additionalProperties` bleibt offen): neuere Adapter dürfen Felder ergänzen, ohne ältere Konsumenten zu brechen.
+Unknown extra fields are allowed (`additionalProperties` stays open): newer adapters may add fields without breaking older consumers.
 
-### Versionierung: `schemaVersion`
+### Versioning: `schemaVersion`
 
-`schemaVersion` hat das Format `"major.minor"`. Die Regel ist einfach: **gleiche Major-Version ⇒ kompatibel** — Minor-Erweiterungen sind rückwärtskompatibel, inkompatible Majors werden vom Core abgelehnt. Das Paket exportiert dazu:
+`schemaVersion` has the format `"major.minor"`. The rule is simple: **same major version ⇒ compatible** — minor additions are backwards compatible, incompatible majors are rejected by the core. The package exports:
 
-| Export | Wert/Zweck |
+| Export | Value/purpose |
 | --- | --- |
-| `SCHEMA_VERSION` | `'1.0'` — die Version, die dieses Paket beschreibt |
-| `SUPPORTED_SCHEMA_MAJOR` | `1` — vom Core unterstützte Major-Version |
-| `parseSchemaVersion(v)` | zerlegt `"major.minor"`, `null` bei ungültigem Format |
-| `isSupportedSchemaVersion(v)` | `true`, wenn die Major-Version passt |
+| `SCHEMA_VERSION` | `'1.0'` — the version this package describes |
+| `SUPPORTED_SCHEMA_MAJOR` | `1` — major version supported by the core |
+| `parseSchemaVersion(v)` | splits `"major.minor"`, `null` for an invalid format |
+| `isSupportedSchemaVersion(v)` | `true` if the major version matches |
 
-## Minimales gültiges Beispiel
+## Minimal valid example
 
 ```json
 {
   "schemaVersion": "1.0",
-  "app": { "name": "Demo-App" },
+  "app": { "name": "Demo App" },
   "flows": [
-    { "id": "login", "title": "Anmeldung", "start": "login_screen" }
+    { "id": "login", "title": "Sign-in", "start": "login_screen" }
   ],
   "nodes": [
     {
       "id": "login_screen",
       "type": "screen",
       "title": "Login",
-      "description": "Anmeldung mit E-Mail und Passwort.",
+      "description": "Sign in with email and password.",
       "source": "annotation",
       "sourceRef": { "file": "lib/pages/login_page.dart", "line": 12 }
     },
     {
       "id": "submit_login",
       "type": "action",
-      "label": "Anmelden",
-      "description": "Sendet die Zugangsdaten ab.",
+      "label": "Sign in",
+      "description": "Submits the credentials.",
       "source": "annotation"
     },
     {
       "id": "home_screen",
       "type": "screen",
-      "title": "Startseite",
-      "description": "Übersicht nach erfolgreicher Anmeldung.",
+      "title": "Home",
+      "description": "Overview after a successful sign-in.",
       "source": "annotation"
     }
   ],
   "edges": [
     { "id": "e1", "from": "login_screen", "to": "submit_login", "trigger": "tap", "source": "annotation" },
-    { "id": "e2", "from": "submit_login", "to": "home_screen", "trigger": "submit", "condition": "Zugangsdaten gültig", "source": "annotation" }
+    { "id": "e2", "from": "submit_login", "to": "home_screen", "trigger": "submit", "condition": "credentials valid", "source": "annotation" }
   ]
 }
 ```
 
-## Nutzung in TypeScript
+## Usage in TypeScript
 
-Alle Typen kommen aus dem Haupteinstieg:
+All types come from the main entry point:
 
 ```ts
 import type { JourneyGraph, JourneyNode, JourneyEdge, JourneyFlow, SourceRef } from '@ductus/schema';
 import { SCHEMA_VERSION, SUPPORTED_SCHEMA_MAJOR, isSupportedSchemaVersion } from '@ductus/schema';
 ```
 
-### Validieren mit Ajv
+### Validating with Ajv
 
-Das JSON Schema gibt es in zwei Formen — als TS-Export `journeyGraphJsonSchema` und als Roh-Datei über den Subpath-Export `@ductus/schema/journey-graph.schema.json`:
+The JSON Schema is available in two forms — as the TS export `journeyGraphJsonSchema` and as a raw file via the subpath export `@ductus/schema/journey-graph.schema.json`:
 
 ```ts
 import { Ajv2020 } from 'ajv/dist/2020.js';
@@ -112,42 +114,42 @@ if (!validate(graph)) {
 }
 ```
 
-Das Schema nutzt Draft 2020-12 — bei Ajv also `Ajv2020` verwenden. Für andere Sprachen/Validatoren die Roh-Datei:
+The schema uses Draft 2020-12 — so with Ajv, use `Ajv2020`. For other languages/validators, use the raw file:
 
 ```ts
 import schema from '@ductus/schema/journey-graph.schema.json' with { type: 'json' };
 ```
 
-Hinweis: Das JSON Schema deckt die **Struktur** ab. Der Ductus-Core prüft darüber hinaus Integritätsregeln — z. B. keine Edges auf nicht existierende Nodes, eindeutige ids je Sammlung, `flow.start` existiert und ist ein `screen` — sowie Warnungen wie unerreichbare Nodes, fehlende `description` oder Zyklen ohne `condition`.
+Note: the JSON Schema covers the **structure**. Beyond that, the Ductus core checks integrity rules — e.g. no edges to non-existent nodes, unique ids per collection, `flow.start` exists and is a `screen` — plus warnings such as unreachable nodes, missing `description`, or cycles without a `condition`.
 
-## Einen eigenen Adapter schreiben
+## Writing your own adapter
 
-Ein Adapter ist ein beliebiges Programm, das der Core als Subprozess startet. Das Protokoll:
+An adapter is any program the core launches as a subprocess. The protocol:
 
-1. **Aufruf:** Der Core ruft den Adapter mit `--project <absoluter Projektpfad> --config <Pfad zu einer temporären JSON-Datei>` auf. Die Config-Datei enthält die adapterspezifischen Schlüssel aus der `ductus.config.yaml` (z. B. `deriveFrom`).
-2. **stdout:** ausschließlich das Graph-JSON — ein einziges `JourneyGraph`-Dokument, das gegen dieses Schema validiert. Nichts anderes auf stdout schreiben.
-3. **stderr:** sämtliche Diagnostik (Logs, Warnungen). Sie wird vom Core durchgereicht, nie verschluckt.
-4. **Exit-Code:** `0` bei Erfolg; jeder andere Code gilt als Adapterfehler.
+1. **Invocation:** the core calls the adapter with `--project <absolute project path> --config <path to a temporary JSON file>`. The config file contains the adapter-specific keys from `ductus.config.yaml` (e.g. `deriveFrom`).
+2. **stdout:** the graph JSON only — a single `JourneyGraph` document that validates against this schema. Write nothing else to stdout.
+3. **stderr:** all diagnostics (logs, warnings). The core passes it through, never swallows it.
+4. **Exit code:** `0` on success; any other code counts as an adapter error.
 
-Der Core prüft die stdout-Ausgabe sofort mit Ajv gegen `journeyGraphJsonSchema`; ungültige Ausgaben brechen den Lauf mit einer präzisen Fehlermeldung ab. Eingebunden wird der Adapter in der `ductus.config.yaml` über den `command`-Schlüssel eines Adapter-Eintrags.
+The core immediately validates the stdout output against `journeyGraphJsonSchema` using Ajv; invalid output aborts the run with a precise error message. The adapter is wired up in `ductus.config.yaml` via the `command` key of an adapter entry.
 
-Referenz-Implementierungen und Details im Repository:
+Reference implementations and details in the repository:
 
-- Adapter-Runner des Core: [packages/core/src/adapters/runner.ts](https://github.com/PlaxXOnline/ductus/blob/main/packages/core/src/adapters/runner.ts)
-- Dart-Adapter als Vorbild: [dart/ductus](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)
-- TypeScript-Adapter als zweite Referenz-Implementierung: [packages/adapter-typescript](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) — er nutzt dieses Paket direkt (`SCHEMA_VERSION`) und zeigt das Protokoll in derselben Sprache wie der Core.
+- The core's adapter runner: [packages/core/src/adapters/runner.ts](https://github.com/PlaxXOnline/ductus/blob/main/packages/core/src/adapters/runner.ts)
+- The Dart adapter as a blueprint: [dart/ductus](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)
+- The TypeScript adapter as a second reference implementation: [packages/adapter-typescript](https://github.com/PlaxXOnline/ductus/tree/main/packages/adapter-typescript) — it uses this package directly (`SCHEMA_VERSION`) and demonstrates the protocol in the same language as the core.
 
-## Exporte im Überblick
+## Exports at a glance
 
-| Export | Art | Beschreibung |
+| Export | Kind | Description |
 | --- | --- | --- |
-| `JourneyGraph`, `JourneyNode`, `JourneyEdge`, `JourneyFlow`, `SourceRef`, `AppInfo`, `AdapterInfo`, `GraphMeta` | Typen | Datenmodell des Graphen |
-| `NodeType`, `TriggerType`, `SourceType` | Typen | String-Union-Typen für `type`, `trigger`, `source` |
-| `journeyGraphJsonSchema` | Konstante | JSON Schema (Draft 2020-12) als TS-Objekt |
-| `SCHEMA_VERSION`, `SUPPORTED_SCHEMA_MAJOR` | Konstanten | Versions-Konstanten |
-| `parseSchemaVersion`, `isSupportedSchemaVersion` | Funktionen | Versions-Parsing und Kompatibilitätsprüfung |
-| `@ductus/schema/journey-graph.schema.json` | Subpath-Export | Roh-JSON-Schema-Datei |
+| `JourneyGraph`, `JourneyNode`, `JourneyEdge`, `JourneyFlow`, `SourceRef`, `AppInfo`, `AdapterInfo`, `GraphMeta` | Types | Data model of the graph |
+| `NodeType`, `TriggerType`, `SourceType` | Types | String union types for `type`, `trigger`, `source` |
+| `journeyGraphJsonSchema` | Constant | JSON Schema (Draft 2020-12) as a TS object |
+| `SCHEMA_VERSION`, `SUPPORTED_SCHEMA_MAJOR` | Constants | Version constants |
+| `parseSchemaVersion`, `isSupportedSchemaVersion` | Functions | Version parsing and compatibility check |
+| `@ductus/schema/journey-graph.schema.json` | Subpath export | Raw JSON Schema file |
 
-## Lizenz
+## License
 
-[MIT](https://github.com/PlaxXOnline/ductus/blob/main/packages/schema/LICENSE) — Teil des [ductus-Monorepos](https://github.com/PlaxXOnline/ductus).
+[MIT](https://github.com/PlaxXOnline/ductus/blob/main/packages/schema/LICENSE) — part of the [ductus monorepo](https://github.com/PlaxXOnline/ductus).

@@ -1,9 +1,10 @@
-/// Weg D — Zubringer `--from-builder` (bzw. Config-Key `fromBuilder: true`):
-/// liest das vom build_runner-Builder erzeugte Artefakt `ductus_builder.g.json`
-/// aus dem Projekt-Root und reicht es unverändert durch — KEIN eigener Scan.
+/// Path D — feeder `--from-builder` (or config key `fromBuilder: true`):
+/// reads the artifact `ductus_builder.g.json` produced by the build_runner
+/// builder from the project root and passes it through unchanged — NO own
+/// scan.
 ///
-/// Die Datei ist so aktuell wie der letzte `dart run build_runner build`-Lauf
-/// (Staleness liegt in der Verantwortung des Zielprojekts).
+/// The file is as fresh as the last `dart run build_runner build` run
+/// (staleness is the target project's responsibility).
 library;
 
 import 'dart:convert';
@@ -13,16 +14,16 @@ import 'package:path/path.dart' as p;
 
 import 'graph_model.dart';
 
-/// Liest das Builder-Artefakt und liefert den Dateiinhalt byte-genau für
-/// stdout. Fehlende Datei, ungültiges JSON oder eine inkompatible
-/// schemaVersion (V6-Logik wie im Core) werfen eine [AdapterException].
+/// Reads the builder artifact and returns the file content byte-exact for
+/// stdout. A missing file, invalid JSON, or an incompatible schemaVersion
+/// (V6 logic as in the core) throws an [AdapterException].
 String readBuilderArtifact(String projectDir) {
   final file = File(p.join(projectDir, builderArtifactFileName));
   if (!file.existsSync()) {
     throw AdapterException([
-      'Fehler: $builderArtifactFileName nicht gefunden in $projectDir. '
-          'Zuerst im Zielprojekt "dart run build_runner build" ausführen '
-          '(Weg D).',
+      'Error: $builderArtifactFileName not found in $projectDir. '
+          'Run "dart run build_runner build" in the target project first '
+          '(path D).',
     ]);
   }
 
@@ -32,7 +33,7 @@ String readBuilderArtifact(String projectDir) {
     graph = jsonDecode(content);
   } on FormatException catch (e) {
     throw AdapterException([
-      '$builderArtifactFileName: ungültiges JSON: ${e.message}',
+      '$builderArtifactFileName: invalid JSON: ${e.message}',
     ]);
   }
 
@@ -40,9 +41,9 @@ String readBuilderArtifact(String projectDir) {
   if (version is! String || !isSupportedSchemaVersion(version)) {
     throw AdapterException([
       'V6: $builderArtifactFileName: schemaVersion '
-          '"${version is String ? version : '(fehlt)'}" wird nicht '
-          'unterstützt (erwartet Major $supportedSchemaMajor, '
-          'z. B. "$supportedSchemaMajor.0").',
+          '"${version is String ? version : '(missing)'}" is not '
+          'supported (expected major $supportedSchemaMajor, '
+          'e.g. "$supportedSchemaMajor.0").',
     ]);
   }
   return content;

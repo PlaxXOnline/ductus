@@ -1,15 +1,15 @@
 /**
- * Weg C — Ableitung aus react-router-Konfigurationen (Datenrouter-Objekte
- * und `<Route>`-JSX). Architektur-Spiegel von derive_go_router.dart:
+ * Path C — derivation from react-router configurations (data-router objects
+ * and `<Route>` JSX). Architectural mirror of derive_go_router.dart:
  *
- *   Route mit Pfad     → Screen-Node        (GoRoute)
- *   Pfadlose Layout-Route mit Kindern → Flow (ShellRoute)
- *   loader mit redirect('…') → Decision-Node (redirect:)
- *   <Link to>/<NavLink to>/navigate('…')    → Transition (context.go/push)
- *   <Navigate to>      → auto-Transition
+ *   route with a path  → screen node        (GoRoute)
+ *   pathless layout route with children → flow (ShellRoute)
+ *   loader with redirect('…') → decision node (redirect:)
+ *   <Link to>/<NavLink to>/navigate('…')    → transition (context.go/push)
+ *   <Navigate to>      → auto transition
  *
- * Alles best effort, `source: "derived"`; manuelle Annotationen überschreiben
- * abgeleitete Werte feldweise.
+ * Everything is best effort, `source: "derived"`; manual annotations
+ * override derived values field by field.
  */
 
 import ts from 'typescript';
@@ -42,22 +42,22 @@ export class ReactRouterDerivation {
   readonly flows: GraphFlow[] = [];
   readonly edges: GraphEdge[] = [];
 
-  /** Komponente (aus element:/Component:) → Screen-Id. */
+  /** Component (from element:/Component:) → screen id. */
   readonly componentToScreen = new Map<string, string>();
   readonly pathToScreen = new Map<string, string>();
 
-  /** Mindestens eine Route gefunden? Sonst entfällt die Kanten-Analyse. */
+  /** Found at least one route? Otherwise the edge analysis is skipped. */
   hasRoutes = false;
 }
 
-/** Einheitliche Sicht auf eine Route: Objekt-Literal oder `<Route>`-JSX. */
+/** Unified view of a route: object literal or `<Route>` JSX. */
 interface RouteView {
   node: ts.Node;
   path?: string;
-  /** Explizite Routen-Id (`id:`-Property) — gewinnt über den Pfad-Slug. */
+  /** Explicit route id (`id:` property) — wins over the path slug. */
   routeId?: string;
   index: boolean;
-  /** true, wenn path/id vorhanden, aber nicht statisch lesbar. */
+  /** true if path/id is present but not statically readable. */
   dynamic: boolean;
   elementExpr?: ts.Expression;
   loader?: ts.Node;
@@ -77,7 +77,7 @@ function objectProperty(obj: ts.ObjectLiteralExpression, name: string): ts.Expre
   return undefined;
 }
 
-/** Entfernt Klammern sowie `as`-/`satisfies`-Hüllen um einen Ausdruck. */
+/** Removes parentheses as well as `as`/`satisfies` wrappers around an expression. */
 function unwrapExpression(expr: ts.Expression): ts.Expression {
   let node = expr;
   while (
@@ -91,8 +91,8 @@ function unwrapExpression(expr: ts.Expression): ts.Expression {
 }
 
 /**
- * Löst das Routen-Argument einer Router-Factory auf: Inline-Array-Literal
- * oder eine in derselben Datei deklarierte Konstante mit Array-Initializer
+ * Resolves the routes argument of a router factory: an inline array literal
+ * or a constant declared in the same file with an array initializer
  * (`const routes = […]; createBrowserRouter(routes)`).
  */
 function resolveRouteArray(
@@ -118,7 +118,7 @@ function resolveRouteArray(
   return undefined;
 }
 
-/** Löst einen loader-Ausdruck auf: Inline-Funktion oder Funktion derselben Datei. */
+/** Resolves a loader expression: an inline function or a function from the same file. */
 function resolveLoader(expr: ts.Expression, sourceFile: ts.SourceFile): ts.Node | undefined {
   if (ts.isArrowFunction(expr) || ts.isFunctionExpression(expr)) return expr;
   if (!ts.isIdentifier(expr)) return undefined;
@@ -215,12 +215,12 @@ interface PendingRedirect {
 }
 
 /**
- * Leitet Screens, Flows (pfadlose Layout-Routen), Redirect-Decisions und
- * Navigations-Kanten aus react-router-Konfigurationen ab.
+ * Derives screens, flows (pathless layout routes), redirect decisions, and
+ * navigation edges from react-router configurations.
  *
- * [manualScreenSymbols] (Weg A) und [extraComponentToScreen] (z. B. Next-
- * Ableitung) fließen in die from-Zuordnung der Nav-Kanten ein,
- * [extraPathToScreen] in die Pfad-Zuordnung.
+ * [manualScreenSymbols] (path A) and [extraComponentToScreen] (e.g. the Next
+ * derivation) feed into the `from` mapping of nav edges,
+ * [extraPathToScreen] into the path mapping.
  */
 export function deriveReactRouter(
   files: readonly ScannedFile[],
@@ -236,8 +236,8 @@ export function deriveReactRouter(
   const pendingRedirects: PendingRedirect[] = [];
   let shellIndex = 0;
 
-  // Pass 1 — Routenbäume: Screens, Flows, element-Zuordnung, Pfadtabelle.
-  // Dateien sind nach Pfad sortiert, im Dokument nach Offset.
+  // Pass 1 — route trees: screens, flows, element mapping, path table.
+  // Files are sorted by path, within a document by offset.
   for (const file of files) {
     const visited = new Set<ts.Node>();
 
@@ -259,19 +259,19 @@ export function deriveReactRouter(
         !route.dynamic && route.children.length > 0;
 
       if (isShell) {
-        // Pfadlose Layout-Route mit Kindern ≙ ShellRoute ⇒ Flow.
+        // Pathless layout route with children ≙ ShellRoute ⇒ flow.
         childFlowId = `shell-${shellIndex}`;
         shellIndex++;
         childFlowStart = { value: undefined };
       } else if (route.path === undefined && route.routeId === undefined && !route.index) {
         warn(
-          `Hinweis: ${file.relPath}:${file.lineOf(route.node.getStart(file.sourceFile))}: ` +
-            'Route ohne literalen path — übersprungen.',
+          `Note: ${file.relPath}:${file.lineOf(route.node.getStart(file.sourceFile))}: ` +
+            'route without a literal path — skipped.',
         );
       } else {
-        // Id aus dem gejointen Vollpfad bilden — der relative Pfad allein
-        // würde verschachtelte Routen mit gleichem Segment (z. B. 'detail'
-        // unter '/user' und '/admin') stillschweigend kollabieren lassen.
+        // Build the id from the joined full path — the relative path alone
+        // would silently collapse nested routes with the same segment
+        // (e.g. 'detail' under '/user' and '/admin').
         const fullPath = route.index
           ? (parentPath === '' ? '/' : parentPath)
           : route.path !== undefined
@@ -311,8 +311,8 @@ export function deriveReactRouter(
         const start = childFlowStart!.value;
         if (start === undefined) {
           warn(
-            `Hinweis: ${file.relPath}:${file.lineOf(route.node.getStart(file.sourceFile))}: ` +
-              `Layout-Route ohne Kind-Screens — Flow "${childFlowId}" entfällt.`,
+            `Note: ${file.relPath}:${file.lineOf(route.node.getStart(file.sourceFile))}: ` +
+              `layout route without child screens — flow "${childFlowId}" dropped.`,
           );
         } else {
           result.flows.push({
@@ -326,8 +326,8 @@ export function deriveReactRouter(
       }
     };
 
-    // Datenrouter: createBrowserRouter([...]) / useRoutes([...]) u. Ä. —
-    // auch mit Routen-Konstante derselben Datei (createBrowserRouter(routes)).
+    // Data routers: createBrowserRouter([...]) / useRoutes([...]) etc. —
+    // including a routes constant from the same file (createBrowserRouter(routes)).
     visit(file.sourceFile, (node) => {
       if (!ts.isCallExpression(node)) return;
       const callee = node.expression;
@@ -344,7 +344,7 @@ export function deriveReactRouter(
       }
     });
 
-    // JSX-Routen: <Route …> überall (deckt auch createRoutesFromElements ab).
+    // JSX routes: <Route …> anywhere (also covers createRoutesFromElements).
     visit(file.sourceFile, (node) => {
       if (!ts.isJsxElement(node) && !ts.isJsxSelfClosingElement(node)) return;
       if (jsxTagName(node) !== 'Route' || visited.has(node)) return;
@@ -352,10 +352,10 @@ export function deriveReactRouter(
     });
   }
 
-  // Pass 2a — Redirect-Decisions (jetzt sind alle Routen-Pfade bekannt).
-  // Anders als go_routers dediziertes redirect: ist ein react-router-loader
-  // meist Datenbeschaffung — eine Decision entsteht nur, wenn er nachweislich
-  // redirect(...) aufruft.
+  // Pass 2a — redirect decisions (all route paths are known by now).
+  // Unlike go_router's dedicated redirect:, a react-router loader is usually
+  // data fetching — a decision is only created if it demonstrably calls
+  // redirect(...).
   for (const pending of pendingRedirects) {
     const { hasRedirectCall, targets } = collectRedirectTargets(pending.body);
     if (!hasRedirectCall) continue;
@@ -364,7 +364,7 @@ export function deriveReactRouter(
     result.nodes.push({
       id: decisionId,
       type: 'decision',
-      title: `Weiterleitung: ${pending.screenTitle}`,
+      title: `Redirect: ${pending.screenTitle}`,
       tags: [],
       source: SourceKind.derived,
       sourceRef: ref,
@@ -394,12 +394,12 @@ export function deriveReactRouter(
     }
   }
 
-  // Pass 2b — Navigation: <Link to>/<NavLink to>/<Navigate to>/navigate('…').
-  // Ohne gefundene Routen entfällt die Analyse (nichts zuzuordnen).
+  // Pass 2b — navigation: <Link to>/<NavLink to>/<Navigate to>/navigate('…').
+  // Without any found routes the analysis is skipped (nothing to map to).
   if (!result.hasRoutes) return result;
 
-  // Die eigene element-Zuordnung ist präziser als die heuristische
-  // extra-Tabelle (Next-Dateilayout) und gewinnt deshalb vor ihr.
+  // The router's own element mapping is more precise than the heuristic
+  // extra table (Next file layout) and therefore wins over it.
   const componentToScreen = (name: string): string | undefined =>
     opts.manualScreenSymbols?.get(name) ??
     result.componentToScreen.get(name) ??
@@ -416,15 +416,15 @@ export function deriveReactRouter(
     const where = `${file.relPath}:${file.lineOf(node.getStart(file.sourceFile))}`;
     const to = result.pathToScreen.get(literal.split('?')[0]!.split('#')[0]!);
     if (to === undefined) {
-      warn(`Hinweis: ${where}: ${what}("${literal}") entspricht keiner bekannten Route — Kante verworfen.`);
+      warn(`Note: ${where}: ${what}("${literal}") does not match any known route — edge discarded.`);
       return;
     }
     const enclosing = enclosingComponentName(file, node);
     const from = enclosing === undefined ? undefined : componentToScreen(enclosing);
     if (from === undefined) {
       warn(
-        `Hinweis: ${where}: ${what}("${literal}") keinem Screen zuordenbar ` +
-          '(umschließende Komponente unbekannt) — Kante verworfen.',
+        `Note: ${where}: ${what}("${literal}") cannot be assigned to a screen ` +
+          '(enclosing component unknown) — edge discarded.',
       );
       return;
     }
@@ -452,8 +452,8 @@ export function deriveReactRouter(
         }
         return;
       }
-      // navigate('/pfad') — nur wenn die Datei useNavigate verwendet, um
-      // freie Funktionen gleichen Namens nicht fälschlich zu erfassen.
+      // navigate('/path') — only if the file uses useNavigate, so that free
+      // functions of the same name are not captured by mistake.
       if (usesNavigateHook && ts.isCallExpression(node)) {
         const callee = node.expression;
         if (ts.isIdentifier(callee) && callee.text === 'navigate') {

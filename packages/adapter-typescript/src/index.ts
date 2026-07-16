@@ -1,7 +1,7 @@
 /**
- * Programmatische API des TypeScript-Adapters. Der übliche Einstieg ist das
- * CLI (`ductus-adapter-typescript`); die Exporte hier dienen Tests und
- * Werkzeugen, die den Adapter einbetten.
+ * Programmatic API of the TypeScript adapter. The usual entry point is the
+ * CLI (`ductus-adapter-typescript`); the exports here serve tests and tools
+ * that embed the adapter.
  */
 
 export { AdapterConfig, KNOWN_DERIVE_SOURCES } from './config.js';

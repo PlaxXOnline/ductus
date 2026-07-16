@@ -1,9 +1,9 @@
 ---
 /**
- * Rechtes Panel der Detailseite: „HAUPTPFAD — …“ mit nummerierten Karten,
- * Abschnitt „WEITERE AKTIONEN“ (Kanten abseits des Hauptpfads),
- * Faithfulness-Banner und der Abschnitt „Ausführliche Anleitung“
- * (LLM-Markdown, zur Buildzeit gerendert/escaped).
+ * Right panel of the detail page: “MAIN PATH — …” with numbered cards, the
+ * “FURTHER ACTIONS” section (edges off the main path), the faithfulness
+ * banner and the “Detailed guide” section (LLM markdown, rendered/escaped at
+ * build time).
  */
 import type { Journey } from '../lib/types';
 import { formatSourceRef } from '../lib/types';
@@ -133,7 +133,7 @@ const warnings = journey.violations.length;
             <ul class="dj-faith-list">
               {journey.violations.map((v) => (
                 <li>
-                  „{v.claim}“ — {v.reason}
+                  “{v.claim}” — {v.reason}
                 </li>
               ))}
             </ul>
@@ -152,8 +152,8 @@ const warnings = journey.violations.length;
     background: var(--dj-panel-alt);
     min-width: 0;
   }
-  /* Gestapelt (Design: stacked = vw < 1080): kein eigener Scrollbereich mehr —
-     die ganze Seite scrollt über .dj-journey-split. */
+  /* Stacked (design: stacked = vw < 1080): no dedicated scroll area anymore —
+     the whole page scrolls via .dj-journey-split. */
   @media (max-width: 1079.98px) {
     .dj-steps {
       flex: none;
@@ -178,7 +178,7 @@ const warnings = journey.violations.length;
     padding-top: 20px;
   }
 
-  /* ── Hauptpfad-Karten ─────────────────────────────────────────────────── */
+  /* ── Main-path cards ──────────────────────────────────────────────────── */
   .dj-step {
     margin: 8px 18px;
     padding: 16px 18px;
@@ -291,7 +291,7 @@ const warnings = journey.violations.length;
     color: var(--dj-muted-3);
   }
 
-  /* ── Weitere Aktionen / Bestandteile ──────────────────────────────────── */
+  /* ── Further actions / elements ───────────────────────────────────────── */
   .dj-action {
     margin: 8px 18px;
     padding: 13px 18px;
@@ -325,7 +325,7 @@ const warnings = journey.violations.length;
     color: var(--dj-muted-3);
   }
 
-  /* ── Ausführliche Anleitung (LLM-Markdown) ────────────────────────────── */
+  /* ── Detailed guide (LLM markdown) ────────────────────────────────────── */
   .dj-prose {
     margin: 8px 18px 4px;
     padding: 4px 18px 10px;
@@ -410,7 +410,7 @@ const warnings = journey.violations.length;
     margin: 16px 0;
   }
 
-  /* ── Faithfulness-Banner ──────────────────────────────────────────────── */
+  /* ── Faithfulness banner ──────────────────────────────────────────────── */
   .dj-faith {
     margin: 16px 18px 20px;
     padding: 11px 16px;

@@ -52,8 +52,8 @@ function generationRequest(): LlmRequest {
   return { system, messages, maxTokens: 1000, temperature: 0 };
 }
 
-describe('mock-Provider', () => {
-  it('ist deterministisch: gleicher Input ⇒ identischer Output', async () => {
+describe('mock provider', () => {
+  it('is deterministic: same input ⇒ identical output', async () => {
     const provider = createProvider(mockConfig, {});
     const a = await provider.complete(generationRequest());
     const b = await provider.complete(generationRequest());
@@ -61,7 +61,7 @@ describe('mock-Provider', () => {
     expect(a.usage).toEqual(b.usage);
   });
 
-  it('baut aus dem Segment-JSON ein einfaches Markdown mit Schritten und Bildschirmen', async () => {
+  it('builds simple markdown with steps and screens from the segment JSON', async () => {
     const provider = createProvider(mockConfig, {});
     const result = await provider.complete(generationRequest());
 
@@ -71,13 +71,13 @@ describe('mock-Provider', () => {
     expect(result.text).toContain('## Bildschirme');
     expect(result.text).toContain('- **Login** — Anmeldebildschirm.');
     expect(result.text).toContain('- **Dashboard**');
-    // Kein H1, beginnt mit Einleitungssatz.
+    // No H1, starts with an introductory sentence.
     expect(result.text.startsWith('#')).toBe(false);
     expect(result.usage!.inputTokens).toBeGreaterThan(0);
     expect(result.usage!.outputTokens).toBeGreaterThan(0);
   });
 
-  it('antwortet auf den Judge-Marker exakt mit {"violations": []}', async () => {
+  it('responds to the judge marker with exactly {"violations": []}', async () => {
     const provider = createProvider(mockConfig, {});
     const result = await provider.complete({
       system: 'FAITHFULNESS-JUDGE: prüfe den Text.',

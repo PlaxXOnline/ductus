@@ -1,7 +1,7 @@
 /**
- * ductus-report.json (NFR3): Warnungen, Faithfulness-Flags, Cache-Trefferquote,
- * Token-/Kosten-Bericht. Einziges Artefakt mit Zeitstempel — journey-graph.json
- * bleibt zugunsten der Byte-Stabilität (NFR2) zeitstempelfrei.
+ * ductus-report.json (NFR3): warnings, faithfulness flags, cache hit rate,
+ * token/cost report. The only artifact with a timestamp — journey-graph.json
+ * stays timestamp-free in favor of byte stability (NFR2).
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -16,14 +16,14 @@ export interface BuildReportInput {
   cache?: { hits: number; misses: number };
   estimated?: { inputTokens: number; outputTokens: number };
   usage?: LlmUsage;
-  /** Nur wenn llm.pricing konfiguriert ist — ohne Preise wird nur in Token berichtet. */
+  /** Only when llm.pricing is configured — without prices, only tokens are reported. */
   costUsd?: number;
-  /** Injizierbar für deterministische Tests. */
+  /** Injectable for deterministic tests. */
   now?: Date;
 }
 
 export function buildReport(input: BuildReportInput): DuctusReport {
-  // Nur Segmente mit Verstößen oder Hinweisen aufnehmen — der Report bleibt lesbar.
+  // Include only segments with violations or hints — keeps the report readable.
   const faithfulness = (input.segments ?? [])
     .filter((generated) => generated.violations.length > 0 || generated.hints.length > 0)
     .map((generated) => ({
@@ -56,7 +56,7 @@ export function buildReport(input: BuildReportInput): DuctusReport {
   };
 }
 
-/** Objekt-Schlüssel rekursiv lexikographisch sortieren (kanonische, diff-stabile Serialisierung). */
+/** Sort object keys recursively and lexicographically (canonical, diff-stable serialization). */
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
   if (value !== null && typeof value === 'object') {

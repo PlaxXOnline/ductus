@@ -1,9 +1,9 @@
 /**
- * Merge mehrerer Adapter-Graphen zu einem Graphen (SPEC §5.4, DD §D).
+ * Merge of multiple adapter graphs into one graph (SPEC §5.4, DD §D).
  *
- * Präzedenz: annotation überschreibt derived pro Feld. Zwei manuelle Quellen
- * mit unterschiedlichen Werten für dasselbe Feld ⇒ fail-fast mit MergeError,
- * der ALLE Konflikte gesammelt trägt (keine stille Mehrdeutigkeit).
+ * Precedence: annotation overrides derived per field. Two manual sources
+ * with different values for the same field ⇒ fail fast with a MergeError
+ * carrying ALL collected conflicts (no silent ambiguity).
  */
 
 import type {
@@ -28,35 +28,35 @@ function formatSide(side: MergeConflictSide): string {
     return `${value} (${side.sourceRef.file}${line})`;
   }
   if (side.adapter !== undefined) {
-    return `${value} (Adapter "${side.adapter}")`;
+    return `${value} (adapter "${side.adapter}")`;
   }
-  return `${value} (unbekannte Quelle)`;
+  return `${value} (unknown source)`;
 }
 
 function formatConflict(conflict: MergeConflict): string {
   return (
-    `${conflict.kind} "${conflict.id}", Feld "${conflict.field}": ` +
+    `${conflict.kind} "${conflict.id}", field "${conflict.field}": ` +
     `${formatSide(conflict.a)} vs. ${formatSide(conflict.b)}`
   );
 }
 
-/** Fail-fast-Fehler bei widersprüchlichen manuellen Quellen (§5.4, DD §D). */
+/** Fail-fast error for contradictory manual sources (§5.4, DD §D). */
 export class MergeError extends Error {
   readonly conflicts: MergeConflict[];
 
   constructor(conflicts: MergeConflict[]) {
     const lines = conflicts.map((c) => `  - ${formatConflict(c)}`);
     super(
-      `Merge-Konflikt: ${conflicts.length} widersprüchliche manuelle Angabe(n):\n${lines.join('\n')}`,
+      `Merge conflict: ${conflicts.length} contradictory manual value(s):\n${lines.join('\n')}`,
     );
     this.name = 'MergeError';
     this.conflicts = conflicts;
   }
 }
 
-// ─────────────────────────────── Hilfsfunktionen ────────────────────────────
+// ─────────────────────────────── Helpers ────────────────────────────────────
 
-/** Strukturelle Gleichheit (für Skalar-Felder und tags-Arrays ausreichend). */
+/** Structural equality (sufficient for scalar fields and tags arrays). */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -75,14 +75,14 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
-/** Ein Vorkommen einer Entität in einem der Eingabegraphen. */
+/** One occurrence of an entity in one of the input graphs. */
 interface Occurrence<T> {
   item: T;
-  /** Adapter-Namen des Ursprungsgraphen (Kontext für Konflikte ohne sourceRef). */
+  /** Adapter names of the originating graph (context for conflicts without a sourceRef). */
   adapter?: string;
 }
 
-/** Gruppiert Vorkommen nach id — Reihenfolge des ersten Auftretens bleibt erhalten. */
+/** Groups occurrences by id — the order of first appearance is preserved. */
 function groupById<T extends { id: string }>(occurrences: Occurrence<T>[]): Map<string, Occurrence<T>[]> {
   const groups = new Map<string, Occurrence<T>[]>();
   for (const occ of occurrences) {
@@ -114,9 +114,9 @@ interface Sourced {
 }
 
 /**
- * Feldweiser Merge einer Gruppe gleicher id (DD §D):
- * annotation > derived pro Feld; annotation/annotation mit ungleichem Wert ⇒
- * Konflikt (gesammelt); derived/derived: erster gewinnt (Lücken auffüllen).
+ * Field-wise merge of a group sharing one id (DD §D):
+ * annotation > derived per field; annotation/annotation with unequal values ⇒
+ * conflict (collected); derived/derived: the first one wins (fills gaps).
  */
 function mergeSourcedGroup<T extends Sourced>(
   kind: 'node' | 'edge',
@@ -126,9 +126,9 @@ function mergeSourcedGroup<T extends Sourced>(
 ): T {
   const annotations = group.filter((occ) => occ.item.source === 'annotation');
   const deriveds = group.filter((occ) => occ.item.source === 'derived');
-  // Höchstpräzedente Quelle bestimmt source/sourceRef des Ergebnisses.
+  // The highest-precedence source determines the result's source/sourceRef.
   const winner = annotations[0] ?? deriveds[0] ?? group[0];
-  if (!winner) throw new Error('leere Merge-Gruppe'); // unerreichbar
+  if (!winner) throw new Error('empty merge group'); // unreachable
 
   const merged: Record<string, unknown> = {
     id: winner.item.id,
@@ -158,7 +158,7 @@ function mergeSourcedGroup<T extends Sourced>(
       merged[field] = firstValue;
       continue;
     }
-    // Nur derived-Quellen: erster gesetzter Wert gewinnt, kein Fehler.
+    // Only derived sources: the first set value wins, no error.
     const derivedSetter = deriveds.find(
       (occ) => (occ.item as Record<string, unknown>)[field] !== undefined,
     );
@@ -170,7 +170,7 @@ function mergeSourcedGroup<T extends Sourced>(
   return merged as unknown as T;
 }
 
-/** Flows tragen keine source ⇒ alle Vorkommen gelten als gleichrangig manuell. */
+/** Flows carry no source ⇒ all occurrences count as equally-ranked manual. */
 function mergeFlowGroup(group: Occurrence<JourneyFlow>[], conflicts: MergeConflict[]): JourneyFlow {
   const first = group[0]!;
   const merged: Record<string, unknown> = { id: first.item.id };
@@ -200,7 +200,7 @@ function mergeFlowGroup(group: Occurrence<JourneyFlow>[], conflicts: MergeConfli
 
 const NODE_FIELDS = ['type', 'title', 'label', 'flow', 'description', 'tags'] as const;
 const EDGE_FIELDS = ['from', 'to', 'trigger', 'label', 'condition'] as const;
-/** Felder, die eine annotation-Edge von einer verdrängten derived-Edge erbt. */
+/** Fields an annotation edge inherits from a displaced derived edge. */
 const EDGE_INHERIT_FIELDS = ['trigger', 'label', 'condition'] as const;
 
 function collectOccurrences<T>(
@@ -221,15 +221,15 @@ function collectOccurrences<T>(
 }
 
 /**
- * Sonderregel DD §D: derived-Edge D und annotation-Edge A mit gleichem
- * (from, to), aber unterschiedlichen ids ⇒ D entfällt, A erbt Felder von D,
- * die A nicht setzt. Zwei manuelle Edges mit gleichem (from, to) bleiben beide.
+ * Special rule DD §D: derived edge D and annotation edge A with the same
+ * (from, to) but different ids ⇒ D is dropped, A inherits fields from D that
+ * A does not set. Two manual edges with the same (from, to) both remain.
  */
 function collapseDerivedEdges(edges: JourneyEdge[]): JourneyEdge[] {
   const annotationByFromTo = new Map<string, JourneyEdge>();
   for (const edge of edges) {
-    const key = `${edge.from} ${edge.to}`;
-    // Erste annotation-Edge je (from, to) erbt — deterministisch.
+    const key = `${edge.from} ${edge.to}`;
+    // The first annotation edge per (from, to) inherits — deterministic.
     if (edge.source === 'annotation' && !annotationByFromTo.has(key)) {
       annotationByFromTo.set(key, edge);
     }
@@ -238,14 +238,14 @@ function collapseDerivedEdges(edges: JourneyEdge[]): JourneyEdge[] {
   const result: JourneyEdge[] = [];
   for (const edge of edges) {
     if (edge.source === 'derived') {
-      const heir = annotationByFromTo.get(`${edge.from} ${edge.to}`);
+      const heir = annotationByFromTo.get(`${edge.from} ${edge.to}`);
       if (heir && heir.id !== edge.id) {
         for (const field of EDGE_INHERIT_FIELDS) {
           if (heir[field] === undefined && edge[field] !== undefined) {
             (heir as unknown as Record<string, unknown>)[field] = edge[field];
           }
         }
-        continue; // D entfällt
+        continue; // D is dropped
       }
     }
     result.push(edge);
@@ -253,12 +253,12 @@ function collapseDerivedEdges(edges: JourneyEdge[]): JourneyEdge[] {
   return result;
 }
 
-/** Vereinigt meta.adapters aller Eingaben (dedupe über name+version). */
+/** Unions meta.adapters of all inputs (dedupe by name+version). */
 function unionAdapters(graphs: JourneyGraph[]): AdapterInfo[] {
   const seen = new Map<string, AdapterInfo>();
   for (const graph of graphs) {
     for (const adapter of graph.meta?.adapters ?? []) {
-      const key = `${adapter.name} ${adapter.version}`;
+      const key = `${adapter.name} ${adapter.version}`;
       if (!seen.has(key)) seen.set(key, { ...adapter });
     }
   }
@@ -268,9 +268,9 @@ function unionAdapters(graphs: JourneyGraph[]): AdapterInfo[] {
 }
 
 /**
- * Merged mehrere Graphen (auch: dedupliziert innerhalb EINES Graphen) nach
- * den Präzedenzregeln aus DD §D. Wirft MergeError mit allen gesammelten
- * Konflikten, wenn manuelle Quellen sich widersprechen.
+ * Merges multiple graphs (also: deduplicates within ONE graph) according to
+ * the precedence rules from DD §D. Throws a MergeError with all collected
+ * conflicts when manual sources contradict each other.
  */
 export function mergeGraphs(
   graphs: JourneyGraph[],

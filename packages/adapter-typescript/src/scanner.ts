@@ -1,9 +1,10 @@
 /**
- * Dateisuche + Parsen der TS/JS-Quellen über die TypeScript-Compiler-API.
+ * File discovery + parsing of the TS/JS sources via the TypeScript
+ * compiler API.
  *
- * Parse-only: keine Typauflösung, kein tsconfig, kein npm install im
- * Zielprojekt nötig. `relPath` ist projekt-relativ mit '/'-Separatoren und
- * überall der deterministische Sortierschlüssel.
+ * Parse-only: no type resolution, no tsconfig, no npm install needed in the
+ * target project. `relPath` is project-relative with '/' separators and the
+ * deterministic sort key everywhere.
  */
 
 import { lstatSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -12,18 +13,18 @@ import ts from 'typescript';
 import type { AdapterConfig } from './config.js';
 import { AdapterException, type SourceRef } from './graph-model.js';
 
-/** Quell-Endungen, die der Adapter versteht (TS und JS, jeweils mit JSX). */
+/** Source extensions the adapter understands (TS and JS, each with JSX). */
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
 
 /**
- * Verzeichnisse, die nie gescannt werden — unabhängig von den include-Globs
- * (anders als im Dart-Adapter nötig, weil node_modules/Build-Ausgaben in
- * TS/JS-Projekten neben den Quellen liegen). Dot-Verzeichnisse (.git, .next,
- * …) werden generell übersprungen.
+ * Directories that are never scanned — regardless of the include globs
+ * (necessary here unlike in the Dart adapter because node_modules/build
+ * output sit next to the sources in TS/JS projects). Dot directories (.git,
+ * .next, …) are always skipped.
  */
 const EXCLUDED_DIRS = new Set(['node_modules', 'dist', 'build', 'out', 'coverage']);
 
-/** Eine gescannte Quelldatei mit geparster SourceFile. */
+/** A scanned source file with its parsed SourceFile. */
 export class ScannedFile {
   #lineStarts: number[] | undefined;
 
@@ -33,16 +34,16 @@ export class ScannedFile {
     readonly sourceFile: ts.SourceFile,
   ) {}
 
-  /** 1-basierte Zeile eines Zeichen-Offsets. */
+  /** 1-based line of a character offset. */
   lineOf(pos: number): number {
     return this.sourceFile.getLineAndCharacterOfPosition(pos).line + 1;
   }
 
   /**
-   * Offset des Zeilenanfangs einer 1-basierten Zeile — zählt ausschließlich
-   * '\n' (wie der zeilenbasierte Kommentar-Parser), NICHT TypeScripts
-   * Line-Map: die zählt auch U+2028/U+2029/einsame '\r' als Umbrüche, was
-   * die Zuordnung von @journey-Blöcken verschieben würde.
+   * Offset of the line start of a 1-based line — counts only '\n' (like the
+   * line-based comment parser), NOT TypeScript's line map: that one also
+   * counts U+2028/U+2029/lone '\r' as line breaks, which would shift the
+   * mapping of @journey blocks.
    */
   offsetOfLine(line: number): number {
     if (this.#lineStarts === undefined) {
@@ -65,9 +66,9 @@ export class ScannedFile {
 }
 
 /**
- * Glob → RegExp über den posix-relativen Pfad: `**` matcht über
- * '/'-Grenzen, `*`/`?` innerhalb eines Segments (wie package:glob im
- * Dart-Adapter).
+ * Glob → RegExp over the posix-relative path: `**` matches across '/'
+ * boundaries, `*`/`?` within a segment (like package:glob in the
+ * Dart adapter).
  */
 export function globToRegExp(pattern: string): RegExp {
   let out = '';
@@ -96,12 +97,12 @@ function scriptKindOf(relPath: string): ts.ScriptKind {
   if (relPath.endsWith('.ts') || relPath.endsWith('.mts') || relPath.endsWith('.cts')) {
     return ts.ScriptKind.TS;
   }
-  // .js/.jsx/.mjs/.cjs: als JSX parsen — JSX in .js ist im React-Ökosystem
-  // üblich, und reines JS parst unter ScriptKind.JSX unverändert.
+  // .js/.jsx/.mjs/.cjs: parse as JSX — JSX in .js is common in the React
+  // ecosystem, and plain JS parses unchanged under ScriptKind.JSX.
   return ts.ScriptKind.JSX;
 }
 
-/** Rekursive Dateiliste als posix-relative Pfade, deterministisch sortiert. */
+/** Recursive file list as posix-relative paths, deterministically sorted. */
 function listFiles(root: string): string[] {
   const result: string[] = [];
   const walk = (dir: string, relPrefix: string): void => {
@@ -116,7 +117,7 @@ function listFiles(root: string): string[] {
       const abs = join(dir, entry);
       let stat;
       try {
-        // lstat: Symlinks werden nicht verfolgt (wie im Dart-Scanner).
+        // lstat: symlinks are not followed (as in the Dart scanner).
         stat = lstatSync(abs, { throwIfNoEntry: false });
         if (stat === undefined) continue;
       } catch {
@@ -136,9 +137,9 @@ function listFiles(root: string): string[] {
 }
 
 /**
- * Sammelt alle Quelldateien unter den include-Globs und parst sie.
- * Syntaxfehler sind kein Abbruch: die TypeScript-Compiler-API parst
- * fehlertolerant, die Analyse ist best effort.
+ * Collects all source files under the include globs and parses them.
+ * Syntax errors do not abort: the TypeScript compiler API parses fault
+ * tolerantly, the analysis is best effort.
  */
 export function scanProject(
   projectDir: string,
@@ -152,7 +153,7 @@ export function scanProject(
     rootStat = undefined;
   }
   if (rootStat === undefined || !rootStat.isDirectory()) {
-    throw new AdapterException([`Projektverzeichnis nicht gefunden: ${projectDir}`]);
+    throw new AdapterException([`Project directory not found: ${projectDir}`]);
   }
 
   const includes = config.include.map(globToRegExp);
@@ -165,7 +166,7 @@ export function scanProject(
     try {
       content = readFileSync(join(projectDir, ...rel.split('/')), 'utf8');
     } catch {
-      warn(`Warnung: ${rel} ist nicht lesbar — übersprungen.`);
+      warn(`Warning: ${rel} is not readable — skipped.`);
       continue;
     }
     const sourceFile = ts.createSourceFile(
@@ -175,12 +176,12 @@ export function scanProject(
       /* setParentNodes */ true,
       scriptKindOf(rel),
     );
-    // parseDiagnostics ist kein öffentliches API, aber der einzige Weg an die
-    // Parse-Fehler ohne Program/TypeChecker — defensiv zugreifen.
+    // parseDiagnostics is not a public API, but it is the only way to get at
+    // the parse errors without a Program/TypeChecker — access defensively.
     const parseDiagnostics = (sourceFile as unknown as { parseDiagnostics?: unknown[] })
       .parseDiagnostics;
     if (Array.isArray(parseDiagnostics) && parseDiagnostics.length > 0) {
-      warn(`Warnung: ${rel} enthält Syntaxfehler; Analyse ist best effort.`);
+      warn(`Warning: ${rel} contains syntax errors; analysis is best effort.`);
     }
     files.push(new ScannedFile(rel, content, sourceFile));
   }

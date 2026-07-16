@@ -30,7 +30,7 @@ function fakeEntry(mode: string | undefined, partial: Partial<AdapterConfigEntry
 }
 
 describe('runAdapter', () => {
-  it('reicht den Graphen des Adapters durch (stdout → JourneyGraph)', async () => {
+  it('passes the adapter graph through (stdout → JourneyGraph)', async () => {
     const result = await runAdapter(fakeEntry(undefined), { rootDir: makeRootDir() });
 
     expect(result.graph.schemaVersion).toBe('1.0');
@@ -40,7 +40,7 @@ describe('runAdapter', () => {
     expect(result.adapter.name).toBe('fake');
   });
 
-  it('schreibt deriveFrom + extra in die temporäre --config-Datei', async () => {
+  it('writes deriveFrom + extra to the temporary --config file', async () => {
     const logs: string[] = [];
     const entry = fakeEntry(undefined, {
       deriveFrom: ['go_router'],
@@ -48,33 +48,33 @@ describe('runAdapter', () => {
     });
     const result = await runAdapter(entry, { rootDir: makeRootDir(), log: (m) => logs.push(m) });
 
-    // Der Fake-Adapter spiegelt den Config-Inhalt auf stderr (diagnostics).
+    // The fake adapter mirrors the config content to stderr (diagnostics).
     const match = /fake-adapter config: ([\s\S]*)/.exec(result.diagnostics);
     expect(match).not.toBeNull();
     expect(JSON.parse(match![1]!)).toEqual({ deriveFrom: ['go_router'], include: ['lib/**'] });
-    // stderr wird an log durchgereicht.
+    // stderr is forwarded to log.
     expect(logs.some((line) => line.includes('fake-adapter config:'))).toBe(true);
   });
 
-  it('wirft AdapterError mit stderr-Auszug bei Exit-Code ≠ 0', async () => {
+  it('throws AdapterError with a stderr excerpt on exit code ≠ 0', async () => {
     await expect(runAdapter(fakeEntry('fail'), { rootDir: makeRootDir() })).rejects.toThrowError(
       AdapterError,
     );
     await expect(runAdapter(fakeEntry('fail'), { rootDir: makeRootDir() })).rejects.toThrowError(
-      /absichtlicher Fehler/,
+      /intentional failure/,
     );
   });
 
-  it('wirft AdapterError, wenn stdout kein valides JSON ist (A3)', async () => {
+  it('throws AdapterError when stdout is not valid JSON (A3)', async () => {
     await expect(runAdapter(fakeEntry('badjson'), { rootDir: makeRootDir() })).rejects.toThrowError(
-      /kein gültiges JSON/,
+      /stdout is not valid JSON/,
     );
   });
 
-  it('toleriert führende pub-Diagnosezeilen auf stdout und reicht sie als Diagnostik durch', async () => {
-    // `dart run`/`dart pub global run` schreiben bei unaufgelöstem Paketkontext
-    // "Resolving dependencies..." etc. auf stdout, bevor der Adapter läuft —
-    // der Runner schneidet nur diesen Vorspann ab, verschluckt ihn aber nicht.
+  it('tolerates leading pub diagnostic lines on stdout and forwards them as diagnostics', async () => {
+    // With an unresolved package context, `dart run`/`dart pub global run`
+    // write "Resolving dependencies..." etc. to stdout before the adapter
+    // runs — the runner only trims this preamble but does not swallow it.
     const logs: string[] = [];
     const result = await runAdapter(fakeEntry('pubnoise'), {
       rootDir: makeRootDir(),
@@ -86,13 +86,13 @@ describe('runAdapter', () => {
     expect(logs.some((line) => line.includes('(pub) Resolving dependencies...'))).toBe(true);
   });
 
-  it('wirft AdapterError bei Schema-Verstoß der Ausgabe (A3)', async () => {
+  it('throws AdapterError when the output violates the schema (A3)', async () => {
     await expect(runAdapter(fakeEntry('invalid'), { rootDir: makeRootDir() })).rejects.toThrowError(
-      /verletzt das Graph-Schema/,
+      /violates the graph schema/,
     );
   });
 
-  it('wirft AdapterError bei nicht ausführbarem Befehl', async () => {
+  it('throws AdapterError for a non-executable command', async () => {
     const entry: AdapterConfigEntry = {
       name: 'fake',
       project: '.',
@@ -101,15 +101,15 @@ describe('runAdapter', () => {
     await expect(runAdapter(entry, { rootDir: makeRootDir() })).rejects.toThrowError(AdapterError);
   });
 
-  it('wirft AdapterError für unbekannte Adapter ohne command', async () => {
+  it('throws AdapterError for unknown adapters without a command', async () => {
     const entry: AdapterConfigEntry = { name: 'cobol', project: '.' };
     await expect(runAdapter(entry, { rootDir: makeRootDir() })).rejects.toThrowError(
-      /keine eingebaute Auflösung/,
+      /no built-in resolution/,
     );
   });
 
-  it('typescript: nutzt ductus-adapter-typescript aus node_modules/.bin neben der Config', async () => {
-    // Binary-Stub in node_modules/.bin, der den Fake-Adapter ausführt.
+  it('typescript: uses ductus-adapter-typescript from node_modules/.bin next to the config', async () => {
+    // Binary stub in node_modules/.bin that runs the fake adapter.
     const rootDir = makeRootDir();
     const binDir = join(rootDir, 'node_modules', '.bin');
     mkdirSync(binDir, { recursive: true });
@@ -121,7 +121,7 @@ describe('runAdapter', () => {
     expect(result.graph.nodes.map((n) => n.id).sort()).toEqual(['dashboard', 'login']);
   });
 
-  it('typescript: AdapterError mit Installationshinweis, wenn das Binary fehlt', async () => {
+  it('typescript: AdapterError with installation hint when the binary is missing', async () => {
     const entry: AdapterConfigEntry = { name: 'typescript', project: '.' };
     const previousPath = process.env['PATH'];
     process.env['PATH'] = '';
@@ -135,12 +135,12 @@ describe('runAdapter', () => {
   });
 });
 
-// ──── Auflösungskette für den Dart-Aufruf (buildfrei, ohne pub get im Ziel) ───
+// ─── Resolution chain for the Dart invocation (build-free, no pub get in the target) ───
 //
-// Kette 4 (`dart pub global run`) wird hier ausschließlich über die injizierbare
-// Prüfung simuliert — der globale pub-Zustand wird in Tests NIE verändert.
-describe('resolveDartInvocation (Auflösungskette)', () => {
-  /** Schreibt eine pubspec.yaml in ein frisches Temp-Projekt. */
+// Chain 4 (`dart pub global run`) is simulated here exclusively via the
+// injectable check — the global pub state is NEVER modified in tests.
+describe('resolveDartInvocation (resolution chain)', () => {
+  /** Writes a pubspec.yaml into a fresh temp project. */
   function makeProjectWithPubspec(pubspec: string | undefined): string {
     const dir = makeRootDir();
     if (pubspec !== undefined) writeFileSync(join(dir, 'pubspec.yaml'), pubspec, 'utf8');
@@ -149,7 +149,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
 
   const notActivated = { getGlobalActivation: () => ({ activated: false }) };
 
-  it('Kette 2: DUCTUS_DART_ADAPTER_DIR ⇒ dart run mit cwd = Adapter-Verzeichnis', () => {
+  it('chain 2: DUCTUS_DART_ADAPTER_DIR ⇒ dart run with cwd = adapter directory', () => {
     const adapterDir = makeRootDir();
     const projectDir = makeProjectWithPubspec('name: demo\n');
     const result = resolveDartInvocation(projectDir, {
@@ -160,7 +160,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     expect(result.cwd).toBe(adapterDir);
   });
 
-  it('Kette 2: nicht existierendes Verzeichnis ⇒ AdapterError mit Variablennamen', () => {
+  it('chain 2: non-existent directory ⇒ AdapterError naming the variable', () => {
     const projectDir = makeProjectWithPubspec('name: demo\n');
     expect(() =>
       resolveDartInvocation(projectDir, {
@@ -170,7 +170,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     ).toThrowError(/DUCTUS_DART_ADAPTER_DIR/);
   });
 
-  it('Kette 3: pubspec mit ductus unter dev_dependencies ⇒ cwd = Projekt', () => {
+  it('chain 3: pubspec with ductus under dev_dependencies ⇒ cwd = project', () => {
     const projectDir = makeProjectWithPubspec(
       ['name: demo', 'dev_dependencies:', '  flutter_test:', '    sdk: flutter', '  ductus: ^0.1.0', ''].join('\n'),
     );
@@ -179,7 +179,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     expect(result.cwd).toBe(projectDir);
   });
 
-  it('Kette 3: pubspec mit ductus unter dependencies (path-Dependency) ⇒ cwd = Projekt', () => {
+  it('chain 3: pubspec with ductus under dependencies (path dependency) ⇒ cwd = project', () => {
     const projectDir = makeProjectWithPubspec(
       ['name: demo', 'dependencies:', '  ductus:', '    path: ../ductus', ''].join('\n'),
     );
@@ -187,7 +187,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     expect(result.cwd).toBe(projectDir);
   });
 
-  it('Kette 3 greift NICHT für "ductus" außerhalb der Dependency-Blöcke', () => {
+  it('chain 3 does NOT apply to "ductus" outside the dependency blocks', () => {
     const projectDir = makeProjectWithPubspec(
       ['name: demo', 'dev_dependencies:', '  flutter_test:', '    sdk: flutter', 'flutter:', '  ductus: nope', ''].join('\n'),
     );
@@ -196,7 +196,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     );
   });
 
-  it('Kette 4 (simuliert): hosted-Aktivierung ⇒ dart pub global run (Snapshot, stdout-sauber)', () => {
+  it('chain 4 (simulated): hosted activation ⇒ dart pub global run (snapshot, stdout-clean)', () => {
     const projectDir = makeProjectWithPubspec('name: demo\n');
     const result = resolveDartInvocation(projectDir, {
       env: {},
@@ -206,11 +206,11 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     expect(result.cwd).toBe(projectDir);
   });
 
-  it('Kette 4 (simuliert): path-Aktivierung ⇒ dart run mit cwd = Quellverzeichnis', () => {
-    // Bei `dart pub global activate --source path` würde `dart pub global run`
-    // pub-Resolutionszeilen auf stdout schreiben (Vertragsverletzung: dort
-    // darf nur das eine Graph-JSON stehen) — deshalb
-    // läuft der Adapter direkt im aktivierten Quellverzeichnis.
+  it('chain 4 (simulated): path activation ⇒ dart run with cwd = source directory', () => {
+    // With `dart pub global activate --source path`, `dart pub global run`
+    // would write pub resolution lines to stdout (a contract violation: only
+    // the single graph JSON may appear there) — so the adapter runs directly
+    // in the activated source directory instead.
     const activatedPath = makeRootDir();
     const projectDir = makeProjectWithPubspec('name: demo\n');
     const result = resolveDartInvocation(projectDir, {
@@ -221,7 +221,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     expect(result.cwd).toBe(activatedPath);
   });
 
-  it('Kette 4 (simuliert): path-Aktivierung mit verschwundenem Verzeichnis ⇒ Fallback pub global run', () => {
+  it('chain 4 (simulated): path activation with a vanished directory ⇒ fallback pub global run', () => {
     const projectDir = makeProjectWithPubspec('name: demo\n');
     const result = resolveDartInvocation(projectDir, {
       env: {},
@@ -231,7 +231,7 @@ describe('resolveDartInvocation (Auflösungskette)', () => {
     expect(result.cwd).toBe(projectDir);
   });
 
-  it('Fehlermeldung nennt beide Optionen, wenn keine Kette greift', () => {
+  it('the error message names both options when no chain applies', () => {
     const projectDir = makeProjectWithPubspec(undefined);
     let caught: unknown;
     try {

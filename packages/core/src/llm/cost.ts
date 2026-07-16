@@ -1,17 +1,17 @@
 /**
- * Token- und Kostenschätzung (NFR3: Verbrauch vorab und nach Lauf transparent machen).
+ * Token and cost estimation (NFR3: make usage transparent before and after a run).
  */
 
 import type { LlmPricing, LlmUsage } from '../contracts.js';
 
-/** Grobe Heuristik: ~4 Zeichen je Token (nach Lauf gelten die echten usage-Werte des Providers). */
+/** Rough heuristic: ~4 characters per token (after a run, the provider's real usage values apply). */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
 /**
- * Kosten in USD — nur berechenbar, wenn `llm.pricing` konfiguriert ist
- * (Preise ändern sich zu schnell für eingebaute Tabellen).
+ * Cost in USD — only computable when `llm.pricing` is configured
+ * (prices change too quickly for built-in tables).
  */
 export function estimateCostUsd(usage: LlmUsage, pricing?: LlmPricing): number | undefined {
   if (!pricing) return undefined;

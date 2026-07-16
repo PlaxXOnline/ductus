@@ -1,5 +1,5 @@
 /**
- * Öffentliche Oberfläche der LLM-Schicht.
+ * Public surface of the LLM layer.
  */
 
 export { SegmentCache } from './cache.js';
@@ -10,6 +10,7 @@ export type { GenerateDocsOptions } from './generate.js';
 export {
   JUDGE_RESPONSE_FORMAT,
   judgeParseFailed,
+  judgeResponseFormat,
   parseJudgeFindings,
   runFaithfulnessCheck,
   verifyJudgeFindings,

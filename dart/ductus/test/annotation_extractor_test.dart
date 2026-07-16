@@ -5,7 +5,7 @@ import 'test_util.dart';
 
 void main() {
   group('extractAnnotations', () {
-    test('liest alle vier Annotationen', () {
+    test('reads all four annotations', () {
       final file = scanSource('''
 @JourneyFlow(id: 'auth', title: 'Anmeldung', start: 'login')
 @JourneyScreen(id: 'login', title: 'Anmeldung', flow: 'auth')
@@ -39,7 +39,7 @@ class AuthCheck {}
       expect(decision.tags, ['auth']);
     });
 
-    test('trigger-Enum wird literal gelesen', () {
+    test('trigger enum is read literally', () {
       final file = scanSource('''
 class LoginScreen {
   @JourneyAction(label: 'Senden', to: 'x', trigger: JourneyTrigger.deeplink)
@@ -53,7 +53,7 @@ class LoginScreen {
       expect(result.actions.single.trigger, 'deeplink');
     });
 
-    test('tags-Liste wird literal gelesen', () {
+    test('tags list is read literally', () {
       final file = scanSource('''
 @JourneyScreen(id: 'a', title: 'A', tags: ['x', 'y'])
 class A {}
@@ -64,7 +64,7 @@ class A {}
       expect(result.nodes.single.tags, ['x', 'y']);
     });
 
-    test('from-Default: umschließende Klasse wird vermerkt', () {
+    test('from default: enclosing class is recorded', () {
       final file = scanSource('''
 @JourneyScreen(id: 'login', title: 'Anmeldung')
 class LoginScreen {
@@ -82,7 +82,7 @@ class LoginScreen {
       expect(result.screenClassNames['LoginScreen'], 'login');
     });
 
-    test('explizites from bleibt erhalten', () {
+    test('explicit from is preserved', () {
       final file = scanSource('''
 class Foo {
   @JourneyAction(label: 'Weiter', from: 'a', to: 'b')
@@ -96,7 +96,7 @@ class Foo {
       expect(result.actions.single.from, 'a');
     });
 
-    test('Action auf Feld: sourceRef zeigt auf das Feld', () {
+    test('action on a field: sourceRef points to the field', () {
       final file = scanSource('''
 class LoginScreen {
   @JourneyAction(label: 'Hilfe', from: 'login', to: 'help')
@@ -110,8 +110,8 @@ class LoginScreen {
       expect(result.actions.single.sourceRef.symbol, 'helpButton');
     });
 
-    test('nicht-literales from ist ein Fehler statt stiller Inferenz '
-        '(Regression)', () {
+    test('non-literal from is an error instead of silent inference '
+        '(regression)', () {
       final file = scanSource('''
 const kSettings = 'settings';
 
@@ -124,16 +124,16 @@ class DashboardScreen {
       final errors = <String>[];
       final result = extractAnnotations(file, WarnLog().call, errors);
 
-      // Keine Action — sonst würde die from-Inferenz stillschweigend
-      // 'dash' statt des gemeinten 'settings' einsetzen.
+      // No action — otherwise the from inference would silently insert
+      // 'dash' instead of the intended 'settings'.
       expect(result.actions, isEmpty);
       expect(errors, hasLength(1));
       expect(errors.single, contains('"from"'));
-      expect(errors.single, contains('nicht literal'));
+      expect(errors.single, contains('not readable as a literal'));
     });
 
-    test('nicht-literale optionale Felder werden mit Warnung verworfen '
-        '(Regression)', () {
+    test('non-literal optional fields are dropped with a warning '
+        '(regression)', () {
       final file = scanSource('''
 const kFlow = 'auth';
 
@@ -155,12 +155,12 @@ class LoginScreen {
 
       expect(warn.messages, hasLength(3));
       expect(warn.messages[0], contains('"flow"'));
-      expect(warn.messages[1], contains('"tags"-Element'));
+      expect(warn.messages[1], contains('"tags" element'));
       expect(warn.messages[2], contains('"condition"'));
-      expect(warn.messages, everyElement(contains('nicht literal')));
+      expect(warn.messages, everyElement(contains('not readable as a literal')));
     });
 
-    test('nicht-literale Pflichtfelder erzeugen einen spezifischen Fehler',
+    test('non-literal required fields produce a specific error',
         () {
       final file = scanSource('''
 const kId = 'login';
@@ -174,10 +174,10 @@ class LoginScreen {}
       expect(result.nodes, isEmpty);
       expect(errors, hasLength(1));
       expect(errors.single, contains('"id"'));
-      expect(errors.single, contains('nicht literal'));
+      expect(errors.single, contains('not readable as a literal'));
     });
 
-    test('Action ohne from auf Top-Level-Funktion ist ein Fehler', () {
+    test('action without from on a top-level function is an error', () {
       final file = scanSource('''
 @JourneyAction(label: 'Weiter', to: 'b')
 void next() {}
@@ -189,7 +189,7 @@ void next() {}
       expect(errors.single, contains('from'));
     });
 
-    test('sourceRef enthält file, line und symbol', () {
+    test('sourceRef contains file, line, and symbol', () {
       final file = scanSource('''
 class Platzhalter {}
 

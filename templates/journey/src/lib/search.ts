@@ -1,21 +1,21 @@
 /**
- * Suchindex für das ⌘K-Overlay: zur Buildzeit aus den Journeys erzeugt und als
- * JSON in die Seite eingebettet; das Filtern (Substring) läuft client-seitig.
+ * Search index for the ⌘K overlay: built from the journeys at build time and
+ * embedded into the page as JSON; filtering (substring) runs client-side.
  */
 
 import type { DuctusData } from './types';
 import type { UiStrings } from './strings';
 
-/** Badge-Kategorien: J = Journey, S = Schritt, E = Entscheidung, A = Aktion. */
+/** Badge categories: J = journey, S = step, E = decision, A = action. */
 export type SearchKind = 'J' | 'S' | 'E' | 'A';
 
 export interface SearchItem {
-  /** Badge-Text (JOURNEY/SCHRITT/ENTSCHEIDUNG/AKTION, lokalisiert) */
+  /** badge text (JOURNEY/STEP/DECISION/ACTION, localized) */
   t: string;
   k: SearchKind;
   title: string;
   sub: string;
-  /** Ziel-URL (relativ zur Site-Basis) */
+  /** target URL (relative to the site base) */
   href: string;
 }
 

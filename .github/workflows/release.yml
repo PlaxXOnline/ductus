@@ -1,16 +1,15 @@
-# Release-Workflow für die npm-Pakete (@ductus/schema, @ductus/core,
-# @ductus/adapter-dart): changesets/action pflegt bei jedem Push nach main
-# den "Version Packages"-PR und publiziert nach dessen Merge via
-# "npm run release" nach npm. Auth über npm Trusted Publishing (OIDC):
-# kein npm-Token, stattdessen ist je Paket auf npmjs.com ein Trusted
-# Publisher für diesen Workflow konfiguriert (siehe RELEASING.md §3a);
-# id-token: write ist dafür zwingend. Provenance wird beim Trusted
-# Publishing automatisch erzeugt.
+# Release workflow for the npm packages (@ductus/schema, @ductus/core,
+# @ductus/adapter-dart): on every push to main, changesets/action maintains
+# the "Version Packages" PR and, once it is merged, publishes to npm via
+# "npm run release". Auth uses npm trusted publishing (OIDC): no npm token —
+# instead each package has a trusted publisher for this workflow configured
+# on npmjs.com (see RELEASING.md §3a); id-token: write is mandatory for
+# that. Provenance is generated automatically with trusted publishing.
 #
-# GitHub-Releases erstellt nicht die Action (createGithubReleases: false),
-# sondern scripts/create-github-releases.mjs — nur für Pakete, deren
-# Changelog-Eintrag echte Änderungen enthält. Die fixed-Gruppierung bumpt
-# sonst alle Pakete und unveränderte bekämen leere Releases.
+# GitHub releases are not created by the action (createGithubReleases: false)
+# but by scripts/create-github-releases.mjs — only for packages whose
+# changelog entry contains real changes. The fixed grouping otherwise bumps
+# all packages, and unchanged ones would get empty releases.
 name: Release
 
 on:
@@ -49,19 +48,19 @@ jobs:
       - name: Test
         run: npx vitest run
 
-      # Trusted Publishing braucht npm >= 11.5.1 (und Node >= 22.14). Das von
-      # Node 24 gebündelte npm (>= 11.16) erfüllt das. Bewusst KEIN
-      # "npm install -g npm@latest": npm 12.0.0 deklariert `sigstore` nicht
-      # mehr als Dependency, libnpmpublish braucht es aber für Provenance —
-      # ein Registry-Install räumt das Modul weg und der Publish stirbt mit
-      # MODULE_NOT_FOUND (npm/cli#9722). Der Guard schlägt fehl, falls ein
-      # Runner-Image je ein zu altes npm bündeln sollte.
+      # Trusted publishing needs npm >= 11.5.1 (and Node >= 22.14). The npm
+      # bundled with Node 24 (>= 11.16) satisfies that. Deliberately NO
+      # "npm install -g npm@latest": npm 12.0.0 no longer declares `sigstore`
+      # as a dependency, but libnpmpublish needs it for provenance — a
+      # registry install sweeps the module away and the publish dies with
+      # MODULE_NOT_FOUND (npm/cli#9722). The guard fails if a runner image
+      # should ever bundle an npm that is too old.
       - name: Verify npm supports trusted publishing (>= 11.5.1)
         run: |
           node -e '
             const v = process.argv[1].trim().split(".").map(Number);
             const ok = v[0] > 11 || (v[0] === 11 && (v[1] > 5 || (v[1] === 5 && v[2] >= 1)));
-            if (!ok) { console.error(`npm ${process.argv[1].trim()} < 11.5.1 — Trusted Publishing nicht möglich`); process.exit(1); }
+            if (!ok) { console.error(`npm ${process.argv[1].trim()} < 11.5.1 — trusted publishing not possible`); process.exit(1); }
             console.log(`npm ${process.argv[1].trim()} >= 11.5.1 — ok`);
           ' "$(npm --version)"
 

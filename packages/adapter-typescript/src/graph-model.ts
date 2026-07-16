@@ -1,6 +1,6 @@
 /**
- * Internes Graph-Modell des TypeScript-Adapters + kanonische Serialisierung
- * in das Journey-Graph-JSON — Semantik-Spiegel von
+ * Internal graph model of the TypeScript adapter + canonical serialization
+ * into the journey graph JSON — semantic mirror of
  * dart/ductus/lib/src/adapter/graph_model.dart.
  */
 
@@ -8,10 +8,10 @@ import { createRequire } from 'node:module';
 import { SCHEMA_VERSION } from '@ductus/schema';
 
 /**
- * Adapter-Version aus der eigenen package.json — zur Laufzeit gelesen, damit
- * Changesets-Versionsbumps keine Konstante verwaisen lassen (der Dart-Adapter
- * braucht dafür eine manuell gepflegte Konstante samt Regressionstest; hier
- * sichert der Test in test/cli.test.ts nur noch den Lesepfad ab).
+ * Adapter version from the package's own package.json — read at runtime so
+ * that changesets version bumps cannot orphan a constant (the Dart adapter
+ * needs a manually maintained constant plus a regression test for this;
+ * here the test in test/cli.test.ts only guards the read path).
  */
 export const adapterVersion: string = (
   createRequire(import.meta.url)('../package.json') as { version: string }
@@ -19,10 +19,10 @@ export const adapterVersion: string = (
 
 export const schemaVersion = SCHEMA_VERSION;
 
-/** meta.adapters-Name des Adapter-CLI. */
+/** meta.adapters name of the adapter CLI. */
 export const cliAdapterName = 'typescript';
 
-/** Herkunft eines Graph-Elements: manuell annotiert oder abgeleitet. */
+/** Origin of a graph element: manually annotated or derived. */
 export const SourceKind = {
   annotation: 'annotation',
   derived: 'derived',
@@ -30,12 +30,12 @@ export const SourceKind = {
 
 export type SourceKindValue = (typeof SourceKind)[keyof typeof SourceKind];
 
-/** Gültige Trigger-Werte einer Transition (entspricht `TriggerType`). */
+/** Valid trigger values of a transition (matches `TriggerType`). */
 export const validTriggers = new Set(['tap', 'submit', 'auto', 'back', 'deeplink', 'system']);
 
 /**
- * Rückverweis in den Quellcode. `file` ist immer projekt-relativ
- * mit '/'-Separatoren.
+ * Back-reference into the source code. `file` is always project-relative
+ * with '/' separators.
  */
 export interface SourceRef {
   file: string;
@@ -48,8 +48,8 @@ export function refToString(ref: SourceRef): string {
 }
 
 /**
- * Screen- oder Decision-Node (der Adapter emittiert keine Action-Nodes;
- * Actions werden direkt als Edges abgebildet).
+ * Screen or decision node (the adapter emits no action nodes; actions are
+ * mapped directly to edges).
  */
 export interface GraphNode {
   id: string;
@@ -62,7 +62,7 @@ export interface GraphNode {
   sourceRef: SourceRef;
 }
 
-/** Transition (Edge). `id` ist bis zur Id-Generierung im Merger optional. */
+/** Transition (edge). `id` is optional until id generation in the merger. */
 export interface GraphEdge {
   id?: string;
   from: string;
@@ -75,8 +75,8 @@ export interface GraphEdge {
 }
 
 /**
- * Benannter Flow. `source`/`sourceRef` sind nur intern für die
- * Merge-Präzedenz relevant und werden nicht serialisiert.
+ * Named flow. `source`/`sourceRef` are only relevant internally for merge
+ * precedence and are not serialized.
  */
 export interface GraphFlow {
   id: string;
@@ -87,7 +87,7 @@ export interface GraphFlow {
   sourceRef: SourceRef;
 }
 
-/** Fehler, der den Adapter mit Exit ≠0 beendet; `messages` gehen auf stderr. */
+/** Error that terminates the adapter with exit ≠0; `messages` go to stderr. */
 export class AdapterException extends Error {
   readonly messages: string[];
 
@@ -154,9 +154,9 @@ function canonicalize(value: unknown): unknown {
 }
 
 /**
- * Kanonisches, diff-stabiles Graph-JSON: rekursiv sortierte Schlüssel,
- * 2-Space-Indent, LF, abschließender Zeilenumbruch, kein `generatedAt` —
- * byte-stabil über wiederholte Läufe (NFR2).
+ * Canonical, diff-stable graph JSON: recursively sorted keys, 2-space
+ * indent, LF, trailing newline, no `generatedAt` — byte-stable across
+ * repeated runs (NFR2).
  */
 export function encodeCanonicalGraph(input: {
   flows: GraphFlow[];

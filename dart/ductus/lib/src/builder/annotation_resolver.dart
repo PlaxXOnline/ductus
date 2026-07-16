@@ -1,11 +1,11 @@
-/// Weg D — Auflösung nicht-literaler konstanter Annotation-Argumente.
+/// Path D — resolution of non-literal constant annotation arguments.
 ///
-/// Baut über den build_runner-Resolver einen Index aller konstant
-/// aufgelösten Ductus-Annotationen, adressiert über (Datei, Quell-Offset der
-/// Annotation) — die Offsets der resolved AST sind identisch mit denen der
-/// parse-only gelesenen [ScannedFile]s, weil beide aus demselben Inhalt
-/// entstehen. Der parse-only-Extraktor fragt den Index nur dort, wo ein
-/// Argument nicht literal lesbar ist (Paritätsgarantie).
+/// Builds, via the build_runner resolver, an index of all constant-resolved
+/// Ductus annotations, addressed by (file, source offset of the annotation)
+/// — the offsets of the resolved AST are identical to those of the
+/// parse-only [ScannedFile]s because both originate from the same content.
+/// The parse-only extractor only queries the index where an argument is not
+/// readable as a literal (parity guarantee).
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -17,14 +17,14 @@ import 'package:source_gen/source_gen.dart';
 import '../adapter/annotation_extractor.dart';
 import '../adapter/scanner.dart';
 
-/// Bibliothek, in der die Ductus-Annotationen DEKLARIERT sind (TypeChecker
-/// vergleicht gegen die deklarierende Bibliothek, nicht gegen den Export
+/// Library in which the Ductus annotations are DECLARED (TypeChecker
+/// compares against the declaring library, not against the export
 /// `package:ductus/ductus.dart`).
 const String _annotationsLibrary = 'package:ductus/src/annotations.dart';
 
-/// Ductus-Annotationstypen per Bibliotheks-URI — robust gegen gleichnamige
-/// Fremdklassen (nur für echte Ductus-Annotationen werden Werte aufgelöst;
-/// alles andere fällt auf die parse-only-Semantik zurück).
+/// Ductus annotation types by library URI — robust against foreign classes
+/// of the same name (values are only resolved for genuine Ductus
+/// annotations; everything else falls back to parse-only semantics).
 const TypeChecker _journeyChecker = TypeChecker.any([
   TypeChecker.fromUrl('$_annotationsLibrary#JourneyScreen'),
   TypeChecker.fromUrl('$_annotationsLibrary#JourneyAction'),
@@ -35,11 +35,11 @@ const TypeChecker _journeyChecker = TypeChecker.any([
 const TypeChecker _triggerChecker =
     TypeChecker.fromUrl('$_annotationsLibrary#JourneyTrigger');
 
-/// Baut den Auflösungs-Index für alle [files] des Zielpakets.
+/// Builds the resolution index for all [files] of the target package.
 ///
-/// Nicht auflösbare Bibliotheken (z. B. fehlende Abhängigkeiten oder
-/// Syntaxfehler) werden übersprungen — der Extraktor diagnostiziert dann
-/// unverändert parse-only (gleiche Meldungsformate).
+/// Unresolvable libraries (e.g. missing dependencies or syntax errors) are
+/// skipped — the extractor then diagnoses parse-only as before (same
+/// message formats).
 Future<AnnotationResolution> resolveJourneyAnnotations(
   BuildStep buildStep,
   List<ScannedFile> files,
@@ -51,8 +51,8 @@ Future<AnnotationResolution> resolveJourneyAnnotations(
   for (final file in files) {
     final assetId = AssetId(package, file.relPath);
     try {
-      // part-Dateien sind keine eigenständigen Bibliotheken; ihre
-      // Annotationen werden über die Fragmente der Bibliothek erfasst.
+      // part files are not standalone libraries; their annotations are
+      // captured via the library's fragments.
       if (!await resolver.isLibrary(assetId)) continue;
       final library =
           await resolver.libraryFor(assetId, allowSyntaxErrors: true);
@@ -65,15 +65,15 @@ Future<AnnotationResolution> resolveJourneyAnnotations(
             byFile.putIfAbsent(fragmentAsset.path, () => {})));
       }
     } on Object {
-      // Auflösung fehlgeschlagen ⇒ parse-only-Fallback für diese Datei.
+      // Resolution failed ⇒ parse-only fallback for this file.
       continue;
     }
   }
   return _ResolvedAnnotationValues(byFile);
 }
 
-/// Sammelt die konstanten Werte aller Ductus-Annotationen einer resolved
-/// CompilationUnit, indiziert über den Quell-Offset des Annotation-Knotens.
+/// Collects the constant values of all Ductus annotations of a resolved
+/// CompilationUnit, indexed by the source offset of the annotation node.
 class _AnnotationIndexer extends RecursiveAstVisitor<void> {
   final Map<int, DartObject> index;
 
@@ -91,7 +91,7 @@ class _AnnotationIndexer extends RecursiveAstVisitor<void> {
 }
 
 class _ResolvedAnnotationValues implements AnnotationResolution {
-  /// relPath -> (Annotation-Offset -> konstanter Annotationswert).
+  /// relPath -> (annotation offset -> constant annotation value).
   final Map<String, Map<int, DartObject>> _byFile;
 
   const _ResolvedAnnotationValues(this._byFile);
@@ -128,8 +128,8 @@ class _ResolvedAnnotationValues implements AnnotationResolution {
     if (reader == null || reader.isNull) return null;
     final type = reader.objectValue.type;
     if (type == null || !_triggerChecker.isExactlyType(type)) return null;
-    // revive() liefert den Zugriffspfad des Enum-Werts, z. B.
-    // 'JourneyTrigger.tap' — der Name nach dem Punkt ist der Trigger.
+    // revive() yields the access path of the enum value, e.g.
+    // 'JourneyTrigger.tap' — the name after the dot is the trigger.
     final accessor = reader.revive().accessor;
     final dot = accessor.lastIndexOf('.');
     return dot >= 0 ? accessor.substring(dot + 1) : accessor;

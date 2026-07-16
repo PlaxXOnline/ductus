@@ -1,15 +1,15 @@
 /**
- * Buildzeit-Rendering des LLM-Markdowns (journey.markdown) für den Abschnitt
- * „Ausführliche Anleitung“.
+ * Build-time rendering of the LLM markdown (journey.markdown) for the
+ * “Detailed guide” section.
  *
- * Sicherheit: Das Markdown stammt aus einer LLM-Antwort (untrusted, über
- * Quellcode-Kommentare prompt-injizierbar). Vor dem Parsen werden & < >
- * escaped — eingebettetes rohes HTML (inkl. <script>) wird dadurch als
- * sichtbarer Text gerendert statt ausgeführt; die Markdown-Syntax selbst bleibt
- * unberührt. Zusätzlich werden Link-/Bild-Ziele auf erlaubte URL-Schemata
- * geprüft (marked sanitisiert URLs nicht — "[x](javascript:…)" würde sonst zu
- * einem klickbaren XSS-Link): unsichere Ziele verlieren das <a>/<img>, nur der
- * Text bleibt. Deterministisch (NFR2): marked arbeitet ohne Zufall/Zeit.
+ * Security: the markdown comes from an LLM response (untrusted,
+ * prompt-injectable via source-code comments). Before parsing, & < > are
+ * escaped — embedded raw HTML (including <script>) is thus rendered as visible
+ * text instead of executed; the markdown syntax itself remains untouched.
+ * Additionally, link/image targets are checked against allowed URL schemes
+ * (marked does not sanitize URLs — "[x](javascript:…)" would otherwise become
+ * a clickable XSS link): unsafe targets lose the <a>/<img>, only the text
+ * remains. Deterministic (NFR2): marked works without randomness/time.
  */
 
 import { Marked } from 'marked';
@@ -19,30 +19,30 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Erlaubt sind nur http/https/mailto sowie schemalose (relative) Ziele.
- * Steuer-/Leerzeichen werden vor der Prüfung entfernt — "java\tscript:" wäre
- * sonst ein Bypass (Browser ignorieren sie beim Auflösen des Schemas).
+ * Only http/https/mailto and scheme-less (relative) targets are allowed.
+ * Control/whitespace characters are stripped before the check — "java\tscript:"
+ * would otherwise be a bypass (browsers ignore them when resolving the scheme).
  */
 function isSafeUrl(href: string): boolean {
   const scheme = href
     .replace(/[\u0000-\u0020]/g, '')
     .toLowerCase()
     .match(/^([a-z][a-z0-9+.-]*):/);
-  if (scheme === null) return true; // relativ bzw. Anker — kein Schema
+  if (scheme === null) return true; // relative or anchor — no scheme
   return scheme[1] === 'http' || scheme[1] === 'https' || scheme[1] === 'mailto';
 }
 
-// Eigene Instanz statt globalem marked-Singleton — die Renderer-Overrides
-// sollen nicht auf andere Nutzer des Moduls durchschlagen.
+// Own instance instead of the global marked singleton — the renderer overrides
+// must not leak into other users of the module.
 const parser = new Marked({
   renderer: {
     link(token) {
-      if (isSafeUrl(token.href)) return false; // Standard-Rendering
-      return this.parser.parseInline(token.tokens); // nur der Linktext, kein <a>
+      if (isSafeUrl(token.href)) return false; // default rendering
+      return this.parser.parseInline(token.tokens); // only the link text, no <a>
     },
     image(token) {
       if (isSafeUrl(token.href)) return false;
-      return escapeHtml(token.text); // nur der Alt-Text, kein <img>
+      return escapeHtml(token.text); // only the alt text, no <img>
     },
   },
 });

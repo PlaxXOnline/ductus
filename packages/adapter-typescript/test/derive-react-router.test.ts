@@ -1,14 +1,14 @@
 /**
- * Weg C — Ableitung aus react-router-Konfigurationen. Architektur-Spiegel
- * von dart/ductus/test/derive_go_router_test.dart.
+ * Path C — derivation from react-router configurations. Architectural
+ * mirror of dart/ductus/test/derive_go_router_test.dart.
  */
 
 import { describe, expect, it } from 'vitest';
 import { deriveReactRouter } from '../src/derive/react-router.js';
 import { scanSource, WarnLog } from './test-util.js';
 
-describe('deriveReactRouter — Screens aus Routen', () => {
-  it('leitet Screens aus createBrowserRouter-Objektrouten ab (Pfad-Slug, humanize)', () => {
+describe('deriveReactRouter — screens from routes', () => {
+  it('derives screens from createBrowserRouter object routes (path slug, humanize)', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -26,7 +26,7 @@ const router = createBrowserRouter([
     expect(result.nodes.map((n) => n.id)).toEqual(['root', 'users-edit']);
     const usersEdit = result.nodes[1]!;
     expect(usersEdit.type).toBe('screen');
-    expect(usersEdit.title).toBe('Users edit'); // Param-Segment entfällt, humanize
+    expect(usersEdit.title).toBe('Users edit'); // param segment dropped, humanized
     expect(usersEdit.source).toBe('derived');
     expect(usersEdit.sourceRef.file).toBe('src/test.tsx');
     expect(result.pathToScreen.get('/')).toBe('root');
@@ -35,7 +35,7 @@ const router = createBrowserRouter([
     expect(result.componentToScreen.get('UserEdit')).toBe('users-edit');
   });
 
-  it('gleiche relative Segmente unter verschiedenen Eltern kollabieren nicht', () => {
+  it('identical relative segments under different parents do not collapse', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -56,13 +56,13 @@ const router = createBrowserRouter([
       new WarnLog().call,
     );
 
-    // Id aus dem absolut gejointen Vollpfad — nicht aus dem relativen Segment.
+    // Id from the absolute joined full path — not from the relative segment.
     expect(result.nodes.map((n) => n.id)).toEqual(['user', 'user-detail', 'admin', 'admin-detail']);
     expect(result.pathToScreen.get('/user/detail')).toBe('user-detail');
     expect(result.pathToScreen.get('/admin/detail')).toBe('admin-detail');
   });
 
-  it('route.id gewinnt über den Pfad-Slug', () => {
+  it('route.id wins over the path slug', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -79,7 +79,7 @@ const router = createBrowserRouter([
     expect(result.pathToScreen.get('/settings/profile')).toBe('prefs');
   });
 
-  it('Route ohne literalen path wird mit Warnung übersprungen', () => {
+  it('a route without a literal path is skipped with a warning', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -94,12 +94,12 @@ const router = createBrowserRouter([
 
     expect(result.nodes).toEqual([]);
     expect(warn.messages).toHaveLength(1);
-    expect(warn.messages[0]).toContain('übersprungen');
+    expect(warn.messages[0]).toContain('skipped');
   });
 });
 
-describe('deriveReactRouter — Flows (pfadlose Layout-Routen)', () => {
-  it('pfadlose Layout-Route mit Kindern wird zum Flow shell-0 mit Start am ersten Kind-Screen', () => {
+describe('deriveReactRouter — flows (pathless layout routes)', () => {
+  it('a pathless layout route with children becomes flow shell-0 starting at the first child screen', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -127,7 +127,7 @@ const router = createBrowserRouter([
     ]);
   });
 
-  it('Layout-Route ohne Kind-Screens: Warnung, Flow entfällt', () => {
+  it('layout route without child screens: warning, flow dropped', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -141,12 +141,12 @@ const router = createBrowserRouter([
     );
 
     expect(result.flows).toEqual([]);
-    expect(warn.messages.some((m) => m.includes('Flow "shell-0" entfällt'))).toBe(true);
+    expect(warn.messages.some((m) => m.includes('flow "shell-0" dropped'))).toBe(true);
   });
 });
 
 describe('deriveReactRouter — loader/redirect', () => {
-  it('loader mit redirect erzeugt Decision-Node und auto-Kanten', () => {
+  it('a loader with redirect creates a decision node and auto edges', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -171,7 +171,7 @@ const router = createBrowserRouter([
     const decision = result.nodes.find((n) => n.id === 'dashboard_redirect');
     expect(decision).toBeDefined();
     expect(decision?.type).toBe('decision');
-    expect(decision?.title).toBe('Weiterleitung: Dashboard');
+    expect(decision?.title).toBe('Redirect: Dashboard');
     expect(
       result.edges.map((e) => ({ from: e.from, to: e.to, trigger: e.trigger, condition: e.condition })),
     ).toEqual([
@@ -180,7 +180,7 @@ const router = createBrowserRouter([
     ]);
   });
 
-  it('loader ohne redirect-Aufruf erzeugt keine Decision', () => {
+  it('a loader without a redirect call creates no decision', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -197,8 +197,8 @@ const router = createBrowserRouter([
   });
 });
 
-describe('deriveReactRouter — <Route>-JSX', () => {
-  it('verarbeitet <Route>-JSX in createRoutesFromElements inkl. index-Route', () => {
+describe('deriveReactRouter — <Route> JSX', () => {
+  it('processes <Route> JSX in createRoutesFromElements including the index route', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -214,7 +214,7 @@ const routes = createRoutesFromElements(
     );
 
     expect(result.nodes.map((n) => n.id)).toEqual(['root', 'about']);
-    // Layout-Route ohne Pfad ⇒ Flow, index-Route ist der Start.
+    // Layout route without a path ⇒ flow, the index route is the start.
     expect(result.flows).toHaveLength(1);
     expect(result.flows[0]).toMatchObject({ id: 'shell-0', start: 'root' });
     expect(result.nodes.every((n) => n.flow === 'shell-0')).toBe(true);
@@ -224,7 +224,7 @@ const routes = createRoutesFromElements(
     expect(result.componentToScreen.get('About')).toBe('about');
   });
 
-  it('element-Wrapper wie <Suspense> bevorzugen das Kind für die Zuordnung', () => {
+  it('element wrappers like <Suspense> prefer the child for the mapping', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -248,8 +248,8 @@ const router = createBrowserRouter([
   });
 });
 
-describe('deriveReactRouter — Navigation', () => {
-  it('<Link to> erzeugt eine tap-Kante mit Label von der umschließenden Komponente', () => {
+describe('deriveReactRouter — navigation', () => {
+  it('<Link to> creates a tap edge with a label from the enclosing component', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -278,7 +278,7 @@ function LoginPage() {
     expect(link.sourceRef.symbol).toBe('LoginPage');
   });
 
-  it('<Navigate to> erzeugt eine auto-Kante ohne Label', () => {
+  it('<Navigate to> creates an auto edge without a label', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -300,7 +300,7 @@ function LoginGate() {
     expect(result.edges[0]!.label).toBeUndefined();
   });
 
-  it("navigate('/pfad') wird nur erfasst, wenn die Datei useNavigate erwähnt", () => {
+  it("navigate('/path') is only captured when the file mentions useNavigate", () => {
     const source = (hook: string): string => `
 const router = createBrowserRouter([
   { path: '/profile', element: <ProfilePage /> },
@@ -317,12 +317,12 @@ function ProfilePage() {
     expect(withHook.edges).toHaveLength(1);
     expect(withHook.edges[0]).toMatchObject({ from: 'profile', to: 'home', trigger: 'tap' });
 
-    // Ohne useNavigate-Erwähnung: freie Funktion gleichen Namens wird ignoriert.
+    // Without a useNavigate mention: a free function of the same name is ignored.
     const withoutHook = deriveReactRouter([scanSource(source('getNavigator'))], new WarnLog().call);
     expect(withoutHook.edges).toEqual([]);
   });
 
-  it('manualScreenSymbols (Weg A) liefert das from für Nav-Kanten', () => {
+  it('manualScreenSymbols (path A) provides the from for nav edges', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -344,7 +344,7 @@ function LoginScreen() {
     expect(result.edges[0]).toMatchObject({ from: 'login', to: 'dashboard', label: 'Anmelden' });
   });
 
-  it('unbekanntes Nav-Ziel: Warnung, Kante verworfen', () => {
+  it('unknown nav target: warning, edge discarded', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -364,10 +364,10 @@ function LoginPage() {
     expect(result.edges).toEqual([]);
     expect(warn.messages).toHaveLength(1);
     expect(warn.messages[0]).toContain('/unbekannt');
-    expect(warn.messages[0]).toContain('Kante verworfen');
+    expect(warn.messages[0]).toContain('edge discarded');
   });
 
-  it('unbekannte umschließende Komponente: Warnung, Kante verworfen', () => {
+  it('unknown enclosing component: warning, edge discarded', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -387,10 +387,10 @@ function Sidebar() {
 
     expect(result.edges).toEqual([]);
     expect(warn.messages).toHaveLength(1);
-    expect(warn.messages[0]).toContain('umschließende Komponente unbekannt');
+    expect(warn.messages[0]).toContain('enclosing component unknown');
   });
 
-  it('ohne gefundene Routen entfällt die Nav-Analyse komplett', () => {
+  it('without any found routes the nav analysis is skipped entirely', () => {
     const warn = new WarnLog();
     const result = deriveReactRouter(
       [
@@ -409,8 +409,8 @@ function LoginPage() {
   });
 });
 
-describe('deriveReactRouter — Regressionen aus dem Review', () => {
-  it('löst eine Routen-Konstante derselben Datei auf: createBrowserRouter(routes)', () => {
+describe('deriveReactRouter — regressions from the review', () => {
+  it('resolves a routes constant from the same file: createBrowserRouter(routes)', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -428,7 +428,7 @@ const router = createBrowserRouter(routes);
     expect(result.componentToScreen.get('About')).toBe('about');
   });
 
-  it('<Route index={false} path> bleibt ein eigener Screen (kein Index-Kollaps)', () => {
+  it('<Route index={false} path> remains its own screen (no index collapse)', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -447,7 +447,7 @@ const el = (
     expect(result.nodes.map((n) => n.id).sort()).toEqual(['shop', 'shop-pricing']);
   });
 
-  it('<Route index> und <Route index={true}> zählen weiterhin als Index-Routen', () => {
+  it('<Route index> and <Route index={true}> still count as index routes', () => {
     const result = deriveReactRouter(
       [
         scanSource(`
@@ -461,12 +461,12 @@ const el = (
       new WarnLog().call,
     );
 
-    // Index-Route übernimmt den Eltern-Pfad ⇒ gleiche Id, ein Screen.
+    // The index route takes over the parent path ⇒ same id, one screen.
     expect(result.nodes.map((n) => n.id)).toEqual(['docs', 'docs']);
     expect(result.componentToScreen.get('DocsHome')).toBe('docs');
   });
 
-  it('die eigene element-Zuordnung gewinnt vor der extra-Tabelle (Next-Heuristik)', () => {
+  it('the router’s own element mapping wins over the extra table (Next heuristic)', () => {
     const result = deriveReactRouter(
       [
         scanSource(`

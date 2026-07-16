@@ -20,7 +20,7 @@ versioniert mit deinem Code.
 
 ## Installation
 
-Für Annotationen im App-Code (`@JourneyScreen` & Co. in `lib/`):
+Für Annotationen in deinem App-Code (`@JourneyScreen` & Co. in `lib/`):
 
 ```bash
 dart pub add ductus
@@ -73,7 +73,7 @@ ductus extract     # Graph erzeugen + validieren → journey-graph.json
 ductus generate    # LLM-Doku (BYOK) → docs/*.mdx oder statische Website
 ```
 
-Für `generate` genügt ein eigener API-Key (Anthropic, OpenAI oder ein
+Für `generate` genügt dein eigener API-Key (Anthropic, OpenAI oder ein
 kompatibler Endpoint) in der Umgebungsvariable `DUCTUS_LLM_API_KEY`;
 `extract` läuft komplett offline. Zum Ausprobieren ohne Key:
 `llm.provider: mock` in der `ductus.config.yaml`.
@@ -100,8 +100,8 @@ Alle Annotationen kommen aus `package:ductus/ductus.dart`:
 - Fehlt bei `@JourneyAction` das `from`, gilt die umschließende, als Screen
   bekannte Klasse.
 - Ohne Action-`id` wird deterministisch `e_<from>_<to>` generiert.
-- Argumente sind String-Literale; wer konstante Referenzen wie
-  `title: MyConstants.title` braucht, nutzt den build_runner-Builder (unten).
+- Argumente sind String-Literale; wenn du konstante Referenzen wie
+  `title: MyConstants.title` brauchst, nutze den build_runner-Builder (unten).
 
 ## Buildfrei: die `@journey:`-Kommentar-Konvention
 
@@ -136,7 +136,7 @@ Die Ductus-CLI findet den global aktivierten Adapter über
 
 ## Automatische Ableitung aus go_router / auto_route
 
-Ohne jede Annotation entsteht schon ein brauchbarer Graph:
+Ohne jede Annotation bekommst du schon einen brauchbaren Graphen:
 
 | Quelle | wird zu |
 |---|---|

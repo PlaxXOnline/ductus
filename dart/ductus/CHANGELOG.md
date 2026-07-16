@@ -11,6 +11,8 @@
 - The derived decision node for go_router redirects is now titled
   `Redirect: <Screen>` instead of `Weiterleitung: <Screen>` (tool-generated
   default title in the graph output; override via annotations as before).
+- The German README translation (README.de.md) uses consistent informal
+  address throughout.
 
 ## 0.2.0
 

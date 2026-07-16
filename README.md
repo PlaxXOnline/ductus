@@ -48,9 +48,9 @@ The **[demo site](https://plaxxonline.github.io/ductus/)** was generated
 entirely by Ductus — from the `@journey:` comments of the sample app
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), with no
 manual touch-ups. Interactive journey graph, step list from the main path,
-⌘K search — note that the sample app is German-language, so the demo content
-is currently German sample output (German remains a fully supported output
-language):
+⌘K search — note that the deployed demo still shows the previous
+German-language run; the sample app itself is English now (German remains a
+fully supported output language):
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Journey page of the demo: interactive graph on the left, main-path steps on the right — “Play path” animates the route through the app" src="docs/assets/path-play.gif" width="100%">
@@ -93,21 +93,20 @@ This is what a full run looks like — `extract` and `check` need no LLM, and
 Ductus is **fully usable without an LLM** — the LLM is the last mile that
 turns the validated graph into readable prose. A direct comparison, with
 real (verbatim) artifacts from
-[`examples/flutter_comment_demo`](examples/flutter_comment_demo)
-(German-language sample content):
+[`examples/flutter_comment_demo`](examples/flutter_comment_demo):
 
 ### Starting point: a comment in the code
 
 ```dart
-// @journey:screen id="note-editor" title="Notiz-Editor" flow="notes"
-//   description="Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt."
+// @journey:screen id="note-editor" title="Note editor" flow="notes"
+//   description="Form for creating or editing a note with a title and content."
 class NoteEditorScreen extends StatelessWidget {
   // …
-            // @journey:action label="Speichern"
+            // @journey:action label="Save"
             //   from="note-editor" to="save-check" trigger="submit"
             FilledButton(
               onPressed: () => _save(context, titleController.text),
-              child: const Text('Speichern'),
+              child: const Text('Save'),
             ),
 ```
 
@@ -122,7 +121,7 @@ excerpt from `journey-graph.json`, trimmed to one node and one edge:
     {
       "from": "note-editor",
       "id": "e_note-editor_save-check",
-      "label": "Speichern",
+      "label": "Save",
       "source": "annotation",
       "sourceRef": {
         "file": "lib/screens/note_editor_screen.dart",
@@ -135,7 +134,7 @@ excerpt from `journey-graph.json`, trimmed to one node and one edge:
   ],
   "nodes": [
     {
-      "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+      "description": "Form for creating or editing a note with a title and content.",
       "flow": "notes",
       "id": "note-editor",
       "source": "annotation",
@@ -144,7 +143,7 @@ excerpt from `journey-graph.json`, trimmed to one node and one edge:
         "line": 3,
         "symbol": "NoteEditorScreen"
       },
-      "title": "Notiz-Editor",
+      "title": "Note editor",
       "type": "screen"
     }
   ]
@@ -156,19 +155,19 @@ the demo app:
 
 ```mermaid
 flowchart TD
-  note_detail["Notiz-Detail"]
-  note_editor["Notiz-Editor"]
-  note_list["Notizliste"]
-  save_check{"Eingaben gültig?"}
-  settings["Einstellungen"]
-  note_detail -->|Notiz bearbeiten| note_editor
-  note_editor -->|Speichern| save_check
-  note_list -->|Notiz öffnen| note_detail
-  note_list -->|Neue Notiz| note_editor
-  note_list -->|Einstellungen öffnen| settings
-  save_check -->|Fehlerhinweis anzeigen / Titel fehlt| note_editor
-  save_check -->|Zurück zur Liste / Titel vorhanden| note_list
-  settings -->|Zurück| note_list
+  note_detail["Note detail"]
+  note_editor["Note editor"]
+  note_list["Note list"]
+  save_check{"Input valid?"}
+  settings["Settings"]
+  note_detail -->|Edit note| note_editor
+  note_editor -->|Save| save_check
+  note_list -->|Open note| note_detail
+  note_list -->|New note| note_editor
+  note_list -->|Open settings| settings
+  save_check -->|Show error message / Title missing| note_editor
+  save_check -->|Back to the list / Title present| note_list
+  settings -->|Back| note_list
 ```
 
 On top of that you get validation (start screens, unreachable nodes, cycles
@@ -178,7 +177,8 @@ gate.
 ### With an LLM: `ductus generate` — the same graph becomes prose
 
 Generated verbatim (deliberately with a very small model,
-`ministral-3b-2512`; excerpt — German output for the German demo app):
+`ministral-3b-2512`; excerpt — German output from the previous
+German-language run of the demo app):
 
 > Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
 > erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.

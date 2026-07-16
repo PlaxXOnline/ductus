@@ -53,9 +53,9 @@ generado íntegramente por Ductus — a partir de los comentarios `@journey:`
 de la app de ejemplo
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), sin
 retoques manuales. Grafo del journey interactivo, lista de pasos del camino
-principal, búsqueda ⌘K — ten en cuenta que la app de ejemplo está en alemán,
-por lo que el contenido de la demo es actualmente salida de ejemplo en
-alemán (el alemán sigue siendo un idioma de salida totalmente soportado):
+principal, búsqueda ⌘K — ten en cuenta que la demo desplegada aún muestra
+la ejecución anterior en alemán; la propia app de ejemplo ya está en inglés
+(el alemán sigue siendo un idioma de salida totalmente soportado):
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Página de journey de la demo: grafo interactivo a la izquierda, pasos del camino principal a la derecha — «Play path» anima la ruta a través de la app" src="docs/assets/path-play.gif" width="100%">
@@ -100,21 +100,20 @@ proveedor:
 Ductus es **totalmente utilizable sin LLM** — el LLM es la última milla que
 convierte el grafo validado en prosa legible. Una comparación directa, con
 artefactos reales (literales) de
-[`examples/flutter_comment_demo`](examples/flutter_comment_demo)
-(contenido de ejemplo en alemán):
+[`examples/flutter_comment_demo`](examples/flutter_comment_demo):
 
 ### Punto de partida: un comentario en el código
 
 ```dart
-// @journey:screen id="note-editor" title="Notiz-Editor" flow="notes"
-//   description="Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt."
+// @journey:screen id="note-editor" title="Note editor" flow="notes"
+//   description="Form for creating or editing a note with a title and content."
 class NoteEditorScreen extends StatelessWidget {
   // …
-            // @journey:action label="Speichern"
+            // @journey:action label="Save"
             //   from="note-editor" to="save-check" trigger="submit"
             FilledButton(
               onPressed: () => _save(context, titleController.text),
-              child: const Text('Speichern'),
+              child: const Text('Save'),
             ),
 ```
 
@@ -130,7 +129,7 @@ arista:
     {
       "from": "note-editor",
       "id": "e_note-editor_save-check",
-      "label": "Speichern",
+      "label": "Save",
       "source": "annotation",
       "sourceRef": {
         "file": "lib/screens/note_editor_screen.dart",
@@ -143,7 +142,7 @@ arista:
   ],
   "nodes": [
     {
-      "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+      "description": "Form for creating or editing a note with a title and content.",
       "flow": "notes",
       "id": "note-editor",
       "source": "annotation",
@@ -152,7 +151,7 @@ arista:
         "line": 3,
         "symbol": "NoteEditorScreen"
       },
-      "title": "Notiz-Editor",
+      "title": "Note editor",
       "type": "screen"
     }
   ]
@@ -164,19 +163,19 @@ para la app de demostración:
 
 ```mermaid
 flowchart TD
-  note_detail["Notiz-Detail"]
-  note_editor["Notiz-Editor"]
-  note_list["Notizliste"]
-  save_check{"Eingaben gültig?"}
-  settings["Einstellungen"]
-  note_detail -->|Notiz bearbeiten| note_editor
-  note_editor -->|Speichern| save_check
-  note_list -->|Notiz öffnen| note_detail
-  note_list -->|Neue Notiz| note_editor
-  note_list -->|Einstellungen öffnen| settings
-  save_check -->|Fehlerhinweis anzeigen / Titel fehlt| note_editor
-  save_check -->|Zurück zur Liste / Titel vorhanden| note_list
-  settings -->|Zurück| note_list
+  note_detail["Note detail"]
+  note_editor["Note editor"]
+  note_list["Note list"]
+  save_check{"Input valid?"}
+  settings["Settings"]
+  note_detail -->|Edit note| note_editor
+  note_editor -->|Save| save_check
+  note_list -->|Open note| note_detail
+  note_list -->|New note| note_editor
+  note_list -->|Open settings| settings
+  save_check -->|Show error message / Title missing| note_editor
+  save_check -->|Back to the list / Title present| note_list
+  settings -->|Back| note_list
 ```
 
 A eso se suman la validación (pantallas de inicio, nodos inalcanzables,
@@ -186,8 +185,8 @@ por máquina.
 ### Con LLM: `ductus generate` — el mismo grafo se convierte en prosa
 
 Generado literalmente (a propósito con un modelo muy pequeño,
-`ministral-3b-2512`; extracto — salida en alemán para la app de
-demostración en alemán):
+`ministral-3b-2512`; extracto — salida en alemán de la ejecución anterior
+en alemán de la app de demostración):
 
 > Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
 > erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.

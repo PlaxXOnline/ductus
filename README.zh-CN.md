@@ -42,7 +42,7 @@ API 密钥（BYOK）——将其转写为维护良好的最终用户文档，输
 **[演示站点](https://plaxxonline.github.io/ductus/)**完全由 Ductus 生成——
 来自示例应用 [`examples/flutter_comment_demo`](examples/flutter_comment_demo)
 中的 `@journey:` 注释，未经任何手工修饰。交互式 journey graph、来自主路径的步骤列表、
-⌘K 搜索——请注意，该示例应用是德语应用，因此演示内容目前是德语示例输出
+⌘K 搜索——请注意，已部署的演示仍展示此前的德语运行结果；示例应用本身现已是英文
 （德语仍是完全受支持的输出语言）：
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
@@ -83,20 +83,20 @@ ductus init && ductus extract && ductus generate
 Ductus **完全可以在没有 LLM 的情况下使用**——LLM 只是把经过校验的图变成可读文本的最后一步。
 下面是直接对比，使用来自
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo)
-的真实（逐字）产物（德语示例内容）：
+的真实（逐字）产物：
 
 ### 起点：代码中的一条注释
 
 ```dart
-// @journey:screen id="note-editor" title="Notiz-Editor" flow="notes"
-//   description="Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt."
+// @journey:screen id="note-editor" title="Note editor" flow="notes"
+//   description="Form for creating or editing a note with a title and content."
 class NoteEditorScreen extends StatelessWidget {
   // …
-            // @journey:action label="Speichern"
+            // @journey:action label="Save"
             //   from="note-editor" to="save-check" trigger="submit"
             FilledButton(
               onPressed: () => _save(context, titleController.text),
-              child: const Text('Speichern'),
+              child: const Text('Save'),
             ),
 ```
 
@@ -111,7 +111,7 @@ class NoteEditorScreen extends StatelessWidget {
     {
       "from": "note-editor",
       "id": "e_note-editor_save-check",
-      "label": "Speichern",
+      "label": "Save",
       "source": "annotation",
       "sourceRef": {
         "file": "lib/screens/note_editor_screen.dart",
@@ -124,7 +124,7 @@ class NoteEditorScreen extends StatelessWidget {
   ],
   "nodes": [
     {
-      "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+      "description": "Form for creating or editing a note with a title and content.",
       "flow": "notes",
       "id": "note-editor",
       "source": "annotation",
@@ -133,7 +133,7 @@ class NoteEditorScreen extends StatelessWidget {
         "line": 3,
         "symbol": "NoteEditorScreen"
       },
-      "title": "Notiz-Editor",
+      "title": "Note editor",
       "type": "screen"
     }
   ]
@@ -144,19 +144,19 @@ class NoteEditorScreen extends StatelessWidget {
 
 ```mermaid
 flowchart TD
-  note_detail["Notiz-Detail"]
-  note_editor["Notiz-Editor"]
-  note_list["Notizliste"]
-  save_check{"Eingaben gültig?"}
-  settings["Einstellungen"]
-  note_detail -->|Notiz bearbeiten| note_editor
-  note_editor -->|Speichern| save_check
-  note_list -->|Notiz öffnen| note_detail
-  note_list -->|Neue Notiz| note_editor
-  note_list -->|Einstellungen öffnen| settings
-  save_check -->|Fehlerhinweis anzeigen / Titel fehlt| note_editor
-  save_check -->|Zurück zur Liste / Titel vorhanden| note_list
-  settings -->|Zurück| note_list
+  note_detail["Note detail"]
+  note_editor["Note editor"]
+  note_list["Note list"]
+  save_check{"Input valid?"}
+  settings["Settings"]
+  note_detail -->|Edit note| note_editor
+  note_editor -->|Save| save_check
+  note_list -->|Open note| note_detail
+  note_list -->|New note| note_editor
+  note_list -->|Open settings| settings
+  save_check -->|Show error message / Title missing| note_editor
+  save_check -->|Back to the list / Title present| note_list
+  settings -->|Back| note_list
 ```
 
 除此之外，你还会得到校验（起始屏幕、不可达节点、没有 `condition` 的循环等），
@@ -165,7 +165,7 @@ flowchart TD
 ### 有 LLM：`ductus generate`——同一张图变成文档正文
 
 逐字生成的结果（刻意选用了一个非常小的模型 `ministral-3b-2512`；
-节选——针对德语演示应用的德语输出）：
+节选——来自演示应用此前德语运行的德语输出）：
 
 > Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
 > erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.

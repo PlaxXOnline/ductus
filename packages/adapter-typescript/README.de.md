@@ -111,8 +111,8 @@ Weg A ist der manuelle Weg und bleibt ohne jede Dependency im Zielprojekt.
 
 ## Automatische Ableitung aus react-router / Next.js
 
-Ohne jede Annotation entsteht schon ein brauchbarer Graph (Weg C). Welche
-Ableitungen laufen, steuert `deriveFrom` (Default: beide).
+Ohne jede Annotation bekommst du schon einen brauchbaren Graphen (Weg C).
+Welche Ableitungen laufen, steuert `deriveFrom` (Default: beide).
 
 ### `react-router`
 

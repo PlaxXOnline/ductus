@@ -1,5 +1,62 @@
 # @ductus/core
 
+## 0.4.0
+
+### Minor Changes
+
+- 84a6ec9: English is now the default language across the toolchain. All CLI output,
+  help text, error messages and code comments are English; `ductus init`
+  scaffolds `app.locale: en` and `style.voice: en-you` (German voices
+  `formal-sie`/`informal-du` remain fully supported). New `ductus help
+[command]` subcommand with a rich overview: typical workflow, per-command
+  one-liners, exit codes, config and API-key notes. Generated output is now
+  locale-aware instead of hardcoded German: MDX section headings, the
+  faithfulness-warning aside, the Mermaid journey section, the misc-segment
+  title and the mock provider follow `app.locale`/voice (German only for
+  `de*` locales); the page-slug fallback changed from `seite` to `page`, and
+  the journey website template falls back to English UI strings for non-German
+  locales. The faithfulness judge now receives an English prompt for the
+  `en-you` voice (German voices keep the previous prompt byte-identically);
+  PROMPT_VERSION was bumped to 3, so existing segment caches regenerate once. Derived redirect decision nodes are titled `Redirect: <Screen>`
+  (previously `Weiterleitung: <Screen>`). READMEs are English with German,
+  Spanish and Simplified Chinese translations alongside.
+- 15a669c: Verified faithfulness checking — LLM statements are no longer trusted blindly:
+
+  - **Deterministic lexicon check** (always on, no LLM): every `**bold**` term in
+    step lines of the generated Markdown is checked against the graph segment's
+    vocabulary (node titles, edge labels, conditions, app name). Invented UI
+    elements are caught deterministically.
+  - **Judge verification**: the faithfulness judge must now cite the offending
+    passage verbatim (`quote`) and name the missing `element`; both are verified
+    mechanically. Refuted findings (quote not in text, or element present in the
+    segment) are discarded, borderline findings are reported as separate `hints`
+    that do not count against `faithfulnessThreshold`.
+  - **Structured output**: judge calls enforce a JSON schema API-side (Anthropic
+    via forced tool use, OpenAI/Mistral via `response_format: json_schema`,
+    custom endpoints via `json_object`), eliminating unparsable judge responses
+    for these providers.
+  - `ductus check`, `ductus-report.json` and the segment cache carry the new
+    `hints` channel; `PROMPT_VERSION` is bumped to `2`, invalidating existing
+    segment caches on first regeneration.
+
+### Patch Changes
+
+- afab6fa: The example apps (flutter_comment_demo, flutter_go_router_demo,
+  react_router_demo) are now English — annotation content, UI strings, and
+  configs (`locale: en`, `voice: en-you`) — and the demo-derived artifacts in
+  the root README were regenerated from the English graph; e2e expectations
+  updated accordingly. Test runs now build all workspaces exactly once in a
+  vitest global setup, fixing a build race between test files that each built
+  in `beforeAll`. The German README translations (`README.de.md`) use
+  consistent informal address throughout.
+- c2b12ef: The deterministic vocabulary check now parses bold spans containing nested
+  italics (`**Tap *Edit note***`) correctly. Previously the span was closed at
+  the wrong delimiter of a `***` run, so the prose BETWEEN two real spans was
+  reported as an invented UI element while the real terms went unchecked.
+- Updated dependencies [afab6fa]
+- Updated dependencies [84a6ec9]
+  - @ductus/schema@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

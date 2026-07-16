@@ -1,8 +1,8 @@
-/// build_runner-Einstiegspunkt für den Ductus-Journey-Builder (Weg D).
+/// build_runner entry point for the Ductus journey builder (path D).
 ///
-/// Bewusst getrennt von `package:ductus/ductus.dart`: die Annotationen
-/// bleiben frei von build-/source_gen-Abhängigkeiten; nur diese Bibliothek
-/// (und `package:ductus/adapter.dart`) zieht die Analyse-Infrastruktur.
+/// Deliberately separate from `package:ductus/ductus.dart`: the annotations
+/// stay free of build/source_gen dependencies; only this library (and
+/// `package:ductus/adapter.dart`) pulls in the analysis infrastructure.
 library;
 
 export 'src/builder/journey_builder.dart'

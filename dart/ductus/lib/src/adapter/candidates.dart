@@ -1,11 +1,11 @@
-/// Gemeinsame Zwischenstrukturen der manuellen Eingabewege (A: Kommentare,
-/// B: Dart-Annotationen).
+/// Shared intermediate structures of the manual input paths (A: comments,
+/// B: Dart annotations).
 library;
 
 import 'graph_model.dart';
 
-/// Eine `@journey:action` / `@JourneyAction`, deren `from` ggf. erst nach dem
-/// Scan aller Dateien über die umschließende Klasse aufgelöst wird.
+/// A `@journey:action` / `@JourneyAction` whose `from` may only be resolved
+/// after scanning all files, via the enclosing class.
 class ActionCandidate {
   final String? id;
   final String label;
@@ -14,7 +14,7 @@ class ActionCandidate {
   final String trigger;
   final String? condition;
 
-  /// Name der umschließenden Klasse (für die from-Inferenz), falls vorhanden.
+  /// Name of the enclosing class (for from inference), if any.
   final String? enclosingClassName;
   final SourceRef sourceRef;
 
@@ -30,12 +30,12 @@ class ActionCandidate {
   });
 }
 
-/// Ergebnis eines manuellen Eingabewegs für eine Datei.
+/// Result of one manual input path for a file.
 class ManualExtraction {
   final List<GraphNode> nodes = [];
   final List<GraphFlow> flows = [];
   final List<ActionCandidate> actions = [];
 
-  /// Klassenname -> Screen-Id (für from-Inferenz und context.go-Zuordnung).
+  /// Class name -> screen id (for from inference and context.go mapping).
   final Map<String, String> screenClassNames = {};
 }

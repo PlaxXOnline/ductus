@@ -2,6 +2,6 @@ include: package:lints/recommended.yaml
 
 analyzer:
   exclude:
-    # Test-Fixtures sind bewusst eigenständige Mini-Projekte ohne Dependencies;
-    # der Adapter analysiert sie parse-only.
+    # Test fixtures are deliberately standalone mini-projects without
+    # dependencies; the adapter analyzes them parse-only.
     - test/fixtures/**

@@ -3,6 +3,7 @@ import type { GraphSegment, LlmProvider, LlmRequest } from '../../src/contracts.
 import {
   JUDGE_RESPONSE_FORMAT,
   judgeParseFailed,
+  judgeResponseFormat,
   parseJudgeFindings,
   runFaithfulnessCheck,
   verifyJudgeFindings,
@@ -32,27 +33,27 @@ const markdown =
   '## Anmelden\n\n1. Tippen Sie auf **Anmelden**.\n2. Tippen Sie auf **Exportieren**, um die Daten zu sichern.';
 
 describe('parseJudgeFindings', () => {
-  it('parst rohes JSON', () => {
+  it('parses raw JSON', () => {
     expect(parseJudgeFindings('{"violations":[{"quote":"X","element":"Y","reason":"Z"}]}')).toEqual([
       { quote: 'X', element: 'Y', reason: 'Z' },
     ]);
     expect(parseJudgeFindings('{"violations": []}')).toEqual([]);
   });
 
-  it('parst JSON in einem ```json-Fence', () => {
+  it('parses JSON inside a ```json fence', () => {
     const fenced = 'Hier das Ergebnis:\n```json\n{"violations":[{"quote":"A","element":"B","reason":"C"}]}\n```\n';
     expect(parseJudgeFindings(fenced)).toEqual([{ quote: 'A', element: 'B', reason: 'C' }]);
   });
 
-  it('parst JSON, das ohne Fence in Prosa eingebettet ist', () => {
+  it('parses JSON embedded in prose without a fence', () => {
     const prose = 'Nach Prüfung: {"violations":[{"quote":"C","element":"D","reason":"E"}]} — fertig.';
     expect(parseJudgeFindings(prose)).toEqual([{ quote: 'C', element: 'D', reason: 'E' }]);
-    // Geschweifte Klammern in Strings dürfen die Balance nicht stören.
+    // Curly braces inside strings must not break the balance.
     const tricky = 'Ergebnis: {"violations":[{"quote":"mit } Klammer","element":"X","reason":"R"}]}';
     expect(parseJudgeFindings(tricky)).toEqual([{ quote: 'mit } Klammer', element: 'X', reason: 'R' }]);
   });
 
-  it('liefert undefined für Unparsebares', () => {
+  it('returns undefined for unparsable input', () => {
     for (const garbage of ['lorem ipsum', '{"foo": 1}', '{"violations": "kaputt"}', '']) {
       expect(parseJudgeFindings(garbage)).toBeUndefined();
     }
@@ -60,7 +61,7 @@ describe('parseJudgeFindings', () => {
 });
 
 describe('verifyJudgeFindings', () => {
-  it('bestätigt ein Finding nur, wenn das Zitat im Text steht UND das Element im Segment fehlt', () => {
+  it('confirms a finding only when the quote is in the text AND the element is missing from the segment', () => {
     const result = verifyJudgeFindings(
       [{ quote: 'Tippen Sie auf **Exportieren**', element: 'Exportieren', reason: 'nicht im Graph' }],
       markdown,
@@ -73,7 +74,7 @@ describe('verifyJudgeFindings', () => {
     expect(result.refuted).toBe(0);
   });
 
-  it('verwirft ein Finding, dessen angeblich fehlendes Element im Segment steht', () => {
+  it('discards a finding whose allegedly missing element is in the segment', () => {
     const result = verifyJudgeFindings(
       [{ quote: 'Tippen Sie auf **Anmelden**', element: 'Anmelden', reason: 'angeblich erfunden' }],
       markdown,
@@ -84,7 +85,7 @@ describe('verifyJudgeFindings', () => {
     expect(result.refuted).toBe(1);
   });
 
-  it('verwirft ein Finding, dessen Zitat nicht im Text vorkommt', () => {
+  it('discards a finding whose quote does not appear in the text', () => {
     const result = verifyJudgeFindings(
       [{ quote: 'Dieser Satz existiert nirgendwo', element: 'Exportieren', reason: 'x' }],
       markdown,
@@ -94,7 +95,7 @@ describe('verifyJudgeFindings', () => {
     expect(result.refuted).toBe(1);
   });
 
-  it('stuft Findings ohne Zitat/Element als unverifizierbaren Hinweis ein', () => {
+  it('classifies findings without quote/element as an unverifiable hint', () => {
     const result = verifyJudgeFindings(
       [{ claim: 'Altformat-Behauptung', reason: 'alte Judge-Antwort' }],
       markdown,
@@ -103,12 +104,12 @@ describe('verifyJudgeFindings', () => {
     expect(result.violations).toEqual([]);
     expect(result.hints).toHaveLength(1);
     expect(result.hints[0]!.claim).toBe('Altformat-Behauptung');
-    expect(result.hints[0]!.reason).toContain('Unverifizierbar');
+    expect(result.hints[0]!.reason).toContain('Unverifiable judge finding');
   });
 
-  it('stuft lexikalisch nur verwandte Elemente als Hinweis ein', () => {
-    // "Anmeldung" (Flexion von "Anmelden") — gemeinsames Präfix ≥ 6, aber kein voller Treffer …
-    // hier über den Segment-Titel gedeckt, daher ein erfundenes verwandtes Kompositum nutzen:
+  it('classifies merely lexically related elements as a hint', () => {
+    // "Anmeldung" (inflection of "Anmelden") — shared prefix ≥ 6, but no full match …
+    // covered here via the segment title, so use an invented related compound instead:
     const result = verifyJudgeFindings(
       [{ quote: 'Tippen Sie auf **Anmelden**', element: 'Anmeldeformular', reason: 'r' }],
       markdown,
@@ -116,12 +117,12 @@ describe('verifyJudgeFindings', () => {
     );
     expect(result.violations).toEqual([]);
     expect(result.hints).toHaveLength(1);
-    expect(result.hints[0]!.reason).toContain('lexikalisch verwandt');
+    expect(result.hints[0]!.reason).toContain('only lexically related');
   });
 });
 
 describe('runFaithfulnessCheck', () => {
-  it('ruft den Provider mit Judge-Prompt + responseFormat auf und verifiziert die Findings', async () => {
+  it('calls the provider with the judge prompt + responseFormat and verifies the findings', async () => {
     const seen: LlmRequest[] = [];
     const provider: LlmProvider = {
       name: 'fake',
@@ -141,6 +142,7 @@ describe('runFaithfulnessCheck', () => {
     const result = await runFaithfulnessCheck(provider, segment, markdown, {
       maxTokens: 123,
       temperature: 0.1,
+      voice: 'formal-sie',
     });
 
     expect(result.violations).toHaveLength(1);
@@ -155,7 +157,30 @@ describe('runFaithfulnessCheck', () => {
     expect(seen[0]!.responseFormat).toBe(JUDGE_RESPONSE_FORMAT);
   });
 
-  it('meldet Unparsebares konservativ als eine Violation mit Roh-Snippet', async () => {
+  it('uses the English judge prompt and response format for "en-you"', async () => {
+    const seen: LlmRequest[] = [];
+    const provider: LlmProvider = {
+      name: 'fake',
+      complete: (request) => {
+        seen.push(request);
+        return Promise.resolve({ text: '{"violations": []}' });
+      },
+    };
+    await runFaithfulnessCheck(provider, segment, markdown, {
+      maxTokens: 10,
+      temperature: 0,
+      voice: 'en-you',
+    });
+    expect(seen[0]!.system).toContain('FAITHFULNESS-JUDGE');
+    expect(seen[0]!.system).toContain('NOT present in the graph segment');
+    expect(seen[0]!.responseFormat).toBe(judgeResponseFormat('en-you'));
+    expect(seen[0]!.responseFormat!.description).toBe('Structured response in the given schema.');
+    // German voices keep the original (description-less) format object.
+    expect(judgeResponseFormat('formal-sie')).toBe(JUDGE_RESPONSE_FORMAT);
+    expect(JUDGE_RESPONSE_FORMAT.description).toBeUndefined();
+  });
+
+  it('conservatively reports unparsable output as one violation with a raw snippet', async () => {
     const provider: LlmProvider = {
       name: 'fake',
       complete: () => Promise.resolve({ text: 'Entschuldigung, ich kann kein JSON liefern.' }),
@@ -163,30 +188,31 @@ describe('runFaithfulnessCheck', () => {
     const result = await runFaithfulnessCheck(provider, segment, markdown, {
       maxTokens: 10,
       temperature: 0,
+      voice: 'formal-sie',
     });
     expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]!.claim).toBe('(Judge-Antwort unparsebar)');
+    expect(result.violations[0]!.claim).toBe('(judge response unparsable)');
     expect(result.violations[0]!.reason).toContain('Entschuldigung, ich kann kein JSON liefern.');
     expect(judgeParseFailed(result.violations)).toBe(true);
     expect('usage' in result).toBe(false);
   });
 
-  it('kennzeichnet leere Antworten als leer und kürzt lange Roh-Antworten', async () => {
+  it('flags empty responses as empty and truncates long raw responses', async () => {
     const emptyProvider: LlmProvider = { name: 'fake', complete: () => Promise.resolve({ text: '' }) };
-    const empty = await runFaithfulnessCheck(emptyProvider, segment, markdown, { maxTokens: 1, temperature: 0 });
-    expect(empty.violations[0]!.reason).toContain('leer');
+    const empty = await runFaithfulnessCheck(emptyProvider, segment, markdown, { maxTokens: 1, temperature: 0, voice: 'formal-sie' });
+    expect(empty.violations[0]!.reason).toContain('was empty');
 
     const longProvider: LlmProvider = {
       name: 'fake',
       complete: () => Promise.resolve({ text: 'x'.repeat(1000) }),
     };
-    const long = await runFaithfulnessCheck(longProvider, segment, markdown, { maxTokens: 1, temperature: 0 });
+    const long = await runFaithfulnessCheck(longProvider, segment, markdown, { maxTokens: 1, temperature: 0, voice: 'formal-sie' });
     expect(long.violations[0]!.reason.length).toBeLessThan(400);
   });
 });
 
 describe('judgeParseFailed', () => {
-  it('ist für reguläre Ergebnisse false', () => {
+  it('is false for regular results', () => {
     expect(judgeParseFailed([])).toBe(false);
     expect(judgeParseFailed([{ claim: 'A', reason: 'B' }])).toBe(false);
   });

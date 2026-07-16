@@ -1,5 +1,5 @@
 /**
- * Merge- & Präzedenzregeln — Semantik-Spiegel von
+ * Merge & precedence rules — semantic mirror of
  * dart/ductus/test/merger_test.dart.
  */
 
@@ -79,7 +79,7 @@ function flow(
   };
 }
 
-/** Führt mergeGraph aus und liefert die erwartete AdapterException. */
+/** Runs mergeGraph and returns the expected AdapterException. */
 function expectAdapterException(input: {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -95,8 +95,8 @@ function expectAdapterException(input: {
   return caught as AdapterException;
 }
 
-describe('mergeGraph — Nodes', () => {
-  it('annotation überschreibt derived feldweise', () => {
+describe('mergeGraph — nodes', () => {
+  it('annotation overrides derived field by field', () => {
     const result = mergeGraph({
       nodes: [
         screen('login', {
@@ -113,13 +113,13 @@ describe('mergeGraph — Nodes', () => {
 
     expect(result.nodes).toHaveLength(1);
     const node = result.nodes[0]!;
-    expect(node.title).toBe('Anmeldung'); // manuell gewinnt
-    expect(node.description).toBe('Abgeleitet.'); // derived füllt Lücke
+    expect(node.title).toBe('Anmeldung'); // manual wins
+    expect(node.description).toBe('Abgeleitet.'); // derived fills the gap
     expect(node.source).toBe('annotation');
     expect(node.sourceRef.file).toBe('src/screens.tsx');
   });
 
-  it('zwei manuelle Quellen mit gleichem Wert sind ok', () => {
+  it('two manual sources with the same value are fine', () => {
     const result = mergeGraph({
       nodes: [
         screen('login', { title: 'Anmeldung', at: ref('src/a.tsx', 1) }),
@@ -131,7 +131,7 @@ describe('mergeGraph — Nodes', () => {
     expect(result.nodes).toHaveLength(1);
   });
 
-  it('zwei manuelle Quellen mit verschiedenen Werten sind ein Fehler mit beiden Quellen', () => {
+  it('two manual sources with different values are an error citing both sources', () => {
     const exception = expectAdapterException({
       nodes: [
         screen('login', { title: 'A', at: ref('src/a.tsx', 2) }),
@@ -147,7 +147,7 @@ describe('mergeGraph — Nodes', () => {
     expect(exception.messages[0]).toContain('title');
   });
 
-  it('tags-Konflikt formatiert Listen wie der Dart-Adapter: [a, b]', () => {
+  it('a tags conflict formats lists like the Dart adapter: [a, b]', () => {
     const withTags = (tags: string[], at: SourceRef): GraphNode => ({
       ...screen('login', { title: 'Anmeldung', at }),
       tags,
@@ -163,8 +163,8 @@ describe('mergeGraph — Nodes', () => {
   });
 });
 
-describe('mergeGraph — Flows', () => {
-  it('manueller Flow überschreibt abgeleiteten feldweise', () => {
+describe('mergeGraph — flows', () => {
+  it('a manual flow overrides a derived one field by field', () => {
     const result = mergeGraph({
       nodes: [],
       edges: [],
@@ -186,8 +186,8 @@ describe('mergeGraph — Flows', () => {
   });
 });
 
-describe('mergeGraph — Edges', () => {
-  it('generierte Ids e_<from>_<to> mit Kollisions-Suffix in (Datei, Zeile)-Reihenfolge', () => {
+describe('mergeGraph — edges', () => {
+  it('generated ids e_<from>_<to> with collision suffix in (file, line) order', () => {
     const result = mergeGraph({
       nodes: [],
       flows: [],
@@ -205,7 +205,7 @@ describe('mergeGraph — Edges', () => {
     expect(idOf('Drei')).toBe('e_a_b_3');
   });
 
-  it('derived-Edge mit gleichem (from, to): manuelle absorbiert trigger/label/condition', () => {
+  it('derived edge with the same (from, to): the manual one absorbs trigger/label/condition', () => {
     const result = mergeGraph({
       nodes: [],
       flows: [],
@@ -223,13 +223,13 @@ describe('mergeGraph — Edges', () => {
     expect(result.edges).toHaveLength(1);
     const merged = result.edges[0]!;
     expect(merged.label).toBe('Anmelden');
-    expect(merged.trigger).toBe('tap'); // derived füllt fehlendes Feld
+    expect(merged.trigger).toBe('tap'); // derived fills the missing field
     expect(merged.condition).toBe('eingeloggt');
     expect(merged.source).toBe('annotation');
     expect(merged.sourceRef.file).toBe('src/screens.tsx');
   });
 
-  it('zwei manuelle Edges mit gleichem (from, to) bleiben beide', () => {
+  it('two manual edges with the same (from, to) both remain', () => {
     const result = mergeGraph({
       nodes: [],
       flows: [],
@@ -241,7 +241,7 @@ describe('mergeGraph — Edges', () => {
     expect(result.edges).toHaveLength(2);
   });
 
-  it('Edges mit expliziter Id werden feldweise über die Id gemerged', () => {
+  it('edges with an explicit id are merged field by field via the id', () => {
     const result = mergeGraph({
       nodes: [],
       flows: [],
@@ -258,7 +258,7 @@ describe('mergeGraph — Edges', () => {
     expect(merged.trigger).toBe('submit');
   });
 
-  it('gleiche explizite Id mit verschiedenen Werten ist ein Fehler mit beiden Quellen', () => {
+  it('the same explicit id with different values is an error citing both sources', () => {
     const exception = expectAdapterException({
       nodes: [],
       flows: [],
@@ -273,7 +273,7 @@ describe('mergeGraph — Edges', () => {
     expect(exception.messages[0]).toContain('src/b.tsx:7');
   });
 
-  it('exakt gleiche derived-Edges werden dedupliziert', () => {
+  it('exactly identical derived edges are deduplicated', () => {
     const result = mergeGraph({
       nodes: [],
       flows: [],
@@ -285,7 +285,7 @@ describe('mergeGraph — Edges', () => {
     expect(result.edges).toHaveLength(1);
   });
 
-  it('generierte Id weicht bestehender expliziter Id aus', () => {
+  it('a generated id avoids an existing explicit id', () => {
     const result = mergeGraph({
       nodes: [],
       flows: [],

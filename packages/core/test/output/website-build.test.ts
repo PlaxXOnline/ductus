@@ -1,6 +1,6 @@
 /**
- * Tests für buildWebsite (`ductus generate --build`) mit injiziertem
- * spawn — es wird nie ein echtes npm gestartet (offline, NFR-tauglich).
+ * Tests for buildWebsite (`ductus generate --build`) with an injected
+ * spawn — a real npm is never started (offline, NFR-compliant).
  */
 
 import { EventEmitter } from 'node:events';
@@ -16,13 +16,13 @@ interface RecordedCall {
   cwd: string;
 }
 
-/** Ergebnisvorgabe je Aufruf: normaler Exit-Code oder spawn-Fehler (z. B. ENOENT). */
+/** Prescribed outcome per call: regular exit code or spawn error (e.g. ENOENT). */
 interface FakeOutcome {
   code?: number;
   errorCode?: string;
 }
 
-/** Baut ein spawn-Double, das Aufrufe protokolliert und asynchron close/error emittiert. */
+/** Builds a spawn double that records calls and emits close/error asynchronously. */
 function fakeSpawn(calls: RecordedCall[], behavior: (call: RecordedCall) => FakeOutcome): WebsiteBuildSpawn {
   return (command, args, options) => {
     const call: RecordedCall = { command, args: [...args], cwd: options.cwd };
@@ -47,7 +47,7 @@ function makeSiteDir(): string {
 }
 
 describe('buildWebsite', () => {
-  it('führt npm install und npm run build nacheinander im Site-Verzeichnis aus', async () => {
+  it('runs npm install and npm run build one after the other in the site directory', async () => {
     const siteDir = makeSiteDir();
     const calls: RecordedCall[] = [];
     const distDir = await buildWebsite({ siteDir, spawn: fakeSpawn(calls, () => ({ code: 0 })) });
@@ -58,7 +58,7 @@ describe('buildWebsite', () => {
     expect(distDir).toBe(join(siteDir, 'dist'));
   });
 
-  it('wählt npm ci statt install, wenn eine package-lock.json existiert', async () => {
+  it('picks npm ci instead of install when a package-lock.json exists', async () => {
     const siteDir = makeSiteDir();
     writeFileSync(join(siteDir, 'package-lock.json'), '{}\n', 'utf8');
     const calls: RecordedCall[] = [];
@@ -67,24 +67,24 @@ describe('buildWebsite', () => {
     expect(calls.map((c) => c.args)).toEqual([['ci'], ['run', 'build']]);
   });
 
-  it('meldet nicht gefundenes npm (ENOENT) mit klarer deutscher Meldung', async () => {
+  it('reports npm not found (ENOENT) with a clear message', async () => {
     const siteDir = makeSiteDir();
     const calls: RecordedCall[] = [];
     await expect(
       buildWebsite({ siteDir, spawn: fakeSpawn(calls, () => ({ errorCode: 'ENOENT' })) }),
-    ).rejects.toThrow(/Befehl "npm" nicht gefunden.*Node\.js\/npm installieren/);
-    // Nach dem gescheiterten ersten Schritt folgt kein weiterer Aufruf.
+    ).rejects.toThrow(/command "npm" not found.*install Node\.js\/npm/);
+    // No further call follows the failed first step.
     expect(calls.length).toBe(1);
   });
 
-  it('meldet den gescheiterten Schritt, wenn npm run build mit Exit 1 endet', async () => {
+  it('reports the failed step when npm run build exits with 1', async () => {
     const siteDir = makeSiteDir();
     const calls: RecordedCall[] = [];
     const spawn = fakeSpawn(calls, (call) => (call.args[0] === 'run' ? { code: 1 } : { code: 0 }));
     const promise = buildWebsite({ siteDir, spawn });
 
     await expect(promise).rejects.toBeInstanceOf(WebsiteBuildError);
-    await expect(promise).rejects.toThrow('"npm run build" scheiterte mit Exit-Code 1');
+    await expect(promise).rejects.toThrow('"npm run build" failed with exit code 1');
     expect(calls.map((c) => c.args)).toEqual([['install'], ['run', 'build']]);
   });
 });

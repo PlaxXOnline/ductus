@@ -1,8 +1,8 @@
-/// Programmatischer Zugriff auf den Ductus-Dart-Adapter (dieselbe Analyse,
-/// die auch das Adapter-CLI `dart run ductus:adapter` ausführt).
+/// Programmatic access to the Ductus Dart adapter (the same analysis the
+/// adapter CLI `dart run ductus:adapter` performs).
 ///
-/// Bewusst getrennt von `package:ductus/ductus.dart`: Die Annotationen
-/// bleiben abhängigkeitsfrei; nur diese Bibliothek zieht analyzer & Co.
+/// Deliberately separate from `package:ductus/ductus.dart`: the annotations
+/// stay dependency-free; only this library pulls in analyzer & friends.
 library;
 
 export 'src/adapter/annotation_extractor.dart';

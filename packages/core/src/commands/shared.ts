@@ -1,9 +1,9 @@
 /**
- * Gemeinsame CLI-Bausteine: globale Optionen, Config-Laden mit Warnungs-Ausgabe,
- * Ausgabe von Validierungs-Issues und zentrale Fehler-→-Exit-Code-Abbildung
- * (1 Validierung/Merge-Konflikt, 3 LLM/Config/Adapter/Build).
- * NFR4: API-Key-Werte erscheinen in keiner Ausgabe —
- * alle Meldungen stammen aus Modulen, die Keys nie in Fehlertexte aufnehmen.
+ * Shared CLI building blocks: global options, config loading with warning
+ * output, printing of validation issues, and the central error-to-exit-code
+ * mapping (1 validation/merge conflict, 3 LLM/config/adapter/build).
+ * NFR4: API key values never appear in any output —
+ * all messages come from modules that never include keys in error texts.
  */
 
 import type { Command } from 'commander';
@@ -19,7 +19,7 @@ export interface GlobalOptions {
   offline?: boolean;
 }
 
-/** Globale Optionen des Programms (auch aus Subcommand-Kontext erreichbar). */
+/** Global options of the program (also reachable from subcommand context). */
 export function globalOptions(command: Command): GlobalOptions {
   const opts = command.optsWithGlobals<{ config?: string; offline?: boolean }>();
   return {
@@ -28,28 +28,28 @@ export function globalOptions(command: Command): GlobalOptions {
   };
 }
 
-/** Lädt die Config und gibt Warnungen (unbekannte Top-Level-Keys) auf stderr aus. */
+/** Loads the config and prints warnings (unknown top-level keys) to stderr. */
 export function loadConfigWithWarnings(configPath: string): DuctusConfig {
   const { config, warnings } = loadConfig(configPath);
   for (const warning of warnings) {
-    process.stderr.write(`Warnung: ${warning}\n`);
+    process.stderr.write(`Warning: ${warning}\n`);
   }
   return config;
 }
 
-/** Log-Funktion der Pipeline: Fortschritt/Diagnostik gehört auf stderr. */
+/** Log function for the pipeline: progress/diagnostics belong on stderr. */
 export function stderrLog(message: string): void {
   process.stderr.write(`${message}\n`);
 }
 
-/** Gibt Issues zeilenweise als "<rule> <message>" auf stderr aus (CI-tauglich). */
+/** Prints issues line by line as "<rule> <message>" to stderr (CI-friendly). */
 export function printIssues(issues: ValidationIssue[]): void {
   for (const issue of issues) {
     process.stderr.write(`${issue.rule} ${issue.message}\n`);
   }
 }
 
-/** Exit-Code-Abbildung: Merge-Konflikt ⇒ 1, alle übrigen Fehlerklassen ⇒ 3. */
+/** Exit-code mapping: merge conflict ⇒ 1, all other error classes ⇒ 3. */
 function exitCodeFor(error: unknown): number {
   if (error instanceof MergeError) return 1;
   if (
@@ -64,15 +64,15 @@ function exitCodeFor(error: unknown): number {
 }
 
 /**
- * Führt eine Kommando-Aktion aus und setzt process.exitCode; Fehler werden
- * kompakt gemeldet (kein Stacktrace — die Meldungen sind selbsterklärend).
+ * Runs a command action and sets process.exitCode; errors are reported
+ * briefly (no stack trace — the messages are self-explanatory).
  */
 export async function runAction(fn: () => Promise<number>): Promise<void> {
   try {
     process.exitCode = await fn();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Fehler: ${message}\n`);
+    process.stderr.write(`Error: ${message}\n`);
     process.exitCode = exitCodeFor(error);
   }
 }

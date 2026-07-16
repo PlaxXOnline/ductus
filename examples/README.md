@@ -1,14 +1,15 @@
-# Ductus — Beispiel-Apps
+# Ductus — Example apps
 
-Drei minimale Apps (zwei Flutter, eine React), die drei der vier Eingabewege
-von Ductus demonstrieren (Weg A: Kommentar-Konvention, Weg B: Dart-Annotationen,
-Weg C: automatische Routing-Ableitung). Alle erzeugen mit `ductus extract` einen validierten
-`journey-graph.json` und mit `ductus generate` (BYOK) Endnutzer-Doku als MDX.
+Three minimal apps (two Flutter, one React) demonstrating three of the four
+input paths of Ductus (path A: comment convention, path B: Dart annotations,
+path C: automatic routing derivation). All of them produce a validated
+`journey-graph.json` with `ductus extract` and end-user docs as MDX with
+`ductus generate` (BYOK).
 
-| Demo | Zeigt | Kern-Punkt |
+| Demo | Shows | Key point |
 |---|---|---|
-| [`flutter_go_router_demo/`](flutter_go_router_demo/) | **Weg C** (automatische Ableitung aus go_router) + **Weg B** (Dart-Annotationen) | Dashboard/Settings sind unannotiert und stammen rein aus der Routing-Ableitung; Login/Register werden per `@JourneyScreen`/`@JourneyAction` angereichert. |
-| [`flutter_comment_demo/`](flutter_comment_demo/) | **Weg A** (Kommentar-Konvention `@journey:`) | Komplett buildfrei — keine `ductus`-Dependency, kein Router-Paket; der ganze Graph kommt aus Kommentarblöcken. |
-| [`react_router_demo/`](react_router_demo/) | **Weg C** (automatische Ableitung aus react-router) + **Weg A** (Kommentar-Konvention `@journey:`) | TypeScript/React statt Flutter: Dashboard/Settings stammen rein aus der Routing-Ableitung (inkl. Shell-Flow und redirect-Decision); Login/Register werden per `@journey:`-Kommentaren angereichert. |
+| [`flutter_go_router_demo/`](flutter_go_router_demo/) | **Path C** (automatic derivation from go_router) + **Path B** (Dart annotations) | Dashboard/Settings are unannotated and come purely from the routing derivation; Login/Register are enriched via `@JourneyScreen`/`@JourneyAction`. |
+| [`flutter_comment_demo/`](flutter_comment_demo/) | **Path A** (comment convention `@journey:`) | Completely build-free — no `ductus` dependency, no router package; the entire graph comes from comment blocks. |
+| [`react_router_demo/`](react_router_demo/) | **Path C** (automatic derivation from react-router) + **Path A** (comment convention `@journey:`) | TypeScript/React instead of Flutter: Dashboard/Settings come purely from the routing derivation (including shell flow and redirect decision); Login/Register are enriched via `@journey:` comments. |
 
-Details und Befehle stehen im README der jeweiligen Demo.
+Details and commands are in each demo's README.

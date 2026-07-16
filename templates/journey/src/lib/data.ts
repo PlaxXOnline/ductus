@@ -1,9 +1,9 @@
 /**
- * Buildzeit-Datenzugriff: astro.config.mjs liest ductus.data.json defensiv aus
- * der Site-Wurzel und bettet den Inhalt per Vite-`define` als __DUCTUS_DATA__
- * ein (fehlende/kaputte Datei ⇒ null). Hier wird der Wert normalisiert, damit
- * die Site auch ohne Daten baubar bleibt — nur ohne Journeys. Beim Scaffolding
- * schreibt Ductus die echte Datei über die mitgelieferte Demo-Datei.
+ * Build-time data access: astro.config.mjs reads ductus.data.json defensively
+ * from the site root and embeds the content via Vite `define` as __DUCTUS_DATA__
+ * (missing/broken file ⇒ null). The value is normalized here so the site stays
+ * buildable even without data — just without journeys. During scaffolding,
+ * Ductus writes the real file over the bundled demo file.
  */
 
 import type { DuctusData } from './types';
@@ -12,7 +12,7 @@ declare const __DUCTUS_DATA__: Partial<DuctusData> | null;
 
 const FALLBACK: DuctusData = {
   dataVersion: '1',
-  site: { title: 'Dokumentation', locale: 'de', ductusVersion: '', adapters: [], violationsTotal: 0 },
+  site: { title: 'Documentation', locale: 'en', ductusVersion: '', adapters: [], violationsTotal: 0 },
   journeys: [],
 };
 
@@ -25,10 +25,10 @@ function normalize(parsed: Partial<DuctusData> | null): DuctusData {
   };
 }
 
-/** Journeys sind laut Datenvertrag bereits nach order (Tie-Break slug) sortiert. */
+/** Per the data contract, journeys are already sorted by order (tie-break: slug). */
 export const data: DuctusData = normalize(typeof __DUCTUS_DATA__ === 'undefined' ? null : __DUCTUS_DATA__);
 
-/** Häufigste Kanten-Labels über alle Journeys — Chips „Häufig gesucht“ (deterministisch). */
+/** Most frequent edge labels across all journeys — “Frequently searched” chips (deterministic). */
 export function frequentEdgeLabels(source: DuctusData, max = 3): string[] {
   const counts = new Map<string, number>();
   for (const journey of source.journeys) {

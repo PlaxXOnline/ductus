@@ -1,10 +1,9 @@
 /**
- * Laden und Validieren der ductus.config.yaml.
+ * Loading and validation of ductus.config.yaml.
  *
- * Fehlende Werte werden mit Defaults gefüllt; harte Fehler (kaputtes YAML,
- * fehlende Pflichtfelder, ungültige Enum-Werte) werfen ConfigError mit
- * präziser deutscher Meldung. Unbekannte Top-Level-Schlüssel sind nur
- * Warnungen (vorwärtskompatibel).
+ * Missing values are filled with defaults; hard errors (broken YAML, missing
+ * required fields, invalid enum values) throw ConfigError with a precise
+ * message. Unknown top-level keys are only warnings (forward-compatible).
  */
 
 import { readFileSync } from 'node:fs';
@@ -20,7 +19,7 @@ import type {
   WebsiteGenerator,
 } from './contracts.js';
 
-/** Konfigurationsfehler ⇒ Exit-Code 3. */
+/** Configuration error ⇒ exit code 3. */
 export class ConfigError extends Error {
   constructor(message: string) {
     super(message);
@@ -30,7 +29,7 @@ export class ConfigError extends Error {
 
 export interface LoadConfigResult {
   config: DuctusConfig;
-  /** Unbekannte Top-Level-Schlüssel u. Ä. — keine Fehler (vorwärtskompatibel, nur warnen). */
+  /** Unknown top-level keys and the like — not errors (forward-compatible, warn only). */
   warnings: string[];
 }
 
@@ -54,7 +53,7 @@ const LLM_DEFAULTS = {
   faithfulnessThreshold: 0,
 } as const;
 
-// ─────────────────────────────── Hilfsfunktionen ─────────────────────────────
+// ─────────────────────────────── Helpers ─────────────────────────────────────
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -62,7 +61,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function requireString(value: unknown, path: string): string {
   if (typeof value !== 'string' || value.trim() === '') {
-    throw new ConfigError(`"${path}" muss ein nicht-leerer String sein.`);
+    throw new ConfigError(`"${path}" must be a non-empty string.`);
   }
   return value;
 }
@@ -75,7 +74,7 @@ function optionalString(value: unknown, path: string): string | undefined {
 function optionalNumber(value: unknown, path: string): number | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value !== 'number' || Number.isNaN(value)) {
-    throw new ConfigError(`"${path}" muss eine Zahl sein.`);
+    throw new ConfigError(`"${path}" must be a number.`);
   }
   return value;
 }
@@ -83,7 +82,7 @@ function optionalNumber(value: unknown, path: string): number | undefined {
 function optionalBoolean(value: unknown, path: string): boolean | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value !== 'boolean') {
-    throw new ConfigError(`"${path}" muss true oder false sein.`);
+    throw new ConfigError(`"${path}" must be true or false.`);
   }
   return value;
 }
@@ -91,7 +90,7 @@ function optionalBoolean(value: unknown, path: string): boolean | undefined {
 function optionalStringArray(value: unknown, path: string): string[] | undefined {
   if (value === undefined || value === null) return undefined;
   if (!Array.isArray(value) || value.some((v) => typeof v !== 'string')) {
-    throw new ConfigError(`"${path}" muss eine Liste von Strings sein.`);
+    throw new ConfigError(`"${path}" must be a list of strings.`);
   }
   return value as string[];
 }
@@ -105,25 +104,25 @@ function requireEnum<T extends string>(
   if (value === undefined || value === null) return fallback;
   if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
     throw new ConfigError(
-      `"${path}" muss einer von ${allowed.join(' | ')} sein (gefunden: ${JSON.stringify(value)}).`,
+      `"${path}" must be one of ${allowed.join(' | ')} (found: ${JSON.stringify(value)}).`,
     );
   }
   return value as T;
 }
 
-// ─────────────────────────────── adapters-Sektion ────────────────────────────
+// ─────────────────────────────── adapters section ────────────────────────────
 
 const ADAPTER_KNOWN_KEYS = new Set(['name', 'project', 'deriveFrom', 'command', 'extra']);
 
 /**
- * Baut einen AdapterConfigEntry aus name + Options-Map; unbekannte Keys ⇒ extra.
+ * Builds an AdapterConfigEntry from name + options map; unknown keys ⇒ extra.
  *
- * Ein literaler `extra:`-Block wird dabei **abgeflacht**: seine Schlüssel
- * landen direkt in `entry.extra` und damit top-level in der temporären
- * `--config`-JSON des Adapters (z. B. `extra: { fromBuilder: true }`
- * ⇒ `{"fromBuilder": true}`) — sonst entstünde eine doppelte Verschachtelung
- * `{"extra": {...}}`, die Adapter stillschweigend ignorieren würden.
- * Unbekannte flache Schlüssel gewinnen bei Gleichheit über den Block.
+ * A literal `extra:` block is **flattened** in the process: its keys end up
+ * directly in `entry.extra` and thus top-level in the adapter's temporary
+ * `--config` JSON (e.g. `extra: { fromBuilder: true }`
+ * ⇒ `{"fromBuilder": true}`) — otherwise a double nesting `{"extra": {...}}`
+ * would result, which adapters would silently ignore.
+ * Unknown flat keys win over the block when both are set.
  */
 function buildAdapterEntry(
   name: string,
@@ -138,7 +137,7 @@ function buildAdapterEntry(
   const extraBlock = options['extra'];
   if (extraBlock !== undefined && extraBlock !== null) {
     if (!isRecord(extraBlock)) {
-      throw new ConfigError(`"${path}.extra" muss eine Map mit Adapter-Optionen sein.`);
+      throw new ConfigError(`"${path}.extra" must be a map of adapter options.`);
     }
     Object.assign(extra, extraBlock);
   }
@@ -156,9 +155,9 @@ function buildAdapterEntry(
 }
 
 /**
- * Parst einen Eintrag der adapters-Liste. Unterstützt das Spec-Format
- * (Ein-Schlüssel-Map: `- dart:\n    project: .`), tolerant auch
- * `- name: dart` sowie den Kurzstring `- dart`.
+ * Parses one entry of the adapters list. Supports the spec format
+ * (single-key map: `- dart:\n    project: .`), tolerantly also
+ * `- name: dart` as well as the shorthand string `- dart`.
  */
 function parseAdapterEntry(item: unknown, index: number): AdapterConfigEntry {
   const path = `adapters[${index}]`;
@@ -168,57 +167,57 @@ function parseAdapterEntry(item: unknown, index: number): AdapterConfigEntry {
   }
   if (!isRecord(item)) {
     throw new ConfigError(
-      `"${path}" muss eine Map sein (z. B. "- dart:" mit eingerückten Optionen).`,
+      `"${path}" must be a map (e.g. "- dart:" with indented options).`,
     );
   }
 
-  // Tolerantes Format: `- name: dart` (Optionen auf derselben Ebene).
+  // Tolerant format: `- name: dart` (options on the same level).
   if (typeof item['name'] === 'string') {
     return buildAdapterEntry(requireString(item['name'], `${path}.name`), item, path);
   }
 
-  // Spec-Format: genau ein Schlüssel = Adapter-Name, Wert = Options-Map (oder null).
+  // Spec format: exactly one key = adapter name, value = options map (or null).
   const keys = Object.keys(item);
   if (keys.length !== 1) {
     throw new ConfigError(
-      `"${path}" muss genau einen Adapter-Namen als Schlüssel haben ` +
-        `(gefunden: ${keys.length === 0 ? 'keinen' : keys.map((k) => `"${k}"`).join(', ')}). ` +
-        `Alternativ das Format "- name: <adapter>" verwenden.`,
+      `"${path}" must have exactly one adapter name as its key ` +
+        `(found: ${keys.length === 0 ? 'none' : keys.map((k) => `"${k}"`).join(', ')}). ` +
+        `Alternatively use the format "- name: <adapter>".`,
     );
   }
   const name = keys[0]!;
   const options = item[name];
   if (options !== null && options !== undefined && !isRecord(options)) {
-    throw new ConfigError(`"${path}.${name}" muss eine Map mit Adapter-Optionen sein.`);
+    throw new ConfigError(`"${path}.${name}" must be a map of adapter options.`);
   }
   return buildAdapterEntry(name, isRecord(options) ? options : {}, `${path}.${name}`);
 }
 
-// ─────────────────────────────── Sektions-Parser ─────────────────────────────
+// ─────────────────────────────── Section parsers ─────────────────────────────
 
 function parseApp(raw: unknown): DuctusConfig['app'] {
   if (!isRecord(raw)) {
-    throw new ConfigError('Pflichtsektion "app" fehlt oder ist keine Map.');
+    throw new ConfigError('Required section "app" is missing or not a map.');
   }
   const name = requireString(raw['name'], 'app.name');
-  const locale = optionalString(raw['locale'], 'app.locale') ?? 'de';
+  const locale = optionalString(raw['locale'], 'app.locale') ?? 'en';
   const platforms = optionalStringArray(raw['platforms'], 'app.platforms');
   return { name, locale, ...(platforms !== undefined ? { platforms } : {}) };
 }
 
 function parseAdapters(raw: unknown): AdapterConfigEntry[] {
   if (raw === undefined || raw === null || (Array.isArray(raw) && raw.length === 0)) {
-    throw new ConfigError('Pflichtsektion "adapters" fehlt oder ist leer (mindestens ein Adapter nötig).');
+    throw new ConfigError('Required section "adapters" is missing or empty (at least one adapter is required).');
   }
   if (!Array.isArray(raw)) {
-    throw new ConfigError('"adapters" muss eine Liste sein (z. B. "- dart:").');
+    throw new ConfigError('"adapters" must be a list (e.g. "- dart:").');
   }
   return raw.map((item, index) => parseAdapterEntry(item, index));
 }
 
 function parseLlm(raw: unknown): LlmConfig {
   const section = raw === undefined || raw === null ? {} : raw;
-  if (!isRecord(section)) throw new ConfigError('"llm" muss eine Map sein.');
+  if (!isRecord(section)) throw new ConfigError('"llm" must be a map.');
 
   const provider = requireEnum(section['provider'], LLM_PROVIDERS, 'llm.provider', LLM_DEFAULTS.provider);
   const model = optionalString(section['model'], 'llm.model') ?? LLM_DEFAULTS.model;
@@ -234,24 +233,24 @@ function parseLlm(raw: unknown): LlmConfig {
     LLM_DEFAULTS.faithfulnessThreshold;
 
   if (faithfulnessThreshold < 0) {
-    throw new ConfigError('"llm.faithfulnessThreshold" darf nicht negativ sein.');
+    throw new ConfigError('"llm.faithfulnessThreshold" must not be negative.');
   }
   if (maxTokens <= 0 || !Number.isInteger(maxTokens)) {
-    throw new ConfigError('"llm.maxTokens" muss eine positive Ganzzahl sein.');
+    throw new ConfigError('"llm.maxTokens" must be a positive integer.');
   }
   if (provider === 'custom' && baseUrl === undefined) {
-    throw new ConfigError('"llm.baseUrl" ist Pflicht, wenn llm.provider "custom" ist.');
+    throw new ConfigError('"llm.baseUrl" is required when llm.provider is "custom".');
   }
 
   let pricing: LlmConfig['pricing'];
   const rawPricing = section['pricing'];
   if (rawPricing !== undefined && rawPricing !== null) {
-    if (!isRecord(rawPricing)) throw new ConfigError('"llm.pricing" muss eine Map sein.');
+    if (!isRecord(rawPricing)) throw new ConfigError('"llm.pricing" must be a map.');
     const inputPerMTokUsd = optionalNumber(rawPricing['inputPerMTokUsd'], 'llm.pricing.inputPerMTokUsd');
     const outputPerMTokUsd = optionalNumber(rawPricing['outputPerMTokUsd'], 'llm.pricing.outputPerMTokUsd');
     if (inputPerMTokUsd === undefined || outputPerMTokUsd === undefined) {
       throw new ConfigError(
-        '"llm.pricing" braucht beide Werte: inputPerMTokUsd und outputPerMTokUsd (USD je 1M Token).',
+        '"llm.pricing" requires both values: inputPerMTokUsd and outputPerMTokUsd (USD per 1M tokens).',
       );
     }
     pricing = { inputPerMTokUsd, outputPerMTokUsd };
@@ -272,19 +271,19 @@ function parseLlm(raw: unknown): LlmConfig {
 
 function parseStyle(raw: unknown): DuctusConfig['style'] {
   const section = raw === undefined || raw === null ? {} : raw;
-  if (!isRecord(section)) throw new ConfigError('"style" muss eine Map sein.');
+  if (!isRecord(section)) throw new ConfigError('"style" must be a map.');
   return {
-    voice: requireEnum(section['voice'], VOICES, 'style.voice', 'formal-sie'),
+    voice: requireEnum(section['voice'], VOICES, 'style.voice', 'en-you'),
     granularity: requireEnum(section['granularity'], GRANULARITIES, 'style.granularity', 'flow'),
   };
 }
 
 function parseOutput(raw: unknown): DuctusConfig['output'] {
   const section = raw === undefined || raw === null ? {} : raw;
-  if (!isRecord(section)) throw new ConfigError('"output" muss eine Map sein.');
+  if (!isRecord(section)) throw new ConfigError('"output" must be a map.');
 
   const rawWebsite = section['website'] === undefined || section['website'] === null ? {} : section['website'];
-  if (!isRecord(rawWebsite)) throw new ConfigError('"output.website" muss eine Map sein.');
+  if (!isRecord(rawWebsite)) throw new ConfigError('"output.website" must be a map.');
   const template = optionalString(rawWebsite['template'], 'output.website.template');
 
   return {
@@ -308,7 +307,7 @@ export function loadConfig(configPath: string): LoadConfigResult {
     text = readFileSync(absolutePath, 'utf8');
   } catch {
     throw new ConfigError(
-      `Konfigurationsdatei nicht lesbar: "${absolutePath}". Mit "ductus init" anlegen oder Pfad via -c angeben.`,
+      `Cannot read config file: "${absolutePath}". Create it with "ductus init" or pass a path via -c.`,
     );
   }
 
@@ -317,16 +316,16 @@ export function loadConfig(configPath: string): LoadConfigResult {
     raw = parse(text);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new ConfigError(`Ungültiges YAML in "${absolutePath}": ${detail}`);
+    throw new ConfigError(`Invalid YAML in "${absolutePath}": ${detail}`);
   }
   if (!isRecord(raw)) {
-    throw new ConfigError(`"${absolutePath}" muss eine YAML-Map mit den Sektionen app/adapters/… sein.`);
+    throw new ConfigError(`"${absolutePath}" must be a YAML map with the sections app/adapters/….`);
   }
 
   const warnings: string[] = [];
   for (const key of Object.keys(raw)) {
     if (!(KNOWN_TOP_LEVEL_KEYS as readonly string[]).includes(key)) {
-      warnings.push(`Unbekannter Top-Level-Schlüssel "${key}" wird ignoriert.`);
+      warnings.push(`Unknown top-level key "${key}" is ignored.`);
     }
   }
 
@@ -344,7 +343,7 @@ export function loadConfig(configPath: string): LoadConfigResult {
 
 // ─────────────────────────────── defaultConfigYaml (init) ────────────────────
 
-/** Adapter, für die `ductus init` eine Vorlage erzeugen kann. */
+/** Adapters for which `ductus init` can generate a template. */
 export type InitAdapterName = 'dart' | 'typescript';
 
 const INIT_DERIVE_DEFAULTS: Record<InitAdapterName, string[]> = {
@@ -355,28 +354,28 @@ const INIT_DERIVE_DEFAULTS: Record<InitAdapterName, string[]> = {
 export interface DefaultConfigOptions {
   appName?: string;
   locale?: string;
-  /** Adapter der Vorlage; Default: dart. */
+  /** Adapter of the template; default: dart. */
   adapter?: InitAdapterName;
-  /** Erkannte Ableitungsquellen; Default je Adapter (siehe INIT_DERIVE_DEFAULTS). */
+  /** Detected derivation sources; default per adapter (see INIT_DERIVE_DEFAULTS). */
   deriveFrom?: string[];
 }
 
-/** YAML-sicherer Skalar: einfache Bezeichner bleiben roh, Rest wird gequotet. */
+/** YAML-safe scalar: plain identifiers stay raw, everything else is quoted. */
 function yamlScalar(value: string): string {
   return /^[A-Za-z0-9_.-]+$/.test(value) ? value : JSON.stringify(value);
 }
 
-/** Kommentierte Konfigurationsvorlage für `ductus init`. */
+/** Commented configuration template for `ductus init`. */
 export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
   const appName = opts.appName ?? 'MyApp';
-  const locale = opts.locale ?? 'de';
+  const locale = opts.locale ?? 'en';
   const adapter = opts.adapter ?? 'dart';
   const deriveFrom = opts.deriveFrom && opts.deriveFrom.length > 0
     ? opts.deriveFrom
     : INIT_DERIVE_DEFAULTS[adapter];
 
   return [
-    '# Ductus-Konfiguration',
+    '# Ductus configuration',
     'app:',
     `  name: ${yamlScalar(appName)}`,
     `  locale: ${yamlScalar(locale)}`,
@@ -394,7 +393,7 @@ export function defaultConfigYaml(opts: DefaultConfigOptions = {}): string {
     '  faithfulnessCheck: true',
     '',
     'style:',
-    '  voice: formal-sie          # formal-sie | informal-du | en-you',
+    '  voice: en-you              # formal-sie | informal-du | en-you',
     '  granularity: flow          # flow | screen',
     '',
     'output:',

@@ -1,6 +1,6 @@
-/// Weg C — Ableitung aus auto_route. Ausdrücklich best effort (nur
-/// `@RoutePage()`-Screens und die Pfadtabelle, keine Navigations-Kanten);
-/// alle Elemente tragen `source: "derived"`.
+/// Path C — derivation from auto_route. Explicitly best effort (only
+/// `@RoutePage()` screens and the path table, no navigation edges);
+/// all elements carry `source: "derived"`.
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -10,7 +10,7 @@ import 'derive_go_router.dart' show humanize;
 import 'graph_model.dart';
 import 'scanner.dart';
 
-/// 'UserProfileScreen' -> 'user-profile' (Screen/Page-Suffix entfällt).
+/// 'UserProfileScreen' -> 'user-profile' (Screen/Page suffix is dropped).
 String screenIdFromClassName(String className) {
   var base = className;
   for (final suffix in ['Screen', 'Page']) {
@@ -30,10 +30,10 @@ String _kebabCase(String name) => name
 class AutoRouteDerivation {
   final List<GraphNode> nodes = [];
 
-  /// Widget-Klasse -> Screen-Id (für die from-Zuordnung von Navigations-Kanten).
+  /// Widget class -> screen id (for the from mapping of navigation edges).
   final Map<String, String> classToScreen = {};
 
-  /// Routen-Pfad -> Screen-Id (aus `AutoRoute(page:, path:)`-Einträgen).
+  /// Route path -> screen id (from `AutoRoute(page:, path:)` entries).
   final Map<String, String> pathToScreen = {};
 }
 
@@ -57,7 +57,7 @@ class _AutoRouteEntryCollector extends RecursiveAstVisitor<void> {
   }
 }
 
-/// `LoginRoute.page` -> 'LoginRoute' (generierter Routenname).
+/// `LoginRoute.page` -> 'LoginRoute' (generated route name).
 String? _routeClassOfPageExpr(Expression expr) {
   if (expr is PrefixedIdentifier) return expr.prefix.name;
   if (expr is PropertyAccess) {
@@ -68,8 +68,8 @@ String? _routeClassOfPageExpr(Expression expr) {
   return null;
 }
 
-/// Leitet Screens aus `@RoutePage()`-Klassen ab; `AutoRoute(page:, path:)`-
-/// Einträge liefern die Pfad-Zuordnung.
+/// Derives screens from `@RoutePage()` classes; `AutoRoute(page:, path:)`
+/// entries provide the path mapping.
 AutoRouteDerivation deriveAutoRoute(
   List<ScannedFile> files,
   void Function(String) warn,
@@ -99,8 +99,8 @@ AutoRouteDerivation deriveAutoRoute(
     }
   }
 
-  // AutoRoute(page: LoginRoute.page, path: '/login') — der generierte
-  // Routenname entsteht aus dem Klassennamen ohne Screen/Page-Suffix + 'Route'.
+  // AutoRoute(page: LoginRoute.page, path: '/login') — the generated route
+  // name is the class name without the Screen/Page suffix plus 'Route'.
   for (final file in files) {
     final collector = _AutoRouteEntryCollector();
     file.unit.accept(collector);
@@ -124,7 +124,7 @@ AutoRouteDerivation deriveAutoRoute(
           ? routeClass.substring(0, routeClass.length - 'Route'.length)
           : routeClass;
       final id = _kebabCase(base);
-      // Nur zuordnen, wenn der Screen tatsächlich existiert (kein Dangling).
+      // Only map if the screen actually exists (no dangling entries).
       if (result.nodes.any((n) => n.id == id)) {
         result.pathToScreen.putIfAbsent(path, () => id);
       }

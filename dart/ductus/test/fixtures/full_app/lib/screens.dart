@@ -1,4 +1,4 @@
-// Fixture: manuelle Annotationen (Weg A + B) über den abgeleiteten Routen.
+// Fixture: manual annotations (paths A + B) on top of the derived routes.
 
 // @journey:flow id="auth" title="Anmeldung & Registrierung" start="login"
 

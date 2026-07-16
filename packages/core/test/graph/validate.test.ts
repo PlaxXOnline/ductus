@@ -20,14 +20,14 @@ function graph(partial: Partial<JourneyGraph> = {}): JourneyGraph {
   };
 }
 
-describe('validateGraph — V6 (Schema-Version)', () => {
-  it('akzeptiert Major 1 (auch höhere Minors)', () => {
+describe('validateGraph — V6 (schema version)', () => {
+  it('accepts major 1 (including higher minors)', () => {
     expect(validateGraph(graph()).errors).toEqual([]);
     expect(validateGraph(graph({ schemaVersion: '1.7' })).errors).toEqual([]);
   });
 
-  it('lehnt Major 2 mit genau einem V6-Fehler ab und prüft nichts weiter', () => {
-    // Absichtlich zusätzlich kaputt (dangling edge) — darf NICHT gemeldet werden
+  it('rejects major 2 with exactly one V6 error and checks nothing else', () => {
+    // Deliberately broken further (dangling edge) — must NOT be reported
     const result = validateGraph(graph({ schemaVersion: '2.0', edges: [edge('e1', 'login', 'nirgendwo')] }));
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.rule).toBe('V6');
@@ -35,8 +35,8 @@ describe('validateGraph — V6 (Schema-Version)', () => {
   });
 });
 
-describe('validateGraph — Struktur (SCHEMA/V4)', () => {
-  it('meldet fehlenden title bei screen/decision als V4 mit nodeId', () => {
+describe('validateGraph — structure (SCHEMA/V4)', () => {
+  it('reports a missing title on screen/decision as V4 with nodeId', () => {
     const broken = graph({ nodes: [node('login'), { id: 'x', type: 'decision', source: 'derived' }] });
     const result = validateGraph(broken);
     const v4 = result.errors.filter((e) => e.rule === 'V4');
@@ -45,7 +45,7 @@ describe('validateGraph — Struktur (SCHEMA/V4)', () => {
     expect(v4[0]?.message).toContain('title');
   });
 
-  it('meldet fehlendes label bei action als V4', () => {
+  it('reports a missing label on action as V4', () => {
     const broken = graph({
       nodes: [node('login'), node('dashboard'), { id: 'a', type: 'action', source: 'annotation' }],
     });
@@ -55,9 +55,9 @@ describe('validateGraph — Struktur (SCHEMA/V4)', () => {
     expect(v4[0]?.message).toContain('label');
   });
 
-  it('meldet übrige Strukturfehler als SCHEMA und bricht vor Integritätsprüfungen ab', () => {
+  it('reports remaining structural errors as SCHEMA and aborts before integrity checks', () => {
     const broken = graph({
-      // trigger außerhalb des Enums UND dangling from — nur SCHEMA darf erscheinen
+      // trigger outside the enum AND dangling from — only SCHEMA may appear
       edges: [{ id: 'e1', from: 'weg', to: 'dashboard', source: 'annotation', trigger: 'wink' } as unknown as JourneyEdge],
     });
     const result = validateGraph(broken);
@@ -66,14 +66,14 @@ describe('validateGraph — Struktur (SCHEMA/V4)', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('valide Struktur erzeugt keine SCHEMA/V4-Fehler', () => {
+  it('a valid structure produces no SCHEMA/V4 errors', () => {
     const result = validateGraph(graph());
     expect(result.errors).toEqual([]);
   });
 });
 
 describe('validateGraph — V1 (dangling edges)', () => {
-  it('meldet from/to auf nicht existierende Nodes als error je Edge', () => {
+  it('reports from/to pointing at non-existent nodes as an error per edge', () => {
     const result = validateGraph(graph({ edges: [edge('e1', 'login', 'geist')] }));
     const v1 = result.errors.filter((e) => e.rule === 'V1');
     expect(v1).toHaveLength(1);
@@ -81,13 +81,13 @@ describe('validateGraph — V1 (dangling edges)', () => {
     expect(v1[0]?.message).toContain('geist');
   });
 
-  it('meldet nichts bei existierenden Endpunkten', () => {
+  it('reports nothing when both endpoints exist', () => {
     expect(validateGraph(graph()).errors.filter((e) => e.rule === 'V1')).toEqual([]);
   });
 });
 
-describe('validateGraph — V2 (eindeutige ids)', () => {
-  it('meldet doppelte node-/edge-/flow-ids', () => {
+describe('validateGraph — V2 (unique ids)', () => {
+  it('reports duplicate node/edge/flow ids', () => {
     const result = validateGraph(
       graph({
         nodes: [node('login'), node('login'), node('dashboard')],
@@ -105,20 +105,20 @@ describe('validateGraph — V2 (eindeutige ids)', () => {
     );
   });
 
-  it('meldet nichts bei eindeutigen ids', () => {
+  it('reports nothing when ids are unique', () => {
     expect(validateGraph(graph()).errors.filter((e) => e.rule === 'V2')).toEqual([]);
   });
 });
 
 describe('validateGraph — V3 (flow.start)', () => {
-  it('meldet nicht existierenden start', () => {
+  it('reports a non-existent start', () => {
     const result = validateGraph(graph({ flows: [{ id: 'auth', title: 'A', start: 'geist' }] }));
     const v3 = result.errors.filter((e) => e.rule === 'V3');
     expect(v3).toHaveLength(1);
     expect(v3[0]).toMatchObject({ flowId: 'auth' });
   });
 
-  it('meldet start, der kein screen ist', () => {
+  it('reports a start that is not a screen', () => {
     const result = validateGraph(
       graph({
         nodes: [node('login'), node('dashboard'), node('act', { type: 'action', label: 'Los' })],
@@ -130,22 +130,22 @@ describe('validateGraph — V3 (flow.start)', () => {
     expect(v3[0]?.message).toContain('action');
   });
 
-  it('akzeptiert screen-start', () => {
+  it('accepts a screen start', () => {
     expect(validateGraph(graph()).errors.filter((e) => e.rule === 'V3')).toEqual([]);
   });
 });
 
-describe('validateGraph — V5 (Warnungen)', () => {
-  it('warnt vor unerreichbaren Nodes (keine eingehende Edge, kein Flow-Start)', () => {
+describe('validateGraph — V5 (warnings)', () => {
+  it('warns about unreachable nodes (no incoming edge, no flow start)', () => {
     const result = validateGraph(graph({ nodes: [node('login'), node('dashboard'), node('waise')] }));
     const unreachable = result.warnings.filter((w) => w.nodeId === 'waise');
     expect(unreachable).toHaveLength(1);
-    expect(unreachable[0]?.message).toContain('unerreichbar');
-    // login ist Flow-Start, dashboard hat eingehende Edge — keine Warnung dafür
-    expect(result.warnings.some((w) => w.message.includes('unerreichbar') && w.nodeId !== 'waise')).toBe(false);
+    expect(unreachable[0]?.message).toContain('unreachable');
+    // login is a flow start, dashboard has an incoming edge — no warning for those
+    expect(result.warnings.some((w) => w.message.includes('unreachable') && w.nodeId !== 'waise')).toBe(false);
   });
 
-  it('warnt vor Nodes ohne description', () => {
+  it('warns about nodes without a description', () => {
     const stripped: JourneyNode = { id: 'login', type: 'screen', title: 'Login', source: 'derived' };
     const result = validateGraph(graph({ nodes: [stripped, node('dashboard')] }));
     const noDesc = result.warnings.filter((w) => w.message.includes('description'));
@@ -153,20 +153,20 @@ describe('validateGraph — V5 (Warnungen)', () => {
     expect(noDesc[0]?.nodeId).toBe('login');
   });
 
-  it('warnt vor Zyklen ohne condition auf irgendeiner Zykluskante', () => {
+  it('warns about cycles without a condition on any cycle edge', () => {
     const result = validateGraph(
       graph({
         flows: [],
         edges: [edge('e1', 'login', 'dashboard'), edge('e2', 'dashboard', 'login')],
       }),
     );
-    const cycles = result.warnings.filter((w) => w.message.includes('Zyklus'));
+    const cycles = result.warnings.filter((w) => w.message.includes('Cycle'));
     expect(cycles).toHaveLength(1);
     expect(cycles[0]?.message).toContain('"dashboard"');
     expect(cycles[0]?.message).toContain('"login"');
   });
 
-  it('warnt NICHT, wenn eine Zykluskante eine condition trägt', () => {
+  it('does NOT warn when one cycle edge carries a condition', () => {
     const result = validateGraph(
       graph({
         flows: [],
@@ -176,25 +176,25 @@ describe('validateGraph — V5 (Warnungen)', () => {
         ],
       }),
     );
-    expect(result.warnings.filter((w) => w.message.includes('Zyklus'))).toEqual([]);
+    expect(result.warnings.filter((w) => w.message.includes('Cycle'))).toEqual([]);
   });
 
-  it('erkennt Self-Loops als Zyklus', () => {
+  it('detects self-loops as a cycle', () => {
     const result = validateGraph(
       graph({ edges: [edge('e1', 'login', 'dashboard'), edge('e2', 'dashboard', 'dashboard')] }),
     );
-    const cycles = result.warnings.filter((w) => w.message.includes('Zyklus'));
+    const cycles = result.warnings.filter((w) => w.message.includes('Cycle'));
     expect(cycles).toHaveLength(1);
     expect(cycles[0]?.nodeId).toBe('dashboard');
   });
 
-  it('ein vollständiger Graph erzeugt keine Warnungen', () => {
+  it('a complete graph produces no warnings', () => {
     expect(validateGraph(graph()).warnings).toEqual([]);
   });
 });
 
-describe('validateGraph — deterministische Sortierung', () => {
-  it('sortiert Issues nach rule, dann betroffener id — stabil über Eingabereihenfolgen', () => {
+describe('validateGraph — deterministic sorting', () => {
+  it('sorts issues by rule, then affected id — stable across input orders', () => {
     const build = (reversed: boolean): JourneyGraph => {
       const nodes = [node('b-screen'), node('a-screen'), node('login'), node('dashboard')];
       const edges = [edge('e9', 'login', 'geist'), edge('e1', 'login', 'phantom')];
@@ -212,14 +212,14 @@ describe('validateGraph — deterministische Sortierung', () => {
     const b = validateGraph(build(true));
     expect(a).toEqual(b);
 
-    // errors: V1 vor V3, innerhalb V1 nach edgeId
+    // errors: V1 before V3, within V1 sorted by edgeId
     expect(a.errors.map((e) => [e.rule, e.nodeId ?? e.edgeId ?? e.flowId])).toEqual([
       ['V1', 'e1'],
       ['V1', 'e9'],
       ['V3', 'zz'],
     ]);
-    // warnings nach nodeId sortiert
-    const unreachable = a.warnings.filter((w) => w.message.includes('unerreichbar'));
+    // warnings sorted by nodeId
+    const unreachable = a.warnings.filter((w) => w.message.includes('unreachable'));
     expect(unreachable.map((w) => w.nodeId)).toEqual(['a-screen', 'b-screen', 'dashboard']);
   });
 });

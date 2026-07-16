@@ -1,6 +1,6 @@
 /**
- * Pipeline-Orchestrierung der CLI-Kommandos: extract → generate → check.
- * Verbindet Adapter-Runner, Graph-Pipeline, LLM-Schicht und Ausgabe-Module.
+ * Pipeline orchestration of the CLI commands: extract → generate → check.
+ * Connects the adapter runner, graph pipeline, LLM layer, and output modules.
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -35,10 +35,11 @@ import {
 } from './llm/index.js';
 import { buildJourneyData } from './output/journey-data.js';
 import { buildMdxPages, writeMdxPages } from './output/mdx.js';
+import { outputStrings } from './output/strings.js';
 import { scaffoldWebsite } from './output/website.js';
 import { buildReport, writeReport } from './report.js';
 
-/** LLM-Fehler (fehlender Key, --offline mit echtem Provider, …) ⇒ Exit-Code 3. */
+/** LLM error (missing key, --offline with a real provider, …) ⇒ exit code 3. */
 export class LlmError extends Error {
   constructor(message: string) {
     super(message);
@@ -57,18 +58,18 @@ export interface ExtractResult {
   graph: JourneyGraph;
   validation: ValidationResult;
   adapterInfos: AdapterInfo[];
-  /** Geschriebene Artefakt-Pfade (leer bei Validierungsfehlern oder write:false). */
+  /** Written artifact paths (empty on validation errors or write:false). */
   written: string[];
 }
 
-/** Führt alle Adapter aus und merged deren Graphen (MergeError wird durchgereicht). */
+/** Runs all adapters and merges their graphs (MergeError is passed through). */
 async function extractGraph(
   config: DuctusConfig,
   opts: PipelineOptions,
 ): Promise<{ graph: JourneyGraph; validation: ValidationResult }> {
   const results: AdapterRunResult[] = [];
   for (const entry of config.adapters) {
-    opts.log?.(`Adapter "${entry.name}" wird ausgeführt …`);
+    opts.log?.(`Running adapter "${entry.name}" …`);
     results.push(
       await runAdapter(entry, {
         rootDir: config.rootDir,
@@ -78,28 +79,28 @@ async function extractGraph(
     );
   }
 
-  // NFR7/V6: schemaVersion JEDES Adapter-Graphen VOR dem Merge prüfen —
-  // mergeGraphs normalisiert auf die unterstützte Version und würde eine
-  // inkompatible Adapter-Ausgabe sonst stillschweigend maskieren. Die Prüfung
-  // liegt bewusst hier (nicht im Runner), damit der Fall als Validierungsfehler
-  // (Exit 1) und nicht als AdapterError (Exit 3) klassifiziert wird.
+  // NFR7/V6: check the schemaVersion of EVERY adapter graph BEFORE the merge —
+  // mergeGraphs normalizes to the supported version and would otherwise
+  // silently mask an incompatible adapter output. The check deliberately lives
+  // here (not in the runner) so the case is classified as a validation error
+  // (exit 1) rather than an AdapterError (exit 3).
   const versionErrors: ValidationIssue[] = results
     .filter((r) => !isSupportedSchemaVersion(r.graph.schemaVersion))
     .map((r) => ({
       rule: 'V6',
       severity: 'error' as const,
       message:
-        `Adapter "${r.adapter.name}": schemaVersion "${r.graph.schemaVersion}" wird nicht ` +
-        `unterstützt (erwartet Major ${SUPPORTED_SCHEMA_MAJOR}, z. B. "${SUPPORTED_SCHEMA_MAJOR}.0").`,
+        `Adapter "${r.adapter.name}": schemaVersion "${r.graph.schemaVersion}" is not ` +
+        `supported (expected major ${SUPPORTED_SCHEMA_MAJOR}, e.g. "${SUPPORTED_SCHEMA_MAJOR}.0").`,
     }));
   if (versionErrors.length > 0) {
-    // Kein Merge: der erste gelieferte Graph dient nur als Platzhalter —
-    // bei Fehlern wird er weder geschrieben noch weiterverarbeitet.
+    // No merge: the first returned graph serves only as a placeholder —
+    // on errors it is neither written nor processed further.
     return { graph: results[0]!.graph, validation: { errors: versionErrors, warnings: [] } };
   }
 
-  // Die Config (app:-Sektion der ductus.config.yaml) ist die maßgebliche
-  // Quelle für App-Metadaten.
+  // The config (app: section of ductus.config.yaml) is the authoritative
+  // source for app metadata.
   const app: AppInfo = {
     name: config.app.name,
     locale: config.app.locale,
@@ -110,10 +111,10 @@ async function extractGraph(
 }
 
 /**
- * extract: Adapter → Merge → Validierung; bei 0 Fehlern werden
- * journey-graph.json und ductus-report.json neben die Config geschrieben
- * (rootDir; Cache und Graph-HTML liegen dagegen unter .ductus/).
- * Mit write:false bleibt alles im Speicher (check/graph).
+ * extract: adapters → merge → validation; with 0 errors, journey-graph.json
+ * and ductus-report.json are written next to the config (rootDir; the cache
+ * and graph HTML live under .ductus/ instead).
+ * With write:false everything stays in memory (check/graph).
  */
 export async function runExtract(
   config: DuctusConfig,
@@ -140,23 +141,25 @@ export async function runExtract(
 
 export interface GenerateRunResult {
   extract: ExtractResult;
-  /** Fehlt bei Validierungsfehlern (Abbruch vor der Generierung, Exit 1). */
+  /** Missing on validation errors (aborted before generation, exit 1). */
   result?: GenerateResult;
   pages: MdxPage[];
-  /** Geschriebene Doku-Pfade (MDX-Modus) bzw. leer im Website-Modus. */
+  /** Written docs paths (MDX mode); empty in website mode. */
   writtenDocs: string[];
   reportPath?: string;
   violationsTotal: number;
   costUsd?: number;
 }
 
-/** Muss mit ESTIMATED_OUTPUT_CAP in llm/generate.ts übereinstimmen (NFR3). */
+/** Must match ESTIMATED_OUTPUT_CAP in llm/generate.ts (NFR3). */
 const ESTIMATED_OUTPUT_CAP = 800;
 
-/** Kostenschätzung VOR der Generierung (NFR3) — gleiche Rechnung wie generateDocs. */
+/** Cost estimate BEFORE generation (NFR3) — same calculation as generateDocs. */
 function logEstimate(config: DuctusConfig, graph: JourneyGraph, log?: (m: string) => void): void {
   if (log === undefined) return;
-  const segments = segmentGraph(graph, config.style.granularity);
+  const segments = segmentGraph(graph, config.style.granularity, {
+    miscTitle: outputStrings(config.app.locale).miscSegmentTitle,
+  });
   const promptOpts = { voice: config.style.voice, locale: config.app.locale, appName: config.app.name };
   const perCallOutput = Math.min(config.llm.maxTokens, ESTIMATED_OUTPUT_CAP);
 
@@ -169,7 +172,7 @@ function logEstimate(config: DuctusConfig, graph: JourneyGraph, log?: (m: string
     );
     outputTokens += perCallOutput;
     if (config.llm.faithfulnessCheck) {
-      const judge = buildJudgePrompt(segment, '');
+      const judge = buildJudgePrompt(segment, '', config.style.voice);
       inputTokens += estimateTokens(judge.system + judge.messages.map((m) => m.content).join('\n')) + perCallOutput;
       outputTokens += perCallOutput;
     }
@@ -177,23 +180,23 @@ function logEstimate(config: DuctusConfig, graph: JourneyGraph, log?: (m: string
 
   const cost = estimateCostUsd({ inputTokens, outputTokens }, config.llm.pricing);
   log(
-    `Kostenschätzung (vorab): ${segments.length} Segment(e), ` +
-      `~${inputTokens} Input-Token, ~${outputTokens} Output-Token` +
+    `Cost estimate (upfront): ${segments.length} segment(s), ` +
+      `~${inputTokens} input tokens, ~${outputTokens} output tokens` +
       (cost !== undefined ? `, ~${cost.toFixed(4)} USD` : ''),
   );
 }
 
-/** Wurzelverzeichnis des @ductus/core-Pakets — dieses Modul liegt in <corePkg>/src bzw. <corePkg>/dist. */
+/** Root directory of the @ductus/core package — this module lives in <corePkg>/src or <corePkg>/dist. */
 function corePackageDir(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), '..');
 }
 
-/** Template-Auflösung für den Website-Modus: Config-Pfad → Paket-Assets → Repo-Vorlage. */
+/** Template resolution for website mode: config path → package assets → repo template. */
 function resolveTemplateDir(config: DuctusConfig, generator: WebsiteGenerator): string {
   if (config.output.website.template !== undefined) {
     const custom = resolve(config.rootDir, config.output.website.template);
     if (!existsSync(custom)) {
-      throw new ConfigError(`"output.website.template": Verzeichnis nicht gefunden: "${custom}".`);
+      throw new ConfigError(`"output.website.template": directory not found: "${custom}".`);
     }
     return custom;
   }
@@ -206,15 +209,16 @@ function resolveTemplateDir(config: DuctusConfig, generator: WebsiteGenerator): 
     if (existsSync(candidate)) return candidate;
   }
   throw new ConfigError(
-    `Website-Template "${generator}" nicht gefunden (gesucht: ${candidates.join(', ')}). ` +
-      'Alternativ output.website.template setzen.',
+    `Website template "${generator}" not found (searched: ${candidates.join(', ')}). ` +
+      'Alternatively set output.website.template.',
   );
 }
 
 /**
- * Version von @ductus/core deterministisch zur Laufzeit aus der package.json
- * des Pakets lesen (KEIN Hardcoding — Muster analog resolveTemplateDir mit
- * import.meta.url). Wird in ductus.data.json als site.ductusVersion eingebettet.
+ * Read the version of @ductus/core deterministically at runtime from the
+ * package's package.json (NO hardcoding — pattern analogous to
+ * resolveTemplateDir with import.meta.url). Embedded in ductus.data.json as
+ * site.ductusVersion.
  */
 function resolveDuctusVersion(): string {
   const pkgPath = join(corePackageDir(), 'package.json');
@@ -222,9 +226,9 @@ function resolveDuctusVersion(): string {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: unknown };
     if (typeof pkg.version === 'string' && pkg.version !== '') return pkg.version;
   } catch {
-    // fällt unten auf den ConfigError durch
+    // falls through to the ConfigError below
   }
-  throw new ConfigError(`Version von @ductus/core nicht ermittelbar (package.json: "${pkgPath}").`);
+  throw new ConfigError(`Cannot determine the version of @ductus/core (package.json: "${pkgPath}").`);
 }
 
 export async function runGenerate(
@@ -233,20 +237,20 @@ export async function runGenerate(
 ): Promise<GenerateRunResult> {
   const extract = await runExtract(config, opts);
   if (extract.validation.errors.length > 0) {
-    // Abbruch: Der Aufrufer signalisiert Exit-Code 1 (Validierungsfehler).
+    // Abort: the caller signals exit code 1 (validation errors).
     return { extract, pages: [], writtenDocs: [], violationsTotal: 0 };
   }
 
-  // --offline erlaubt generate nur mit dem netzfreien mock-Provider
-  // (extract/check/graph bleiben uneingeschränkt), sonst Exit 3.
+  // --offline allows generate only with the network-free mock provider
+  // (extract/check/graph remain unrestricted), otherwise exit 3.
   if (opts.offline === true && config.llm.provider !== 'mock') {
     throw new LlmError(
-      `--offline erlaubt "generate" nur mit llm.provider "mock" (konfiguriert: "${config.llm.provider}").`,
+      `--offline allows "generate" only with llm.provider "mock" (configured: "${config.llm.provider}").`,
     );
   }
   if (config.output.format === 'website' && config.output.website.generator === 'docusaurus') {
     throw new ConfigError(
-      'output.website.generator "docusaurus" ist in Phase 1 nicht enthalten — bitte "journey" (Default) oder "starlight" verwenden.',
+      'output.website.generator "docusaurus" is not included in phase 1 — please use "journey" (default) or "starlight".',
     );
   }
 
@@ -257,7 +261,7 @@ export async function runGenerate(
     throw new LlmError(error instanceof Error ? error.message : String(error));
   }
 
-  // NFR3: Schätzung VOR dem ersten Provider-Aufruf ausgeben.
+  // NFR3: print the estimate BEFORE the first provider call.
   logEstimate(config, extract.graph, opts.log);
 
   const result = await generateDocs({
@@ -272,7 +276,10 @@ export async function runGenerate(
     ...(opts.log !== undefined ? { log: opts.log } : {}),
   });
 
-  const pages = buildMdxPages(result, { diagrams: config.output.website.diagrams });
+  const pages = buildMdxPages(result, {
+    diagrams: config.output.website.diagrams,
+    locale: config.app.locale,
+  });
   const outDir = resolve(config.rootDir, config.output.dir);
   let writtenDocs: string[] = [];
   if (config.output.format === 'mdx') {
@@ -286,7 +293,7 @@ export async function runGenerate(
       appName: config.app.name,
       locale: config.app.locale,
       generator,
-      // journey-Modus: statt MDX/Sidebar wird genau eine ductus.data.json geschrieben.
+      // journey mode: exactly one ductus.data.json is written instead of MDX/sidebar.
       ...(generator === 'journey'
         ? {
             journeyData: buildJourneyData({
@@ -333,18 +340,18 @@ export async function runGenerate(
 
 export interface CheckResult {
   validation: ValidationResult;
-  /** Faithfulness-Verstöße aus den Cache-Einträgen der aktuellen Segmente. */
+  /** Faithfulness violations from the cache entries of the current segments. */
   faithfulnessViolations: Array<{ segmentId: string; violations: FaithfulnessViolation[] }>;
-  /** Unbestätigte Judge-/Lexikon-Hinweise — informativ, zählen nicht gegen den Schwellwert. */
+  /** Unconfirmed judge/lexicon hints — informational, do not count against the threshold. */
   faithfulnessHints: Array<{ segmentId: string; hints: FaithfulnessViolation[] }>;
-  /** Segmente ohne Cache-Eintrag — „noch nicht generiert". */
+  /** Segments without a cache entry — “not generated yet”. */
   notGenerated: string[];
 }
 
 /**
- * check: Extract + Validierung im Speicher (KEINE Dateien schreiben);
- * Faithfulness ausschließlich aus dem Segment-Cache — kein LLM-Aufruf,
- * keine Kosten (CI-tauglich, offline-sicher).
+ * check: extract + validation in memory (write NO files); faithfulness comes
+ * exclusively from the segment cache — no LLM call, no cost (CI-friendly,
+ * offline-safe).
  */
 export async function runCheck(config: DuctusConfig, opts: PipelineOptions = {}): Promise<CheckResult> {
   const { graph, validation } = await extractGraph(config, opts);
@@ -352,10 +359,12 @@ export async function runCheck(config: DuctusConfig, opts: PipelineOptions = {})
     return { validation, faithfulnessViolations: [], faithfulnessHints: [], notGenerated: [] };
   }
 
-  const segments = segmentGraph(graph, config.style.granularity);
+  const segments = segmentGraph(graph, config.style.granularity, {
+    miscTitle: outputStrings(config.app.locale).miscSegmentTitle,
+  });
   const cacheDir = join(config.rootDir, '.ductus', 'cache');
   if (!existsSync(cacheDir)) {
-    // Kein Cache ⇒ nichts generiert; Verzeichnis NICHT anlegen (B.8: nichts schreiben).
+    // No cache ⇒ nothing generated; do NOT create the directory (B.8: write nothing).
     return {
       validation,
       faithfulnessViolations: [],
@@ -365,7 +374,7 @@ export async function runCheck(config: DuctusConfig, opts: PipelineOptions = {})
   }
 
   const cache = new SegmentCache(cacheDir);
-  // Cache-Key exakt wie in generateDocs (llm/generate.ts): PROMPT_VERSION, model, voice|locale.
+  // Cache key exactly as in generateDocs (llm/generate.ts): PROMPT_VERSION, model, voice|locale.
   const styleKey = `${config.style.voice}|${config.app.locale}`;
   const faithfulnessViolations: CheckResult['faithfulnessViolations'] = [];
   const faithfulnessHints: CheckResult['faithfulnessHints'] = [];

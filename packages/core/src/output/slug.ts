@@ -1,12 +1,12 @@
 /**
- * Slug-Bildung für Dateinamen und Sidebar-Links der Ausgabe-Module.
- * Deterministisch: gleiche Eingabe ⇒ gleiche Ausgabe (NFR2).
+ * Slug generation for file names and sidebar links of the output modules.
+ * Deterministic: same input ⇒ same output (NFR2).
  */
 
 /**
- * Wandelt eine Node-/Segment-id in einen URL-/Dateinamen-tauglichen Slug um.
- * Führende Unterstriche fallen weg, damit z. B. "_misc" zu "misc" wird
- * (Starlight interpretiert führende Unterstriche als versteckte Seiten).
+ * Converts a node/segment id into a slug usable in URLs and file names.
+ * Leading underscores are stripped so that e.g. "_misc" becomes "misc"
+ * (Starlight treats leading underscores as hidden pages).
  */
 export function toSlug(id: string): string {
   const slug = id
@@ -15,5 +15,5 @@ export function toSlug(id: string): string {
     .replace(/[^a-z0-9-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return slug === '' ? 'seite' : slug;
+  return slug === '' ? 'page' : slug;
 }

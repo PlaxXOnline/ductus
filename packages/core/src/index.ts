@@ -1,24 +1,26 @@
 /**
- * Öffentliche API von @ductus/core: Datenformen (contracts), Graph-Pipeline,
- * LLM-Schicht, Ausgabe-Module, Report, Config, Pipeline und Adapter-Runner.
+ * Public API of @ductus/core: data shapes (contracts), graph pipeline,
+ * LLM layer, output modules, report, config, pipeline, and adapter runner.
  */
 
-// Datenformen (contracts.ts) — nur Typen.
+// Data shapes (contracts.ts) — types only.
 export type * from './contracts.js';
 
-// Graph-Pipeline (Merge, Validierung, kanonische Serialisierung).
+// Graph pipeline (merge, validation, canonical serialization).
 export * from './graph/index.js';
 
-// LLM-Schicht (BYOK, Segmentierung, Cache, Kosten).
+// LLM layer (BYOK, segmentation, cache, costs).
 export * from './llm/index.js';
 
-// Ausgabe (MDX, Website, Mermaid, Slugs, journey-Datenvertrag).
+// Output (MDX, website, Mermaid, slugs, journey data contract).
 export { buildMdxPages, writeMdxPages } from './output/mdx.js';
 export { deriveMainPath, graphToMermaid, segmentToJourney, segmentToMermaid } from './output/mermaid.js';
 export type { MainPath } from './output/mermaid.js';
 export { buildJourneyData, serializeJourneyData } from './output/journey-data.js';
 export type { BuildJourneyDataInput } from './output/journey-data.js';
 export { toSlug } from './output/slug.js';
+export { outputStrings } from './output/strings.js';
+export type { OutputStrings } from './output/strings.js';
 export { buildWebsite, scaffoldWebsite, WebsiteBuildError } from './output/website.js';
 export type { BuildWebsiteOptions, ScaffoldWebsiteOptions, WebsiteBuildSpawn } from './output/website.js';
 
@@ -26,7 +28,7 @@ export type { BuildWebsiteOptions, ScaffoldWebsiteOptions, WebsiteBuildSpawn } f
 export { buildReport, writeReport } from './report.js';
 export type { BuildReportInput } from './report.js';
 
-// Konfiguration (ductus.config.yaml).
+// Configuration (ductus.config.yaml).
 export { ConfigError, defaultConfigYaml, loadConfig } from './config.js';
 export type { DefaultConfigOptions, LoadConfigResult } from './config.js';
 
@@ -39,6 +41,6 @@ export type {
   PipelineOptions,
 } from './pipeline.js';
 
-// Adapter-Runner.
+// Adapter runner.
 export { AdapterError, runAdapter } from './adapters/runner.js';
 export type { RunAdapterOptions } from './adapters/runner.js';

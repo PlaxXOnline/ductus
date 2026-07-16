@@ -1,5 +1,5 @@
-// Fixture: go_router-Konfiguration. Wird nur geparst (parse-only),
-// unaufgelöste Bezeichner sind beabsichtigt.
+// Fixture: go_router configuration. Only parsed (parse-only),
+// unresolved identifiers are intentional.
 
 final router = GoRouter(
   routes: [

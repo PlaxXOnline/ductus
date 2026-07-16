@@ -5,9 +5,9 @@ import 'package:ductus/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// Integrationstests für den Weg-D-Zubringer des Adapter-CLI:
-/// `--from-builder` bzw. Config-Key `fromBuilder: true` reichen das
-/// build_runner-Artefakt `ductus_builder.g.json` durch — kein eigener Scan.
+/// Integration tests for the adapter CLI's path-D feeder:
+/// `--from-builder` (or config key `fromBuilder: true`) passes through the
+/// build_runner artifact `ductus_builder.g.json` — no own scan.
 void main() {
   final packageDir = Directory.current.path;
 
@@ -17,14 +17,14 @@ void main() {
           stdoutEncoding: utf8,
           stderrEncoding: utf8);
 
-  /// Temporäres Zielprojekt, wird nach dem Test entfernt.
+  /// Temporary target project, removed after the test.
   Directory tempProject() {
     final dir = Directory.systemTemp.createTempSync('ductus_from_builder_');
     addTearDown(() => dir.deleteSync(recursive: true));
     return dir;
   }
 
-  /// Ein minimales, schema-valides Builder-Artefakt in kanonischer Form.
+  /// A minimal, schema-valid builder artifact in canonical form.
   String writeArtifact(Directory project, {String? content}) {
     final artifact = content ??
         encodeCanonicalGraph(
@@ -46,7 +46,7 @@ void main() {
     return artifact;
   }
 
-  test('--from-builder reicht das Artefakt byte-genau nach stdout durch',
+  test('--from-builder passes the artifact byte-exact to stdout',
       () async {
     final project = tempProject();
     final artifact = writeArtifact(project);
@@ -57,12 +57,12 @@ void main() {
     expect(result.exitCode, 0, reason: result.stderr as String);
     expect(result.stdout, artifact);
     expect(utf8.encode(result.stdout as String), utf8.encode(artifact));
-    // Kein eigener Scan ⇒ auch keine Debug-Datei ductus_graph.g.json.
+    // No own scan ⇒ no debug file ductus_graph.g.json either.
     expect(
         File(p.join(project.path, 'ductus_graph.g.json')).existsSync(), isFalse);
   });
 
-  test('Config-Key fromBuilder: true wirkt wie das Flag', () async {
+  test('config key fromBuilder: true acts like the flag', () async {
     final project = tempProject();
     final artifact = writeArtifact(project);
     final configFile = File(p.join(project.path, 'config.json'))
@@ -75,7 +75,7 @@ void main() {
     expect(result.stdout, artifact);
   });
 
-  test('fehlendes Artefakt: Exit ungleich 0 mit build_runner-Hinweis',
+  test('missing artifact: non-zero exit with a build_runner hint',
       () async {
     final project = tempProject();
 
@@ -89,7 +89,7 @@ void main() {
     expect(result.stdout, isEmpty);
   });
 
-  test('inkompatible schemaVersion: V6-Fehler mit Exit ungleich 0', () async {
+  test('incompatible schemaVersion: V6 error with non-zero exit', () async {
     final project = tempProject();
     writeArtifact(project,
         content: '{\n  "schemaVersion": "2.0",\n  "flows": [],\n'
@@ -105,16 +105,16 @@ void main() {
     expect(result.stdout, isEmpty);
   });
 
-  test('ungültiges JSON im Artefakt: Exit ungleich 0 mit klarem Fehler',
+  test('invalid JSON in the artifact: non-zero exit with a clear error',
       () async {
     final project = tempProject();
-    writeArtifact(project, content: '{kein json');
+    writeArtifact(project, content: '{not json');
 
     final result =
         await runAdapterCli(['--project', project.path, '--from-builder']);
 
     expect(result.exitCode, isNot(0));
-    expect(result.stderr as String, contains('ungültiges JSON'));
+    expect(result.stderr as String, contains('invalid JSON'));
     expect(result.stdout, isEmpty);
   });
 }

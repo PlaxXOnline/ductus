@@ -1,9 +1,9 @@
 /**
- * `ductus init`: legt eine kommentierte ductus.config.yaml an.
- * Erkennt den Projekttyp — pubspec.yaml (Dart/Flutter, app.name +
- * go_router/auto_route ⇒ deriveFrom) vor package.json (TypeScript/JavaScript,
- * name + react-router/next ⇒ deriveFrom) — und überschreibt eine bestehende
- * Config nie stillschweigend (nur mit --force).
+ * `ductus init`: creates a commented ductus.config.yaml.
+ * Detects the project type — pubspec.yaml (Dart/Flutter, app.name +
+ * go_router/auto_route ⇒ deriveFrom) before package.json (TypeScript/JavaScript,
+ * name + react-router/next ⇒ deriveFrom) — and never silently overwrites an
+ * existing config (only with --force).
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -15,21 +15,21 @@ import { globalOptions, runAction } from './shared.js';
 
 const DART_ROUTING_PACKAGES = ['go_router', 'auto_route'] as const;
 
-/** npm-Paket → deriveFrom-Quelle des TypeScript-Adapters. */
+/** npm package → deriveFrom source of the TypeScript adapter. */
 const TS_ROUTING_PACKAGES: Record<string, string> = {
   'react-router': 'react-router',
   'react-router-dom': 'react-router',
   next: 'next',
 };
 
-/** Erkennungsergebnis; `detected` sagt, ob die Manifest-Datei existiert. */
+/** Detection result; `detected` says whether the manifest file exists. */
 interface Detection {
   detected: boolean;
   manifest: string;
   options: DefaultConfigOptions;
 }
 
-/** Liest app.name und Routing-Pakete aus einer pubspec.yaml (best effort). */
+/** Reads app.name and routing packages from a pubspec.yaml (best effort). */
 function detectFromPubspec(dir: string): Detection {
   const manifest = 'pubspec.yaml';
   const pubspecPath = join(dir, manifest);
@@ -57,12 +57,12 @@ function detectFromPubspec(dir: string): Detection {
       },
     };
   } catch {
-    // Unlesbare pubspec ⇒ Defaults verwenden, kein harter Fehler.
+    // Unreadable pubspec ⇒ use defaults, no hard error.
     return { detected: true, manifest, options };
   }
 }
 
-/** Liest app.name und Routing-Pakete aus einer package.json (best effort). */
+/** Reads app.name and routing packages from a package.json (best effort). */
 function detectFromPackageJson(dir: string): Detection {
   const manifest = 'package.json';
   const packageJsonPath = join(dir, manifest);
@@ -99,7 +99,7 @@ function detectFromPackageJson(dir: string): Detection {
       },
     };
   } catch {
-    // Unlesbare package.json ⇒ Defaults verwenden, kein harter Fehler.
+    // Unreadable package.json ⇒ use defaults, no hard error.
     return { detected: true, manifest, options };
   }
 }
@@ -108,9 +108,9 @@ export function registerInit(program: Command): void {
   program
     .command('init')
     .description(
-      'Legt eine ductus.config.yaml an und erkennt das Projekt (pubspec.yaml oder package.json).',
+      'Creates a ductus.config.yaml and detects the project (pubspec.yaml or package.json).',
     )
-    .option('--force', 'Bestehende Konfigurationsdatei überschreiben')
+    .option('--force', 'Overwrite an existing configuration file')
     .action(async (options: { force?: boolean }, command: Command) => {
       await runAction(async () => {
         const globals = globalOptions(command);
@@ -118,12 +118,12 @@ export function registerInit(program: Command): void {
 
         if (existsSync(configPath) && options.force !== true) {
           throw new ConfigError(
-            `"${configPath}" existiert bereits — nichts überschrieben. Mit --force erneut ausführen.`,
+            `"${configPath}" already exists — nothing overwritten. Run again with --force.`,
           );
         }
 
-        // Priorität pubspec.yaml vor package.json: Flutter-Projekte tragen
-        // oft eine package.json fürs Tooling, der umgekehrte Fall nicht.
+        // pubspec.yaml takes priority over package.json: Flutter projects
+        // often carry a package.json for tooling, the reverse does not happen.
         const pubspec = detectFromPubspec(dirname(configPath));
         const packageJson = pubspec.detected
           ? undefined
@@ -134,19 +134,19 @@ export function registerInit(program: Command): void {
         const detected = detection.options;
         process.stdout.write(
           [
-            `Konfiguration angelegt: ${configPath}`,
+            `Configuration created: ${configPath}`,
             detection.detected
-              ? `Erkannt aus ${detection.manifest}: Adapter "${detected.adapter}"` +
+              ? `Detected from ${detection.manifest}: adapter "${detected.adapter}"` +
                 (detected.appName !== undefined ? `, app.name "${detected.appName}"` : '') +
                 (detected.deriveFrom !== undefined
-                  ? `, Routing: ${detected.deriveFrom.join(', ')}`
+                  ? `, routing: ${detected.deriveFrom.join(', ')}`
                   : '')
-              : 'Keine pubspec.yaml/package.json gefunden — bitte adapters und app.name in der Config prüfen.',
+              : 'No pubspec.yaml/package.json found — please review adapters and app.name in the config.',
             '',
-            'Nächste Schritte:',
-            '  1. API-Key setzen:   export DUCTUS_LLM_API_KEY=<ihr-key>',
-            '  2. Graph erzeugen:   ductus extract',
-            '  3. Doku generieren:  ductus generate',
+            'Next steps:',
+            '  1. Set the API key:   export DUCTUS_LLM_API_KEY=<your-key>',
+            '  2. Build the graph:   ductus extract',
+            '  3. Generate docs:     ductus generate',
             '',
           ].join('\n'),
         );

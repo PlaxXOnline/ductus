@@ -1,5 +1,5 @@
-/// Sammelt und parst die .dart-Dateien des Zielprojekts (parse-only, ohne
-/// Resolution — dadurch ist kein `pub get` im Zielprojekt nötig).
+/// Collects and parses the target project's .dart files (parse-only, without
+/// resolution — so the target project needs no `pub get`).
 library;
 
 import 'dart:io';
@@ -13,8 +13,8 @@ import 'package:path/path.dart' as p;
 import 'graph_model.dart';
 import 'config.dart';
 
-/// Eine geparste Quelldatei. [relPath] ist projekt-relativ mit
-/// '/'-Separatoren und dient überall als deterministischer Sortierschlüssel.
+/// A parsed source file. [relPath] is project-relative with '/' separators
+/// and serves everywhere as the deterministic sort key.
 class ScannedFile {
   final String relPath;
   final String content;
@@ -34,8 +34,8 @@ class ScannedFile {
       SourceRef(file: relPath, line: lineOf(offset), symbol: symbol);
 }
 
-/// Liefert alle .dart-Dateien unter den include-Mustern, deterministisch nach
-/// relativem Pfad sortiert und parse-only analysiert.
+/// Returns all .dart files under the include patterns, deterministically
+/// sorted by relative path and analyzed parse-only.
 List<ScannedFile> scanProject(
   String projectDir,
   AdapterConfig config,
@@ -43,7 +43,7 @@ List<ScannedFile> scanProject(
 ) {
   final root = Directory(projectDir);
   if (!root.existsSync()) {
-    throw AdapterException(['Projektverzeichnis nicht gefunden: $projectDir']);
+    throw AdapterException(['Project directory not found: $projectDir']);
   }
   final globs = config.include
       .map((pattern) => Glob(pattern, context: p.posix))
@@ -67,8 +67,8 @@ List<ScannedFile> scanProject(
       throwIfDiagnostics: false,
     );
     if (result.errors.isNotEmpty) {
-      // Best effort: Datei mit Syntaxfehlern trotzdem verwenden, aber melden.
-      warn('Warnung: $rel enthält Syntaxfehler; Analyse ist best effort.');
+      // Best effort: use a file with syntax errors anyway, but report it.
+      warn('Warning: $rel contains syntax errors; analysis is best effort.');
     }
     files.add(ScannedFile(
       relPath: rel,

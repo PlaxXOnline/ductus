@@ -1,11 +1,11 @@
 /**
- * Gemeinsame Test-Helfer — Gegenstück zu dart/ductus/test/test_util.dart.
+ * Shared test helpers — counterpart of dart/ductus/test/test_util.dart.
  */
 
 import ts from 'typescript';
 import { ScannedFile } from '../src/scanner.js';
 
-/** ScriptKind passend zur Endung — wie scriptKindOf im Scanner. */
+/** ScriptKind matching the extension — like scriptKindOf in the scanner. */
 function scriptKindOf(relPath: string): ts.ScriptKind {
   if (relPath.endsWith('.tsx')) return ts.ScriptKind.TSX;
   if (relPath.endsWith('.ts') || relPath.endsWith('.mts') || relPath.endsWith('.cts')) {
@@ -14,7 +14,7 @@ function scriptKindOf(relPath: string): ts.ScriptKind {
   return ts.ScriptKind.JSX;
 }
 
-/** Parst Quelltext zu einer [ScannedFile] (parse-only, wie der Scanner). */
+/** Parses source text into a [ScannedFile] (parse-only, like the scanner). */
 export function scanSource(content: string, relPath = 'src/test.tsx'): ScannedFile {
   const sourceFile = ts.createSourceFile(
     relPath,
@@ -26,7 +26,7 @@ export function scanSource(content: string, relPath = 'src/test.tsx'): ScannedFi
   return new ScannedFile(relPath, content, sourceFile);
 }
 
-/** Sammelt Warnungen statt stderr. */
+/** Collects warnings instead of stderr. */
 export class WarnLog {
   readonly messages: string[] = [];
 

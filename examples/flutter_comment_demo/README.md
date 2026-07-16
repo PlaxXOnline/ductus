@@ -1,42 +1,41 @@
-# comment_demo — Kommentar-Konvention (Weg A)
+# comment_demo — Comment convention (path A)
 
-Diese Demo zeigt den universellen, **buildfreien** Eingabeweg: Alle
-Journey-Informationen stehen in `@journey:`-Kommentarblöcken. Die App hat
-deshalb bewusst **keine** Abhängigkeit auf das `ductus`-Paket — Kommentare
-brauchen weder Import noch Build-Schritt und funktionieren identisch in jeder
-Sprache.
+This demo shows the universal, **build-free** input path: all journey
+information lives in `@journey:` comment blocks. The app therefore
+deliberately has **no** dependency on the `ductus` package — comments need
+neither an import nor a build step and work identically in every language.
 
-## Was passiert hier?
+## What happens here?
 
-Eine kleine Notiz-App mit vier Screens (`Navigator.push`, kein Router-Paket):
+A small notes app with four screens (`Navigator.push`, no router package):
 
 | Screen | id |
 |---|---|
-| Notizliste (Start) | `note-list` |
-| Notiz-Detail | `note-detail` |
-| Notiz-Editor | `note-editor` |
-| Einstellungen | `settings` |
+| Note list (start) | `note-list` |
+| Note detail | `note-detail` |
+| Note editor | `note-editor` |
+| Settings | `settings` |
 
-Annotiert per Kommentar sind:
+Annotated via comments are:
 
-- ein `@journey:flow` (`notes`, Start `note-list`) in `lib/main.dart`,
-- je Screen ein `@journey:screen` mit `description`,
-- mehrere `@journey:action` mit `from`/`to`/`trigger` (tap, submit, back),
-- ein `@journey:decision` (`save-check`) im Editor mit **zwei bedingten
-  Actions**: „Titel vorhanden" → zurück zur Liste, „Titel fehlt" → zurück in
-  den Editor.
+- one `@journey:flow` (`notes`, start `note-list`) in `lib/main.dart`,
+- one `@journey:screen` with a `description` per screen,
+- several `@journey:action` with `from`/`to`/`trigger` (tap, submit, back),
+- one `@journey:decision` (`save-check`) in the editor with **two conditional
+  actions**: “Titel vorhanden” (title present) → back to the list,
+  “Titel fehlt” (title missing) → back to the editor.
 
-Da kein Router-Paket im Spiel ist, gibt es nichts abzuleiten — der komplette
-Graph stammt aus den Kommentaren (`source: "annotation"`).
+Since no router package is involved, there is nothing to derive — the entire
+graph comes from the comments (`source: "annotation"`).
 
-## Ausprobieren
+## Try it
 
 ```sh
-# im Verzeichnis examples/flutter_comment_demo
-ductus init                # legt ductus.config.yaml an
-ductus extract             # Graph erzeugen + validieren → journey-graph.json
-ductus generate            # zusätzlich LLM-Doku (BYOK) → docs/*.mdx
+# in the examples/flutter_comment_demo directory
+ductus init                # creates ductus.config.yaml
+ductus extract             # create + validate the graph → journey-graph.json
+ductus generate            # additionally LLM docs (BYOK) → docs/*.mdx
 ```
 
-Für `generate` muss ein API-Key gesetzt sein (`DUCTUS_LLM_API_KEY`).
-`extract` läuft komplett offline.
+`generate` requires an API key (`DUCTUS_LLM_API_KEY`).
+`extract` runs completely offline.

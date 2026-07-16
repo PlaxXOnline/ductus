@@ -1,12 +1,12 @@
-// Erstellt nach `changeset publish` GitHub-Releases — aber nur für Pakete,
-// deren Changelog-Eintrag echte Änderungen enthält. Durch die fixed-Gruppierung
-// werden bei jedem Release alle Pakete gebumpt und getaggt; Pakete ohne eigene
-// Changesets hätten sonst leere Releases (bzw. reine Dependency-Bump-Einträge).
+// Creates GitHub releases after `changeset publish` — but only for packages
+// whose changelog entry contains real changes. Because of the fixed grouping,
+// every release bumps and tags all packages; packages without their own
+// changesets would otherwise get empty releases (or pure dependency-bump entries).
 //
-// Aufruf im Release-Workflow mit:
-//   PUBLISHED_PACKAGES  JSON-Array [{name, version}] aus dem
-//                       changesets/action-Output `publishedPackages`
-//   GH_TOKEN            Token für die gh-CLI
+// Invoked in the release workflow with:
+//   PUBLISHED_PACKAGES  JSON array [{name, version}] from the
+//                       changesets/action output `publishedPackages`
+//   GH_TOKEN            token for the gh CLI
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -14,11 +14,11 @@ import { execFileSync } from "node:child_process";
 
 const published = JSON.parse(process.env.PUBLISHED_PACKAGES ?? "[]");
 if (published.length === 0) {
-  console.log("Keine publizierten Pakete — nichts zu tun.");
+  console.log("No published packages — nothing to do.");
   process.exit(0);
 }
 
-// Paketname → Verzeichnis unter packages/
+// Package name → directory under packages/
 const packageDirs = new Map();
 for (const dir of readdirSync("packages")) {
   const manifest = join("packages", dir, "package.json");
@@ -26,7 +26,7 @@ for (const dir of readdirSync("packages")) {
   packageDirs.set(JSON.parse(readFileSync(manifest, "utf8")).name, join("packages", dir));
 }
 
-// Abschnitt "## <version>" aus dem CHANGELOG herausschneiden.
+// Cut the "## <version>" section out of the CHANGELOG.
 function changelogEntry(changelog, version) {
   const lines = changelog.split("\n");
   const start = lines.findIndex((l) => l.trim() === `## ${version}`);
@@ -41,10 +41,10 @@ function changelogEntry(changelog, version) {
   return lines.slice(start + 1, end).join("\n").trim();
 }
 
-// Echte Änderung = mindestens eine Zeile, die weder Überschrift noch
-// Dependency-Bump ist. Changesets rendert Dependency-Bumps als
-// "- Updated dependencies [..]:" plus eingerückte "- @scope/pkg@x.y.z"-Zeilen;
-// ohne Commit-Links auch als bloße "- @scope/pkg@x.y.z"-Zeile.
+// A real change = at least one line that is neither a heading nor a
+// dependency bump. Changesets renders dependency bumps as
+// "- Updated dependencies [..]:" plus indented "- @scope/pkg@x.y.z" lines;
+// without commit links also as a bare "- @scope/pkg@x.y.z" line.
 function hasRealChanges(entry) {
   return entry.split("\n").some((line) => {
     const l = line.trim();
@@ -68,20 +68,20 @@ for (const { name, version } of published) {
   const tag = `${name}@${version}`;
   const dir = packageDirs.get(name);
   if (!dir) {
-    console.warn(`WARN: kein Paketverzeichnis für ${name} gefunden — übersprungen.`);
+    console.warn(`WARN: no package directory found for ${name} — skipped.`);
     continue;
   }
   const entry = changelogEntry(readFileSync(join(dir, "CHANGELOG.md"), "utf8"), version);
   if (entry === null) {
-    console.warn(`WARN: kein CHANGELOG-Abschnitt ${version} in ${dir} — übersprungen.`);
+    console.warn(`WARN: no CHANGELOG section ${version} in ${dir} — skipped.`);
     continue;
   }
   if (!hasRealChanges(entry)) {
-    console.log(`Überspringe ${tag}: keine eigenen Änderungen (nur Version-/Dependency-Bump).`);
+    console.log(`Skipping ${tag}: no own changes (version/dependency bump only).`);
     continue;
   }
   if (releaseExists(tag)) {
-    console.log(`Release ${tag} existiert bereits — übersprungen.`);
+    console.log(`Release ${tag} already exists — skipped.`);
     continue;
   }
   execFileSync(
@@ -89,5 +89,5 @@ for (const { name, version } of published) {
     ["release", "create", tag, "--verify-tag", "--title", tag, "--notes", entry],
     { stdio: "inherit" },
   );
-  console.log(`Release ${tag} erstellt.`);
+  console.log(`Release ${tag} created.`);
 }

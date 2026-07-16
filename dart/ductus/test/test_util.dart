@@ -1,10 +1,10 @@
-/// Gemeinsame Test-Helfer.
+/// Shared test helpers.
 library;
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:ductus/adapter.dart';
 
-/// Parst Quelltext zu einer [ScannedFile] (parse-only, wie der Scanner).
+/// Parses source text into a [ScannedFile] (parse-only, like the scanner).
 ScannedFile scanSource(String source, {String path = 'lib/main.dart'}) {
   final result = parseString(content: source, throwIfDiagnostics: false);
   return ScannedFile(
@@ -15,7 +15,7 @@ ScannedFile scanSource(String source, {String path = 'lib/main.dart'}) {
   );
 }
 
-/// Sammelt Warnungen statt stderr.
+/// Collects warnings instead of stderr.
 class WarnLog {
   final List<String> messages = [];
   void call(String message) => messages.add(message);

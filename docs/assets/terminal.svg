@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="13">
   <style>
-    /* Gemeinsame 18s-Zeitachse: Kommandos tippen sich ein (clip-path + steps),
-       Ausgabezeilen erscheinen kaskadiert; am Ende kurzer Fade, dann Loop. */
+    /* Shared 18s timeline: commands type themselves in (clip-path + steps),
+       output lines appear in a cascade; short fade at the end, then loop. */
     .line { opacity: 0; animation: 18s linear infinite; }
     @keyframes t1 { 0%,1.6% { clip-path: inset(-5% 100% -5% 0); } 1.7% { clip-path: inset(-5% 100% -5% 0); animation-timing-function: steps(15, end); } 7% { clip-path: inset(-5% -2% -5% 0); } 100% { clip-path: inset(-5% -2% -5% 0); } }
     @keyframes t2 { 0%,22% { clip-path: inset(-5% 100% -5% 0); } 22.1% { clip-path: inset(-5% 100% -5% 0); animation-timing-function: steps(16, end); } 28% { clip-path: inset(-5% -2% -5% 0); } 100% { clip-path: inset(-5% -2% -5% 0); } }
@@ -20,7 +20,7 @@
     @keyframes o9  { 0%,45%   { opacity: 0; } 45.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
     @keyframes o10 { 0%,48%   { opacity: 0; } 48.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
     @keyframes o11 { 0%,63%   { opacity: 0; } 63.5%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
-    /* Fade der Kommandozeilen am Zyklusende, damit der Neustart sauber wirkt */
+    /* Fade the command lines at the end of the cycle so the restart looks clean */
     @keyframes cf { 0%,93% { opacity: 1; } 97%,100% { opacity: 0; } }
     .cwrap { animation: 18s linear infinite cf; }
     @media (prefers-reduced-motion: reduce) {
@@ -28,7 +28,7 @@
     }
   </style>
 
-  <!-- Fenster -->
+  <!-- Window -->
   <rect x="0.5" y="0.5" width="759" height="469" rx="10" fill="#0d1117" stroke="#30363d"/>
   <rect x="0.5" y="0.5" width="759" height="34" rx="10" fill="#161b22" stroke="#30363d"/>
   <rect x="1" y="24" width="758" height="11" fill="#161b22"/>
@@ -39,23 +39,23 @@
 
   <!-- $ ductus extract -->
   <g class="cwrap"><text x="24" y="64" class="cmd1"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" xml:space="preserve"> ductus extract</tspan></text></g>
-  <text x="24" y="86"  fill="#8b949e" class="line" style="animation-name:o1">Adapter "dart" wird ausgeführt …</text>
-  <text x="24" y="108" fill="#e6edf3" class="line" style="animation-name:o2">Graph: <tspan fill="#79c0ff">5 Nodes</tspan>, <tspan fill="#79c0ff">8 Edges</tspan>, <tspan fill="#79c0ff">1 Flows</tspan>, 0 Warnung(en)</text>
-  <text x="24" y="130" fill="#8b949e" class="line" style="animation-name:o3">Geschrieben: journey-graph.json</text>
-  <text x="24" y="152" fill="#8b949e" class="line" style="animation-name:o4">Geschrieben: ductus-report.json</text>
+  <text x="24" y="86"  fill="#8b949e" class="line" style="animation-name:o1">Running adapter "dart" …</text>
+  <text x="24" y="108" fill="#e6edf3" class="line" style="animation-name:o2">Graph: <tspan fill="#79c0ff">5 nodes</tspan>, <tspan fill="#79c0ff">8 edges</tspan>, <tspan fill="#79c0ff">1 flows</tspan>, 0 warning(s)</text>
+  <text x="24" y="130" fill="#8b949e" class="line" style="animation-name:o3">Wrote: journey-graph.json</text>
+  <text x="24" y="152" fill="#8b949e" class="line" style="animation-name:o4">Wrote: ductus-report.json</text>
 
   <!-- $ ductus generate -->
   <g class="cwrap"><text x="24" y="196" class="cmd2"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" xml:space="preserve"> ductus generate</tspan></text></g>
-  <text x="24" y="218" fill="#d2a8ff" class="line" style="animation-name:o5">Kostenschätzung (vorab): 1 Segment(e), ~3756 Input-Token, ~1600 Output-Token</text>
-  <text x="24" y="240" fill="#8b949e" class="line" style="animation-name:o6">Segment "notes": wird generiert</text>
-  <text x="24" y="262" fill="#e6edf3" class="line" style="animation-name:o7">Generiert: 1 Segment(e) (Cache: 0 Treffer, 1 neu)</text>
-  <text x="24" y="284" fill="#e6edf3" class="line" style="animation-name:o8">Token: 3170 in / 219 out (geschätzt: 3756 / 1600)</text>
-  <text x="24" y="306" fill="#8b949e" class="line" style="animation-name:o9">Geschrieben: docs/notes.mdx</text>
+  <text x="24" y="218" fill="#d2a8ff" class="line" style="animation-name:o5">Cost estimate (upfront): 1 segment(s), ~3756 input tokens, ~1600 output tokens</text>
+  <text x="24" y="240" fill="#8b949e" class="line" style="animation-name:o6">Segment "notes": generating</text>
+  <text x="24" y="262" fill="#e6edf3" class="line" style="animation-name:o7">Generated: 1 segment(s) (cache: 0 hits, 1 new)</text>
+  <text x="24" y="284" fill="#e6edf3" class="line" style="animation-name:o8">Tokens: 3170 in / 219 out (estimated: 3756 / 1600)</text>
+  <text x="24" y="306" fill="#8b949e" class="line" style="animation-name:o9">Wrote: docs/notes.mdx</text>
   <text x="24" y="328" fill="#8b949e" class="line" style="animation-name:o10">Report: ductus-report.json</text>
 
   <!-- $ ductus check -->
   <g class="cwrap"><text x="24" y="372" class="cmd3"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" xml:space="preserve"> ductus check</tspan></text></g>
-  <text x="24" y="394" class="line" style="animation-name:o11"><tspan fill="#7ee787">check: OK</tspan><tspan fill="#8b949e" xml:space="preserve"> (0 Warnung(en), 0 Segment(e) noch nicht generiert)</tspan></text>
+  <text x="24" y="394" class="line" style="animation-name:o11"><tspan fill="#7ee787">check: OK</tspan><tspan fill="#8b949e" xml:space="preserve"> (0 warning(s), 0 segment(s) not generated yet)</tspan></text>
 
-  <text x="24" y="438" fill="#484f58" font-size="11.5">extract läuft ohne LLM · generate nur bei Graph-Änderungen (Segment-Cache) · check kostenlos in CI</text>
+  <text x="24" y="438" fill="#484f58" font-size="11.5">extract runs without an LLM · generate only on graph changes (segment cache) · check is free in CI</text>
 </svg>

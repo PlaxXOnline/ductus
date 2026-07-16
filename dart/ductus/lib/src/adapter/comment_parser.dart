@@ -1,5 +1,5 @@
-/// Weg A — Kommentar-Konvention `@journey:<typ>` in `//`- und
-/// `///`-Kommentaren; inhaltlich gleichwertig zu den Dart-Annotationen (Weg B).
+/// Path A — comment convention `@journey:<type>` in `//` and `///`
+/// comments; semantically equivalent to the Dart annotations (path B).
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
@@ -25,10 +25,10 @@ const _requiredKeys = {
 };
 
 final _journeyStart = RegExp(r'@journey:([A-Za-z_-]+)');
-// key="value" — \" escaped ein Anführungszeichen im Wert.
+// key="value" — \" escapes a quote inside the value.
 final _pair = RegExp(r'([A-Za-z][A-Za-z0-9_-]*)\s*=\s*"((?:[^"\\]|\\.)*)"');
 
-/// Ein roher `@journey:`-Block: Typ, Rohtext, Startzeile (1-basiert).
+/// A raw `@journey:` block: type, raw text, start line (1-based).
 class RawBlock {
   final String type;
   final String text;
@@ -37,9 +37,9 @@ class RawBlock {
   const RawBlock({required this.type, required this.text, required this.line});
 }
 
-/// Zerlegt eine Datei zeilenbasiert in `@journey:`-Blöcke: Start in einer
-/// Kommentarzeile, Fortsetzung in unmittelbar folgenden Kommentarzeilen,
-/// Ende an Nicht-Kommentar-Zeile oder neuem `@journey:`-Block.
+/// Splits a file line-by-line into `@journey:` blocks: start in a comment
+/// line, continuation in immediately following comment lines, end at a
+/// non-comment line or a new `@journey:` block.
 List<RawBlock> splitBlocks(String content) {
   final lines = content.split('\n');
   final blocks = <RawBlock>[];
@@ -61,7 +61,7 @@ List<RawBlock> splitBlocks(String content) {
       flush();
       continue;
     }
-    // Kommentar-Inhalt ohne führende Slashes.
+    // Comment content without leading slashes.
     final body = trimmed.replaceFirst(RegExp(r'^/{2,}'), '');
     final match = _journeyStart.firstMatch(body);
     if (match != null) {
@@ -97,9 +97,9 @@ List<String> _splitTags(String value) => value
     .where((t) => t.isNotEmpty)
     .toList();
 
-/// Kleinste umschließende Klassendeklaration für einen Offset. Doc-Kommentare
-/// (`///`) gehören zum AST-Knoten, `//`-Kommentare nicht — deshalb zusätzlich
-/// [nextClassAfter] für Blöcke oberhalb einer Klasse.
+/// Smallest enclosing class declaration for an offset. Doc comments (`///`)
+/// belong to the AST node, `//` comments do not — hence additionally
+/// [nextClassAfter] for blocks above a class.
 ClassDeclaration? _enclosingClass(CompilationUnit unit, int offset) {
   for (final decl in unit.declarations) {
     if (decl is ClassDeclaration && decl.offset <= offset && offset < decl.end) {
@@ -119,9 +119,9 @@ ClassDeclaration? _nextClassAfter(CompilationUnit unit, int offset) {
   return best;
 }
 
-/// Parst alle `@journey:`-Blöcke einer Datei. Warnungen (unbekannte Keys,
-/// unbekannte Trigger/Typen) via [warn]; fatale Probleme (fehlende
-/// Pflichtfelder, nicht auflösbares `from`) landen in [errors].
+/// Parses all `@journey:` blocks of a file. Warnings (unknown keys, unknown
+/// triggers/types) via [warn]; fatal problems (missing required fields,
+/// unresolvable `from`) go into [errors].
 ManualExtraction parseComments(
   ScannedFile file,
   void Function(String) warn,
@@ -132,8 +132,8 @@ ManualExtraction parseComments(
   for (final block in splitBlocks(file.content)) {
     final where = '${file.relPath}:${block.line}';
     if (!_blockTypes.contains(block.type)) {
-      warn('Warnung: $where: unbekannter @journey-Typ "${block.type}" — '
-          'Block wird ignoriert.');
+      warn('Warning: $where: unknown @journey type "${block.type}" — '
+          'block ignored.');
       continue;
     }
 
@@ -141,8 +141,8 @@ ManualExtraction parseComments(
     for (final m in _pair.allMatches(block.text)) {
       final key = m.group(1)!;
       if (!_knownKeys[block.type]!.contains(key)) {
-        warn('Warnung: $where: unbekannter Key "$key" in '
-            '@journey:${block.type} — wird ignoriert.');
+        warn('Warning: $where: unknown key "$key" in '
+            '@journey:${block.type} — ignored.');
         continue;
       }
       values[key] = _unescape(m.group(2)!);
@@ -152,7 +152,7 @@ ManualExtraction parseComments(
         .where((k) => !values.containsKey(k))
         .toList();
     if (missing.isNotEmpty) {
-      errors.add('$where: @journey:${block.type} fehlen Pflichtfelder: '
+      errors.add('$where: @journey:${block.type} is missing required fields: '
           '${missing.join(', ')}.');
       continue;
     }
@@ -163,7 +163,7 @@ ManualExtraction parseComments(
     switch (block.type) {
       case 'screen':
       case 'decision':
-        // Block einer Klasse zuordnen: umschließend oder direkt darüber.
+        // Attribute the block to a class: enclosing or directly above.
         final cls = enclosing ?? _nextClassAfter(file.unit, blockOffset);
         final symbol = cls?.namePart.typeName.lexeme;
         final node = GraphNode(
@@ -184,13 +184,13 @@ ManualExtraction parseComments(
       case 'action':
         var trigger = values['trigger'] ?? 'tap';
         if (!validTriggers.contains(trigger)) {
-          warn('Warnung: $where: unbekannter trigger "$trigger" — '
-              'verwende "tap".');
+          warn('Warning: $where: unknown trigger "$trigger" — '
+              'using "tap".');
           trigger = 'tap';
         }
         if (values['from'] == null && enclosing == null) {
-          errors.add('$where: @journey:action ohne "from" und ohne '
-              'umschließende Klasse — "from" nicht bestimmbar.');
+          errors.add('$where: @journey:action without "from" and without an '
+              'enclosing class — cannot determine "from".');
           continue;
         }
         result.actions.add(ActionCandidate(

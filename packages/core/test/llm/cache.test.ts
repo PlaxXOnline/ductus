@@ -16,7 +16,7 @@ function freshCache(): SegmentCache {
 }
 
 describe('SegmentCache.computeKey', () => {
-  it('liefert einen stabilen sha256-Hex-Key', () => {
+  it('returns a stable sha256 hex key', () => {
     const cache = freshCache();
     const a = cache.computeKey(baseParts);
     const b = cache.computeKey({ ...baseParts });
@@ -24,7 +24,7 @@ describe('SegmentCache.computeKey', () => {
     expect(a).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('ändert sich mit jedem Bestandteil', () => {
+  it('changes with every component', () => {
     const cache = freshCache();
     const base = cache.computeKey(baseParts);
     expect(cache.computeKey({ ...baseParts, model: 'anderes-modell' })).not.toBe(base);
@@ -35,7 +35,7 @@ describe('SegmentCache.computeKey', () => {
 });
 
 describe('SegmentCache get/set', () => {
-  it('macht einen Roundtrip inklusive usage und violations', () => {
+  it('round-trips including usage and violations', () => {
     const cache = freshCache();
     const key = cache.computeKey(baseParts);
     expect(cache.get(key)).toBeUndefined();
@@ -49,14 +49,14 @@ describe('SegmentCache get/set', () => {
     expect(cache.get(key)).toEqual(entry);
   });
 
-  it('behandelt korrupte Dateien als Miss', () => {
+  it('treats corrupt files as a miss', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-cache-test-'));
     const cache = new SegmentCache(dir);
     const key = cache.computeKey(baseParts);
     writeFileSync(join(dir, `${key}.json`), '{kein json', 'utf8');
     expect(cache.get(key)).toBeUndefined();
 
-    // Valides JSON mit falscher Form zählt ebenfalls als Miss.
+    // Valid JSON with the wrong shape also counts as a miss.
     writeFileSync(join(dir, `${key}.json`), '{"foo": 1}', 'utf8');
     expect(cache.get(key)).toBeUndefined();
   });

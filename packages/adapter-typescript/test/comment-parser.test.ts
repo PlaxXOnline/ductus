@@ -1,6 +1,6 @@
 /**
- * Weg A — Kommentar-Konvention `@journey:<typ>`. Semantik-Spiegel von
- * dart/ductus/test/comment_parser_test.dart, angepasst an TS-Komponenten.
+ * Path A — comment convention `@journey:<type>`. Semantic mirror of
+ * dart/ductus/test/comment_parser_test.dart, adapted to TS components.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -8,7 +8,7 @@ import { parseComments } from '../src/comment-parser.js';
 import { scanSource, WarnLog } from './test-util.js';
 
 describe('parseComments', () => {
-  it('parst einen Screen-Block mit Escapes im Wert', () => {
+  it('parses a screen block with escapes in the value', () => {
     const file = scanSource(
       '// @journey:screen id="login" title="Sag \\"Hallo\\"" description="Erster Schritt." tags="auth, entry"\n' +
         'class LoginScreen {}\n',
@@ -32,7 +32,7 @@ describe('parseComments', () => {
     expect(Object.fromEntries(result.screenSymbols)).toEqual({ LoginScreen: 'login' });
   });
 
-  it('mehrzeilige Blöcke: Fortsetzung in Folge-Kommentarzeilen', () => {
+  it('multi-line blocks: continuation in following comment lines', () => {
     const file = scanSource(
       [
         '// @journey:screen id="dashboard" title="Übersicht"',
@@ -51,7 +51,7 @@ describe('parseComments', () => {
     expect(result.nodes[0]!.flow).toBe('main');
   });
 
-  it('Block endet an Nicht-Kommentar-Zeile', () => {
+  it('block ends at a non-comment line', () => {
     const file = scanSource(
       [
         '// @journey:screen id="a" title="A"',
@@ -68,7 +68,7 @@ describe('parseComments', () => {
     expect(result.nodes[0]!.description).toBeUndefined();
   });
 
-  it('Block endet an neuem @journey:-Block', () => {
+  it('block ends at a new @journey: block', () => {
     const file = scanSource(
       [
         '// @journey:screen id="a" title="A"',
@@ -84,7 +84,7 @@ describe('parseComments', () => {
     expect(result.nodes.map((n) => n.id)).toEqual(['a', 'b']);
   });
 
-  it('unbekannte Keys: Warnung, Wert wird ignoriert', () => {
+  it('unknown keys: warning, value is ignored', () => {
     const file = scanSource(
       ['// @journey:screen id="a" title="A" farbe="blau"', 'class Foo {}', ''].join('\n'),
     );
@@ -100,7 +100,7 @@ describe('parseComments', () => {
     expect(warn.messages[0]).toContain('src/test.tsx:1');
   });
 
-  it('fehlendes Pflichtfeld ist ein Fehler', () => {
+  it('a missing required field is an error', () => {
     const file = scanSource(['// @journey:screen id="a"', 'class Foo {}', ''].join('\n'));
     const errors: string[] = [];
     const result = parseComments(file, new WarnLog().call, errors);
@@ -111,7 +111,7 @@ describe('parseComments', () => {
     expect(errors[0]).toContain('src/test.tsx:1');
   });
 
-  it('flow-Block mit allen Pflichtfeldern', () => {
+  it('flow block with all required fields', () => {
     const file = scanSource(
       [
         '// @journey:flow id="auth" title="Anmeldung" start="login"',
@@ -132,7 +132,7 @@ describe('parseComments', () => {
     expect(flow.sourceRef).toEqual({ file: 'src/test.tsx', line: 1 });
   });
 
-  it('action ohne from merkt sich die umschließende Komponente', () => {
+  it('action without from remembers the enclosing component', () => {
     const file = scanSource(
       [
         '// @journey:screen id="login" title="Anmeldung"',
@@ -155,7 +155,7 @@ describe('parseComments', () => {
     expect(action.sourceRef).toEqual({ file: 'src/test.tsx', line: 3, symbol: 'LoginScreen' });
   });
 
-  it('action ohne from und ohne umschließende Komponente ist ein Fehler', () => {
+  it('action without from and without an enclosing component is an error', () => {
     const file = scanSource(
       ['// @journey:action label="Anmelden" to="dashboard"', 'function onSubmit() {}', ''].join(
         '\n',
@@ -170,9 +170,9 @@ describe('parseComments', () => {
     expect(errors[0]).toContain('from');
   });
 
-  it('from-Inferenz Ende-zu-Ende über die screenSymbols-Tabelle', () => {
-    // Kommentar-Screen oberhalb der Komponente + Action in der Komponente:
-    // die Komponente ist als Screen bekannt, deren id wird zum from.
+  it('from inference end to end via the screenSymbols table', () => {
+    // Comment screen above the component + action inside the component:
+    // the component is known as a screen, its id becomes the from.
     const file = scanSource(
       [
         '// @journey:screen id="login" title="Anmeldung"',
@@ -191,7 +191,7 @@ describe('parseComments', () => {
     expect(screenId).toBe('login');
   });
 
-  it('unbekannter Trigger: Warnung und Default tap', () => {
+  it('unknown trigger: warning and default tap', () => {
     const file = scanSource(
       [
         'class LoginScreen {',
@@ -212,7 +212,7 @@ describe('parseComments', () => {
     expect(warn.messages[0]).toContain('wisch');
   });
 
-  it('unbekannter @journey-Typ: Warnung, Block ignoriert', () => {
+  it('unknown @journey type: warning, block ignored', () => {
     const file = scanSource(['// @journey:seite id="a" title="A"', 'class Foo {}', ''].join('\n'));
     const warn = new WarnLog();
     const errors: string[] = [];
@@ -224,9 +224,9 @@ describe('parseComments', () => {
     expect(warn.messages[0]).toContain('seite');
   });
 
-  // ─── TS-spezifische Komponenten-Bindung ─────────────────────────────────
+  // ─── TS-specific component binding ──────────────────────────────────────
 
-  it('bindet den Screen-Block an eine Funktionskomponente darunter', () => {
+  it('binds the screen block to a function component below it', () => {
     const file = scanSource(
       [
         '// @journey:screen id="login" title="Anmeldung"',
@@ -245,7 +245,7 @@ describe('parseComments', () => {
     expect(result.screenSymbols.get('LoginScreen')).toBe('login');
   });
 
-  it('bindet den Screen-Block an eine const-Arrow-Komponente darunter', () => {
+  it('binds the screen block to a const arrow component below it', () => {
     const file = scanSource(
       ['// @journey:screen id="login" title="Anmeldung"', 'const LoginScreen = () => null;', ''].join(
         '\n',
@@ -259,7 +259,7 @@ describe('parseComments', () => {
     expect(result.screenSymbols.get('LoginScreen')).toBe('login');
   });
 
-  it('bindet den Screen-Block an eine Klasse darunter', () => {
+  it('binds the screen block to a class below it', () => {
     const file = scanSource(
       [
         '// @journey:screen id="login" title="Anmeldung"',
@@ -275,7 +275,7 @@ describe('parseComments', () => {
     expect(result.screenSymbols.get('LoginScreen')).toBe('login');
   });
 
-  it('bindet den Screen-Block innerhalb einer Komponente an die umschließende', () => {
+  it('binds a screen block inside a component to the enclosing one', () => {
     const file = scanSource(
       [
         'function LoginScreen() {',
@@ -291,19 +291,19 @@ describe('parseComments', () => {
     expect(errors).toEqual([]);
     const node = result.nodes[0]!;
     expect(node.sourceRef).toEqual({ file: 'src/test.tsx', line: 2, symbol: 'LoginScreen' });
-    // tags-Splitting: getrimmt, leere Einträge entfallen.
+    // tags splitting: trimmed, empty entries dropped.
     expect(node.tags).toEqual(['auth', 'entry']);
     expect(result.screenSymbols.get('LoginScreen')).toBe('login');
   });
 });
 
-describe('parseComments — Zeilen-Zählung (Review-Regression)', () => {
-  it('U+2028 in einem String verschiebt die Komponenten-Zuordnung nicht', () => {
-    // TypeScripts Line-Map zählt U+2028 als Zeilenumbruch, der zeilenbasierte
-    // Parser nicht — die Block-Zuordnung muss der '\n'-Zählung folgen.
-    // Das U+2028 liegt VOR dem Block in einer anderen Komponente: mit der
-    // TS-Line-Map würde der Block-Offset in AScreen hineinrutschen und der
-    // Screen fälschlich AScreen zugeordnet.
+describe('parseComments — line counting (review regression)', () => {
+  it('U+2028 in a string does not shift the component mapping', () => {
+    // TypeScript's line map counts U+2028 as a line break, the line-based
+    // parser does not — the block mapping must follow the '\n' counting.
+    // The U+2028 sits BEFORE the block in a different component: with the
+    // TS line map, the block offset would slip into AScreen and the screen
+    // would wrongly be attributed to AScreen.
     const source = [
       'export function AScreen() {',
       "  const weird = 'vor nach';",

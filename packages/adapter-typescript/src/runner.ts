@@ -1,6 +1,6 @@
 /**
- * Orchestrierung des Adapters: Scan → Weg A (Kommentare) → Weg C
- * (Ableitungen) → from-Inferenz → Merge → kanonisches JSON. Spiegel von
+ * Orchestration of the adapter: scan → path A (comments) → path C
+ * (derivations) → `from` inference → merge → canonical JSON. Mirror of
  * dart/ductus/lib/src/adapter/runner.dart.
  */
 
@@ -28,9 +28,9 @@ export interface RunAdapterOptions {
 }
 
 /**
- * Führt den kompletten Adapter-Lauf aus und liefert das kanonische
- * Graph-JSON. Fatale Probleme (Pflichtfelder, nicht auflösbares `from`,
- * Merge-Konflikte) werfen gebündelt eine [AdapterException].
+ * Executes the complete adapter run and returns the canonical graph JSON.
+ * Fatal problems (required fields, unresolvable `from`, merge conflicts)
+ * throw a bundled [AdapterException].
  */
 export function runAdapter(opts: RunAdapterOptions): string {
   const { projectDir, config, warn } = opts;
@@ -41,10 +41,10 @@ export function runAdapter(opts: RunAdapterOptions): string {
   const edges: GraphEdge[] = [];
   const flows: GraphFlow[] = [];
   const actions: ActionCandidate[] = [];
-  /** Komponenten-Name → Screen-Id über alle Dateien (first-wins). */
+  /** Component name → screen id across all files (first wins). */
   const manualScreenSymbols = new Map<string, string>();
 
-  // Weg A — Kommentar-Konvention.
+  // Path A — comment convention.
   for (const file of files) {
     const extraction = parseComments(file, warn, errors);
     nodes.push(...extraction.nodes);
@@ -55,8 +55,8 @@ export function runAdapter(opts: RunAdapterOptions): string {
     }
   }
 
-  // Weg C — Ableitungen. Next zuerst: seine Tabellen fließen in die
-  // react-router-Ableitung ein (wie auto_route → go_router im Dart-Adapter).
+  // Path C — derivations. Next first: its tables feed into the react-router
+  // derivation (like auto_route → go_router in the Dart adapter).
   let next: NextDerivation | undefined;
   if (config.deriveNext) {
     next = deriveNext(files, warn, { manualScreenSymbols, projectDir });
@@ -77,13 +77,13 @@ export function runAdapter(opts: RunAdapterOptions): string {
     edges.push(...reactRouter.edges);
   }
 
-  // from-Inferenz für Actions ohne explizites from: umschließende Komponente
-  // in manuellen Screens, dann in den Ableitungs-Tabellen suchen.
+  // `from` inference for actions without an explicit from: look up the
+  // enclosing component in manual screens, then in the derivation tables.
   for (const action of actions) {
     let from = action.from;
     if (from === undefined) {
       const name = action.enclosingName;
-      // react-routers element-Zuordnung ist präziser als die Next-Heuristik.
+      // react-router's element mapping is more precise than the Next heuristic.
       from =
         name === undefined
           ? undefined
@@ -92,8 +92,8 @@ export function runAdapter(opts: RunAdapterOptions): string {
             next?.componentToScreen.get(name));
       if (from === undefined) {
         errors.push(
-          `${refToString(action.sourceRef)}: Action "${action.label}" ohne "from" — ` +
-            `umschließende Komponente ${name ?? '(keine)'} ist kein bekannter Screen.`,
+          `${refToString(action.sourceRef)}: action "${action.label}" without "from" — ` +
+            `enclosing component ${name ?? '(none)'} is not a known screen.`,
         );
         continue;
       }

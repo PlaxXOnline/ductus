@@ -5,7 +5,7 @@ import 'test_util.dart';
 
 void main() {
   group('parseComments', () {
-    test('parst einen Screen-Block mit Escapes im Wert', () {
+    test('parses a screen block with escapes in the value', () {
       final file = scanSource(r'''
 // @journey:screen id="login" title="Sag \"Hallo\"" tags="auth, entry"
 class LoginScreen {}
@@ -28,7 +28,7 @@ class LoginScreen {}
       expect(result.screenClassNames, {'LoginScreen': 'login'});
     });
 
-    test('mehrzeilige Blöcke: Fortsetzung in Folge-Kommentarzeilen', () {
+    test('multi-line blocks: continuation in subsequent comment lines', () {
       final file = scanSource('''
 // @journey:screen id="dashboard" title="Übersicht"
 //   description="Zentrale Übersicht nach der Anmeldung."
@@ -44,11 +44,11 @@ class DashboardScreen {}
       expect(node.flow, 'main');
     });
 
-    test('Block endet an Nicht-Kommentar-Zeile', () {
+    test('block ends at a non-comment line', () {
       final file = scanSource('''
 // @journey:screen id="a" title="A"
 var x = 1;
-// description="gehört nicht mehr zum Block"
+// description="no longer part of the block"
 ''');
       final errors = <String>[];
       final result = parseComments(file, WarnLog().call, errors);
@@ -57,7 +57,7 @@ var x = 1;
       expect(result.nodes.single.description, isNull);
     });
 
-    test('Block endet an neuem @journey:-Block', () {
+    test('block ends at a new @journey: block', () {
       final file = scanSource('''
 // @journey:screen id="a" title="A"
 // @journey:screen id="b" title="B"
@@ -70,7 +70,7 @@ class Foo {}
       expect(result.nodes.map((n) => n.id), ['a', 'b']);
     });
 
-    test('unbekannte Keys: Warnung, Wert wird ignoriert', () {
+    test('unknown keys: warning, value is ignored', () {
       final file = scanSource('''
 // @journey:screen id="a" title="A" farbe="blau"
 class Foo {}
@@ -86,7 +86,7 @@ class Foo {}
       expect(warn.messages.single, contains('lib/main.dart:1'));
     });
 
-    test('fehlendes Pflichtfeld ist ein Fehler', () {
+    test('missing required field is an error', () {
       final file = scanSource('''
 // @journey:screen id="a"
 class Foo {}
@@ -99,7 +99,7 @@ class Foo {}
       expect(errors.single, contains('lib/main.dart:1'));
     });
 
-    test('flow-Block mit allen Pflichtfeldern', () {
+    test('flow block with all required fields', () {
       final file = scanSource('''
 // @journey:flow id="auth" title="Anmeldung" start="login"
 //   description="Alles rund um die Anmeldung."
@@ -114,7 +114,7 @@ class Foo {}
       expect(flow.description, 'Alles rund um die Anmeldung.');
     });
 
-    test('action ohne from merkt sich die umschließende Klasse', () {
+    test('action without from records the enclosing class', () {
       final file = scanSource('''
 // @journey:screen id="login" title="Anmeldung"
 class LoginScreen {
@@ -132,7 +132,7 @@ class LoginScreen {
       expect(action.trigger, 'submit');
     });
 
-    test('action ohne from und ohne umschließende Klasse ist ein Fehler', () {
+    test('action without from and without an enclosing class is an error', () {
       final file = scanSource('''
 // @journey:action label="Anmelden" to="dashboard"
 void onSubmit() {}
@@ -146,9 +146,9 @@ void onSubmit() {}
       expect(errors.single, contains('from'));
     });
 
-    test('from-Inferenz Ende-zu-Ende über runAdapter-Bausteine', () {
-      // Kommentar-Screen oberhalb der Klasse + Action in der Klasse:
-      // die Klasse ist als Screen bekannt, deren id wird zum from.
+    test('from inference end-to-end via runAdapter building blocks', () {
+      // Comment screen above the class + action inside the class:
+      // the class is known as a screen, its id becomes the from.
       final file = scanSource('''
 // @journey:screen id="login" title="Anmeldung"
 class LoginScreen {
@@ -165,7 +165,7 @@ class LoginScreen {
       expect(screenId, 'login');
     });
 
-    test('unbekannter Trigger: Warnung und Default tap', () {
+    test('unknown trigger: warning and default tap', () {
       final file = scanSource('''
 class LoginScreen {
   // @journey:action label="Anmelden" to="dashboard" trigger="wisch"
@@ -181,7 +181,7 @@ class LoginScreen {
       expect(warn.messages.single, contains('wisch'));
     });
 
-    test('unbekannter @journey-Typ: Warnung, Block ignoriert', () {
+    test('unknown @journey type: warning, block ignored', () {
       final file = scanSource('''
 // @journey:seite id="a" title="A"
 class Foo {}

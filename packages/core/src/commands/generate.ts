@@ -1,9 +1,9 @@
 /**
- * `ductus generate`: extract + LLM-Generierung → MDX/Website.
- * Exit 1 bei Validierungsfehlern, Exit 2 bei Faithfulness über Schwellwert
- * (Output wird trotzdem geschrieben, Verstöße stehen im Report), Exit 3 bei
- * Config-/LLM-/Adapterfehlern. `--build` baut nach dem Website-Export
- * zusätzlich die Website (npm ci/install + npm run build im Site-Verzeichnis).
+ * `ductus generate`: extract + LLM generation → MDX/website.
+ * Exit 1 on validation errors, exit 2 on faithfulness above threshold
+ * (output is still written, violations are listed in the report), exit 3 on
+ * config/LLM/adapter errors. `--build` additionally builds the website after
+ * the export (npm ci/install + npm run build in the site directory).
  */
 
 import { resolve } from 'node:path';
@@ -15,32 +15,32 @@ import { globalOptions, loadConfigWithWarnings, printIssues, runAction, stderrLo
 export function registerGenerate(program: Command): void {
   program
     .command('generate')
-    .description('Erzeugt Endnutzer-Dokumentation (MDX oder Website) aus dem Graphen.')
+    .description('Generates end-user documentation (MDX or website) from the graph.')
     .option(
       '--build',
-      'Website nach dem Export bauen: npm ci/install + npm run build im Site-Verzeichnis (nur output.format: website)',
+      'Build the website after the export: npm ci/install + npm run build in the site directory (output.format: website only)',
     )
     .action(async (options: { build?: boolean }, command: Command) => {
       await runAction(async () => {
         const globals = globalOptions(command);
 
-        // Usage-Fehler: --offline garantiert "kein Netz" — npm ci/install
-        // würde das brechen. Kein stiller Fallback, Exit 3.
+        // Usage error: --offline guarantees "no network access" — npm ci/install
+        // would break that. No silent fallback, exit 3.
         if (options.build === true && globals.offline === true) {
           process.stderr.write(
-            'Fehler: --build kann nicht mit --offline kombiniert werden — --offline garantiert ' +
-              '"kein Netzzugriff", npm ci/install würde das brechen.\n',
+            'Error: --build cannot be combined with --offline — --offline guarantees ' +
+              '"no network access", npm ci/install would break that.\n',
           );
           return 3;
         }
 
         const config = loadConfigWithWarnings(globals.config);
 
-        // Usage-Fehler: --build ist nur im Website-Modus sinnvoll —
-        // kein stiller Fallback, Exit 3.
+        // Usage error: --build only makes sense in website mode —
+        // no silent fallback, exit 3.
         if (options.build === true && config.output.format !== 'website') {
           process.stderr.write(
-            `Fehler: --build erfordert output.format: website (konfiguriert: "${config.output.format}").\n`,
+            `Error: --build requires output.format: website (configured: "${config.output.format}").\n`,
           );
           return 3;
         }
@@ -58,18 +58,18 @@ export function registerGenerate(program: Command): void {
         const result = run.result;
         if (result !== undefined) {
           process.stdout.write(
-            `Generiert: ${result.segments.length} Segment(e) ` +
-              `(Cache: ${result.cache.hits} Treffer, ${result.cache.misses} neu)\n`,
+            `Generated: ${result.segments.length} segment(s) ` +
+              `(cache: ${result.cache.hits} hits, ${result.cache.misses} new)\n`,
           );
           process.stdout.write(
-            `Token: ${result.usage.inputTokens} in / ${result.usage.outputTokens} out ` +
-              `(geschätzt: ${result.estimated.inputTokens} / ${result.estimated.outputTokens})` +
-              (run.costUsd !== undefined ? `, Kosten ~${run.costUsd.toFixed(4)} USD` : '') +
+            `Tokens: ${result.usage.inputTokens} in / ${result.usage.outputTokens} out ` +
+              `(estimated: ${result.estimated.inputTokens} / ${result.estimated.outputTokens})` +
+              (run.costUsd !== undefined ? `, cost ~${run.costUsd.toFixed(4)} USD` : '') +
               '\n',
           );
         }
         for (const path of run.writtenDocs) {
-          process.stdout.write(`Geschrieben: ${path}\n`);
+          process.stdout.write(`Wrote: ${path}\n`);
         }
         if (run.reportPath !== undefined) {
           process.stdout.write(`Report: ${run.reportPath}\n`);
@@ -78,18 +78,18 @@ export function registerGenerate(program: Command): void {
         const faithfulnessExceeded = run.violationsTotal > config.llm.faithfulnessThreshold;
         if (faithfulnessExceeded) {
           process.stderr.write(
-            `Faithfulness: ${run.violationsTotal} Verstoß/Verstöße über Schwellwert ` +
-              `${config.llm.faithfulnessThreshold} — Details im Report.\n`,
+            `Faithfulness: ${run.violationsTotal} violation(s) above threshold ` +
+              `${config.llm.faithfulnessThreshold} — see the report for details.\n`,
           );
         }
 
-        // Build erst NACH der Faithfulness-Meldung: ein erfolgreicher
-        // Build maskiert Exit 2 nicht; scheitert der Build, wirft buildWebsite
-        // WebsiteBuildError und dessen Exit 3 gewinnt (via runAction).
+        // Build only AFTER the faithfulness message: a successful build does
+        // not mask exit 2; if the build fails, buildWebsite throws
+        // WebsiteBuildError and its exit 3 wins (via runAction).
         if (options.build === true) {
           const siteDir = resolve(config.rootDir, config.output.dir);
           const distDir = await buildWebsite({ siteDir, log: stderrLog });
-          process.stdout.write(`Website gebaut: ${distDir}\n`);
+          process.stdout.write(`Website built: ${distDir}\n`);
         }
 
         return faithfulnessExceeded ? 2 : 0;

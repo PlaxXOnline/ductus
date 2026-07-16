@@ -1,7 +1,8 @@
 /**
- * Adapter-Runner: führt einen Adapter-Befehl nach dem Adapter-Vertrag aus
- * (stdout = genau ein Graph-JSON, stderr = Diagnostik, Exit 0/≠0), sammelt
- * beides ein und prüft die Ausgabe syntaktisch gegen das Graph-Schema (A3).
+ * Adapter runner: executes an adapter command according to the adapter
+ * contract (stdout = exactly one graph JSON, stderr = diagnostics,
+ * exit 0/≠0), collects both, and checks the output syntactically against
+ * the graph schema (A3).
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -15,7 +16,7 @@ import type { JourneyGraph } from '@ductus/schema';
 import { journeyGraphJsonSchema } from '@ductus/schema';
 import type { AdapterConfigEntry, AdapterRunResult } from '../contracts.js';
 
-/** Adapterfehler ⇒ Exit-Code 3 (wie LLM-/Konfigurationsfehler). */
+/** Adapter error ⇒ exit code 3 (like LLM/configuration errors). */
 export class AdapterError extends Error {
   constructor(message: string) {
     super(message);
@@ -26,29 +27,29 @@ export class AdapterError extends Error {
 const ADAPTER_TIMEOUT_MS = 120_000;
 const STDERR_EXCERPT_CHARS = 800;
 
-// Eigene Ajv-Instanz (das Schema trägt eine $id — keine Doppel-Registrierung
-// mit der Instanz aus graph/validate.ts riskieren).
+// Dedicated Ajv instance (the schema carries an $id — do not risk a double
+// registration with the instance from graph/validate.ts).
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const validateAdapterOutput = ajv.compile<JourneyGraph>(
   journeyGraphJsonSchema as unknown as Record<string, unknown>,
 );
 
 export interface RunAdapterOptions {
-  /** Verzeichnis der ductus.config.yaml (Basis für relative Pfade). */
+  /** Directory of ductus.config.yaml (base for relative paths). */
   rootDir: string;
-  /** Adapter laufen lokal — offline schränkt sie nicht ein (NFR4). */
+  /** Adapters run locally — offline does not restrict them (NFR4). */
   offline?: boolean;
   log?: (message: string) => void;
 }
 
-/** Kürzt stderr auf einen lesbaren Auszug für Fehlermeldungen. */
+/** Trims stderr to a readable excerpt for error messages. */
 function stderrExcerpt(diagnostics: string): string {
   const trimmed = diagnostics.trim();
-  if (trimmed === '') return '(keine stderr-Ausgabe)';
+  if (trimmed === '') return '(no stderr output)';
   return trimmed.length <= STDERR_EXCERPT_CHARS ? trimmed : `…${trimmed.slice(-STDERR_EXCERPT_CHARS)}`;
 }
 
-/** Sucht ein Binary in <rootDir>/node_modules/.bin und im PATH. */
+/** Looks for a binary in <rootDir>/node_modules/.bin and in the PATH. */
 function findBinary(name: string, rootDir: string): string | undefined {
   const local = join(rootDir, 'node_modules', '.bin', name);
   if (existsSync(local)) return local;
@@ -59,10 +60,10 @@ function findBinary(name: string, rootDir: string): string | undefined {
 }
 
 /**
- * Einfacher YAML-Check (Kette 3 der Auflösung): deklariert die pubspec.yaml des
- * Zielprojekts `ductus` unter dependencies/dev_dependencies? Ein Zeilen-Scan
- * genügt — es geht nur um die Frage "ist das Paket auflösbar?", nicht um
- * vollständiges YAML-Parsing.
+ * Simple YAML check (chain 3 of the resolution): does the target project's
+ * pubspec.yaml declare `ductus` under dependencies/dev_dependencies? A line
+ * scan is enough — the only question is "is the package resolvable?", not
+ * full YAML parsing.
  */
 function pubspecDeclaresDuctus(projectDir: string): boolean {
   const pubspecPath = join(projectDir, 'pubspec.yaml');
@@ -73,24 +74,24 @@ function pubspecDeclaresDuctus(projectDir: string): boolean {
       inDependencies = true;
       continue;
     }
-    // Neuer Top-Level-Key beendet den (dev_)dependencies-Block.
+    // A new top-level key ends the (dev_)dependencies block.
     if (/^\S/.test(line)) inDependencies = false;
     if (inDependencies && /^\s+ductus\s*:/.test(line)) return true;
   }
   return false;
 }
 
-/** Ergebnis der rein lesenden Abfrage der globalen pub-Aktivierung (Kette 4). */
+/** Result of the read-only query of the global pub activation (chain 4). */
 export interface GlobalActivation {
   activated: boolean;
-  /** Quellverzeichnis bei `dart pub global activate --source path`. */
+  /** Source directory for `dart pub global activate --source path`. */
   path?: string;
 }
 
 /**
- * Prüft NUR lesend, ob `ductus` global aktiviert ist (Kette 4) —
- * `dart pub global list` verändert den globalen pub-Zustand nicht.
- * Bei path-Aktivierung liefert pub die Quelle mit (`ductus 0.1.0 at path "…"`).
+ * Checks READ-ONLY whether `ductus` is globally activated (chain 4) —
+ * `dart pub global list` does not modify the global pub state.
+ * For a path activation, pub includes the source (`ductus 0.1.0 at path "…"`).
  */
 function ductusGlobalActivation(): GlobalActivation {
   const result = spawnSync('dart', ['pub', 'global', 'list'], {
@@ -103,24 +104,24 @@ function ductusGlobalActivation(): GlobalActivation {
   return { activated: true, ...(match[1] !== undefined ? { path: match[1] } : {}) };
 }
 
-/** Testbar injizierbare Teile der Dart-Auflösung (globalen pub-Zustand nie anfassen). */
+/** Injectable parts of the Dart resolution for tests (never touch the global pub state). */
 export interface DartResolutionOptions {
-  /** Umgebungsvariablen (Default: process.env). */
+  /** Environment variables (default: process.env). */
   env?: Record<string, string | undefined>;
-  /** Abfrage für Kette 4 (Default: `dart pub global list`, rein lesend). */
+  /** Query for chain 4 (default: `dart pub global list`, read-only). */
   getGlobalActivation?: () => GlobalActivation;
 }
 
 /**
- * Auflösungskette für `dart run ductus:adapter` OHNE Build-Abhängigkeit im
- * Zielprojekt (der Kommentar-Weg soll buildfrei bleiben) — identisch im
- * npm-Wrapper implementiert:
- *   2. DUCTUS_DART_ADAPTER_DIR: Paketkontext, der `ductus` kennt ⇒ cwd = dieses Verzeichnis.
- *   3. Zielprojekt deklariert `ductus` in der pubspec.yaml ⇒ cwd = Projekt.
- *   4. Global aktiviertes Paket: bei path-Aktivierung `dart run` mit cwd =
- *      Quellverzeichnis (vermeidet pub-Resolutionszeilen auf stdout), sonst
- *      `dart pub global run ductus:adapter` (Snapshot, stdout-sauber).
- * (Kette 1, entry.command, behandelt resolveCommand vorab.)
+ * Resolution chain for `dart run ductus:adapter` WITHOUT a build dependency
+ * in the target project (the comment-based route should stay build-free) —
+ * implemented identically in the npm wrapper:
+ *   2. DUCTUS_DART_ADAPTER_DIR: package context that knows `ductus` ⇒ cwd = that directory.
+ *   3. Target project declares `ductus` in its pubspec.yaml ⇒ cwd = project.
+ *   4. Globally activated package: for a path activation, `dart run` with cwd =
+ *      source directory (avoids pub resolution lines on stdout), otherwise
+ *      `dart pub global run ductus:adapter` (snapshot, stdout-clean).
+ * (Chain 1, entry.command, is handled upfront by resolveCommand.)
  */
 export function resolveDartInvocation(
   projectDir: string,
@@ -132,7 +133,7 @@ export function resolveDartInvocation(
     const dir = resolve(adapterDir.trim());
     if (!existsSync(dir)) {
       throw new AdapterError(
-        `Adapter "dart": DUCTUS_DART_ADAPTER_DIR verweist auf ein nicht existierendes Verzeichnis: "${dir}".`,
+        `Adapter "dart": DUCTUS_DART_ADAPTER_DIR points to a non-existent directory: "${dir}".`,
       );
     }
     return { argv: ['dart', 'run', 'ductus:adapter'], cwd: dir };
@@ -148,22 +149,22 @@ export function resolveDartInvocation(
     return { argv: ['dart', 'pub', 'global', 'run', 'ductus:adapter'], cwd: projectDir };
   }
   throw new AdapterError(
-    'Adapter "dart": `ductus:adapter` ist nicht auflösbar — das Zielprojekt deklariert `ductus` ' +
-      'nicht und das Paket ist nicht global aktiviert. Optionen: `dart pub add dev:ductus` im ' +
-      'Zielprojekt ODER `dart pub global activate ductus` (alternativ DUCTUS_DART_ADAPTER_DIR ' +
-      'auf ein Verzeichnis mit ductus-Paketkontext setzen).',
+    'Adapter "dart": `ductus:adapter` cannot be resolved — the target project does not ' +
+      'declare `ductus` and the package is not globally activated. Options: ' +
+      '`dart pub add dev:ductus` in the target project OR `dart pub global activate ductus` ' +
+      '(alternatively set DUCTUS_DART_ADAPTER_DIR to a directory with a ductus package context).',
   );
 }
 
 /**
- * Auflösung für den TypeScript-Adapter — der Adapter läuft selbst in Node:
- *   1. Paket-Auflösung via require.resolve ab Zielprojekt bzw. ab dem
- *      Config-Verzeichnis (inkl. Parent-node_modules/Hoisting) ⇒ das
- *      CLI-Modul wird direkt mit dem eigenen Node gestartet — plattformneutral,
- *      kein Shell-Shim nötig (Windows: die .bin-Shims sind ohne Shell nicht
- *      spawnbar).
- *   2. Binary `ductus-adapter-typescript` in node_modules/.bin bzw. im PATH
- *      (global installiert).
+ * Resolution for the TypeScript adapter — the adapter itself runs in Node:
+ *   1. Package resolution via require.resolve from the target project or from
+ *      the config directory (incl. parent node_modules/hoisting) ⇒ the CLI
+ *      module is started directly with our own Node — platform-neutral, no
+ *      shell shim needed (Windows: the .bin shims cannot be spawned without
+ *      a shell).
+ *   2. Binary `ductus-adapter-typescript` in node_modules/.bin or in the PATH
+ *      (installed globally).
  */
 export function resolveTypescriptInvocation(
   rootDir: string,
@@ -178,26 +179,26 @@ export function resolveTypescriptInvocation(
         return { argv: [process.execPath, cli], cwd: rootDir };
       }
     } catch {
-      // Paket von hier aus nicht auflösbar — nächste Basis bzw. Binary-Suche.
+      // Package not resolvable from here — try the next base or the binary search.
     }
   }
   const binary = findBinary('ductus-adapter-typescript', rootDir);
   if (binary !== undefined) return { argv: [binary], cwd: rootDir };
   throw new AdapterError(
-    'Adapter "typescript": `@ductus/adapter-typescript` ist nicht auflösbar — weder als ' +
-      'npm-Paket vom Zielprojekt bzw. vom Verzeichnis der ductus.config.yaml aus, noch als ' +
-      'Binary `ductus-adapter-typescript` im PATH. Optionen: ' +
-      '`npm install -D @ductus/adapter-typescript` im Zielprojekt ODER ' +
+    'Adapter "typescript": `@ductus/adapter-typescript` cannot be resolved — neither as an ' +
+      'npm package from the target project or from the directory of ductus.config.yaml, nor ' +
+      'as a `ductus-adapter-typescript` binary in the PATH. Options: ' +
+      '`npm install -D @ductus/adapter-typescript` in the target project OR ' +
       '`npm install -g @ductus/adapter-typescript`.',
   );
 }
 
 /**
- * Befehlsauflösung: expliziter entry.command gewinnt (Kette 1); für
- * "dart" gibt es eine eingebaute Auflösung (npm-Wrapper-Binary, sonst die
- * Kette aus resolveDartInvocation — ohne Build-Abhängigkeit im Zielprojekt
- * nutzbar), für "typescript" die Kette aus resolveTypescriptInvocation
- * (require.resolve, dann Binary — der Adapter läuft selbst in Node).
+ * Command resolution: an explicit entry.command wins (chain 1); "dart" has a
+ * built-in resolution (npm wrapper binary, otherwise the chain from
+ * resolveDartInvocation — usable without a build dependency in the target
+ * project), "typescript" uses the chain from resolveTypescriptInvocation
+ * (require.resolve, then binary — the adapter itself runs in Node).
  */
 function resolveCommand(
   entry: AdapterConfigEntry,
@@ -216,7 +217,7 @@ function resolveCommand(
     return resolveTypescriptInvocation(rootDir, projectDir);
   }
   throw new AdapterError(
-    `Adapter "${entry.name}": kein "command" konfiguriert und keine eingebaute Auflösung bekannt (NFR6: command angeben).`,
+    `Adapter "${entry.name}": no "command" configured and no built-in resolution known (NFR6: specify command).`,
   );
 }
 
@@ -235,7 +236,7 @@ function runCommand(
   return new Promise((resolvePromise, rejectPromise) => {
     const [executable, ...baseArgs] = argv;
     if (executable === undefined) {
-      rejectPromise(new AdapterError(`Adapter "${adapterName}": leerer Befehl.`));
+      rejectPromise(new AdapterError(`Adapter "${adapterName}": empty command.`));
       return;
     }
     const child = spawn(executable, [...baseArgs, ...args], {
@@ -257,12 +258,12 @@ function runCommand(
 
     child.on('error', (error) => {
       rejectPromise(
-        new AdapterError(`Adapter "${adapterName}": Befehl "${executable}" nicht ausführbar (${error.message}).`),
+        new AdapterError(`Adapter "${adapterName}": command "${executable}" is not executable (${error.message}).`),
       );
     });
 
     child.on('close', (code, signal) => {
-      // stderr-Diagnostik des Adapters immer durchreichen — nie verschlucken.
+      // Always pass through the adapter's stderr diagnostics — never swallow them.
       if (log !== undefined) {
         for (const line of diagnostics.split('\n')) {
           if (line.trim() !== '') log(`[${adapterName}] ${line}`);
@@ -271,7 +272,7 @@ function runCommand(
       if (signal !== null) {
         rejectPromise(
           new AdapterError(
-            `Adapter "${adapterName}": abgebrochen (Signal ${signal}, Timeout ${ADAPTER_TIMEOUT_MS / 1000} s). stderr: ${stderrExcerpt(diagnostics)}`,
+            `Adapter "${adapterName}": aborted (signal ${signal}, timeout ${ADAPTER_TIMEOUT_MS / 1000} s). stderr: ${stderrExcerpt(diagnostics)}`,
           ),
         );
         return;
@@ -279,7 +280,7 @@ function runCommand(
       if (code !== 0) {
         rejectPromise(
           new AdapterError(
-            `Adapter "${adapterName}": Exit-Code ${code ?? '?'}. stderr: ${stderrExcerpt(diagnostics)}`,
+            `Adapter "${adapterName}": exit code ${code ?? '?'}. stderr: ${stderrExcerpt(diagnostics)}`,
           ),
         );
         return;
@@ -290,15 +291,15 @@ function runCommand(
 }
 
 /**
- * Entfernt führende pub-Diagnosezeilen vor dem ersten JSON-Objekt.
+ * Removes leading pub diagnostic lines before the first JSON object.
  *
- * `dart run`/`dart pub global run` schreiben bei unaufgelösten Dependencies
- * Zeilen wie "Resolving dependencies..." auf stdout, BEVOR das Adapter-Programm
- * läuft — dagegen kann der Adapter selbst nichts tun (sein stdout-Vertrag
- * gilt für ihn ab Programmstart). Abgeschnitten wird ausschließlich Vorspann bis zur ersten
- * Zeile, die mit "{" beginnt; der Vorspann wird als Diagnostik zurückgegeben,
- * damit nichts verschluckt wird. Parst der Rest nicht, greift weiterhin der
- * strikte A3-Fehler mit dem Original-stdout.
+ * With unresolved dependencies, `dart run`/`dart pub global run` write lines
+ * like "Resolving dependencies..." to stdout BEFORE the adapter program runs
+ * — the adapter itself can do nothing about that (its stdout contract applies
+ * from program start). Only the preamble up to the first line starting with
+ * "{" is cut off; the preamble is returned as diagnostics so nothing gets
+ * swallowed. If the rest does not parse, the strict A3 error with the
+ * original stdout still applies.
  */
 function stripLeadingPubNoise(stdout: string): { jsonText: string; noise: string[] } {
   if (stdout.trimStart().startsWith('{')) return { jsonText: stdout, noise: [] };
@@ -311,18 +312,18 @@ function stripLeadingPubNoise(stdout: string): { jsonText: string; noise: string
   };
 }
 
-/** Formatiert Ajv-Fehler kompakt für die AdapterError-Meldung. */
+/** Formats Ajv errors compactly for the AdapterError message. */
 function formatSchemaErrors(): string {
   return (validateAdapterOutput.errors ?? [])
     .slice(0, 5)
-    .map((e) => `${e.instancePath === '' ? '/' : e.instancePath}: ${e.message ?? 'ungültig'}`)
+    .map((e) => `${e.instancePath === '' ? '/' : e.instancePath}: ${e.message ?? 'invalid'}`)
     .join('; ');
 }
 
 /**
- * Führt einen Adapter aus: --project <absolut> --config <tmpfile>,
- * stdout = Graph-JSON (Ajv-geprüft, A3), stderr = Diagnostik. Die temporäre
- * Config-Datei (deriveFrom/extra) wird nach dem Lauf aufgeräumt.
+ * Runs an adapter: --project <absolute> --config <tmpfile>,
+ * stdout = graph JSON (Ajv-checked, A3), stderr = diagnostics. The temporary
+ * config file (deriveFrom/extra) is cleaned up after the run.
  */
 export async function runAdapter(
   entry: AdapterConfigEntry,
@@ -331,8 +332,8 @@ export async function runAdapter(
   const projectDir = resolve(opts.rootDir, entry.project);
   const { argv, cwd } = resolveCommand(entry, opts.rootDir, projectDir);
 
-  // Adapter-Konfiguration aus der adapters:-Sektion der ductus.config.yaml:
-  // deriveFrom + adapterspezifische extra-Schlüssel (abgeflacht auf top-level).
+  // Adapter configuration from the adapters: section of ductus.config.yaml:
+  // deriveFrom + adapter-specific extra keys (flattened to top level).
   const adapterConfig: Record<string, unknown> = {
     ...(entry.deriveFrom !== undefined ? { deriveFrom: entry.deriveFrom } : {}),
     ...(entry.extra ?? {}),
@@ -361,12 +362,12 @@ export async function runAdapter(
       parsed = JSON.parse(jsonText);
     } catch {
       throw new AdapterError(
-        `Adapter "${entry.name}": stdout ist kein gültiges JSON (A3). Anfang: ${JSON.stringify(stdout.slice(0, 120))}`,
+        `Adapter "${entry.name}": stdout is not valid JSON (A3). Beginning: ${JSON.stringify(stdout.slice(0, 120))}`,
       );
     }
     if (!validateAdapterOutput(parsed)) {
       throw new AdapterError(
-        `Adapter "${entry.name}": Ausgabe verletzt das Graph-Schema (A3): ${formatSchemaErrors()}`,
+        `Adapter "${entry.name}": output violates the graph schema (A3): ${formatSchemaErrors()}`,
       );
     }
 

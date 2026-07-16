@@ -1,6 +1,6 @@
 /**
- * `ductus extract`: Graph erzeugen + validieren →
- * journey-graph.json und ductus-report.json neben der Config (rootDir).
+ * `ductus extract`: build + validate the graph →
+ * journey-graph.json and ductus-report.json next to the config (rootDir).
  */
 
 import type { Command } from 'commander';
@@ -10,7 +10,7 @@ import { globalOptions, loadConfigWithWarnings, printIssues, runAction, stderrLo
 export function registerExtract(program: Command): void {
   program
     .command('extract')
-    .description('Erzeugt und validiert den User-Journey-Graphen (journey-graph.json).')
+    .description('Builds and validates the user-journey graph (journey-graph.json).')
     .action(async (_options: Record<string, never>, command: Command) => {
       await runAction(async () => {
         const globals = globalOptions(command);
@@ -28,11 +28,11 @@ export function registerExtract(program: Command): void {
         printIssues(result.validation.warnings);
         const { graph } = result;
         process.stdout.write(
-          `Graph: ${graph.nodes.length} Nodes, ${graph.edges.length} Edges, ` +
-            `${graph.flows.length} Flows, ${result.validation.warnings.length} Warnung(en)\n`,
+          `Graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges, ` +
+            `${graph.flows.length} flows, ${result.validation.warnings.length} warning(s)\n`,
         );
         for (const path of result.written) {
-          process.stdout.write(`Geschrieben: ${path}\n`);
+          process.stdout.write(`Wrote: ${path}\n`);
         }
         return 0;
       });

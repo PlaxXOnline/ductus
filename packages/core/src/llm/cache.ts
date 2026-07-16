@@ -1,6 +1,6 @@
 /**
- * Segment-Cache (Ablage .ductus/cache/<hash>.json): unveränderte Segmente
- * werden nicht neu generiert — spart Kosten und stabilisiert Diffs.
+ * Segment cache (stored under .ductus/cache/<hash>.json): unchanged segments
+ * are not regenerated — saves cost and keeps diffs stable.
  */
 
 import { createHash } from 'node:crypto';
@@ -12,16 +12,16 @@ export interface CacheEntry {
   markdown: string;
   usage?: LlmUsage;
   violations: FaithfulnessViolation[];
-  /** Unbestätigte Judge-/Lexikon-Hinweise; fehlt in Alt-Einträgen (⇒ []). */
+  /** Unconfirmed judge/lexicon hints; absent in legacy entries (⇒ []). */
   hints?: FaithfulnessViolation[];
 }
 
 export interface CacheKeyParts {
-  /** Kanonisch serialisiertes Segment (siehe serializeSegment). */
+  /** Canonically serialized segment (see serializeSegment). */
   segmentJson: string;
   promptVersion: string;
   model: string;
-  /** Styleguide-Konfiguration, z. B. "formal-sie|de". */
+  /** Style-guide configuration, e.g. "formal-sie|de". */
   styleKey: string;
 }
 
@@ -34,7 +34,7 @@ export class SegmentCache {
   }
 
   computeKey(parts: CacheKeyParts): string {
-    // Steuerzeichen als Trenner, damit sich Feldgrenzen nicht verschieben können.
+    // Control character as separator so field boundaries cannot shift.
     const material = [parts.promptVersion, parts.model, parts.styleKey, parts.segmentJson].join(
       '\u001f',
     );
@@ -45,7 +45,7 @@ export class SegmentCache {
     try {
       const raw = readFileSync(join(this.dir, `${key}.json`), 'utf8');
       const parsed = JSON.parse(raw) as CacheEntry;
-      // Korrupte oder fremde Dateien zählen als Miss.
+      // Corrupt or foreign files count as a miss.
       if (
         parsed !== null &&
         typeof parsed === 'object' &&

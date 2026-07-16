@@ -20,7 +20,7 @@ function makeGenerated(
 }
 
 describe('buildReport', () => {
-  it('nimmt nur Segmente MIT Violations oder Hinweisen in faithfulness auf', () => {
+  it('includes only segments WITH violations or hints in faithfulness', () => {
     const report = buildReport({
       adapters,
       warnings: [],
@@ -37,7 +37,7 @@ describe('buildReport', () => {
     ]);
   });
 
-  it('führt unbestätigte Hinweise getrennt von Violations auf', () => {
+  it('lists unconfirmed hints separately from violations', () => {
     const report = buildReport({
       adapters,
       warnings: [],
@@ -54,17 +54,17 @@ describe('buildReport', () => {
     ]);
   });
 
-  it('berechnet hitRate = hits/(hits+misses)', () => {
+  it('computes hitRate = hits/(hits+misses)', () => {
     const report = buildReport({ adapters, warnings: [], cache: { hits: 3, misses: 1 } });
     expect(report.cache).toEqual({ hits: 3, misses: 1, hitRate: 0.75 });
   });
 
-  it('hitRate ist 0 bei 0 Läufen', () => {
+  it('hitRate is 0 with 0 runs', () => {
     const report = buildReport({ adapters, warnings: [], cache: { hits: 0, misses: 0 } });
     expect(report.cache?.hitRate).toBe(0);
   });
 
-  it('lässt optionale Felder weg, wenn keine Daten vorliegen', () => {
+  it('omits optional fields when no data is available', () => {
     const report = buildReport({ adapters, warnings: [] });
     expect(report).not.toHaveProperty('cache');
     expect(report).not.toHaveProperty('tokens');
@@ -72,7 +72,7 @@ describe('buildReport', () => {
     expect(report.faithfulness).toEqual([]);
   });
 
-  it('übernimmt tokens, costUsd und warnings', () => {
+  it('carries tokens, costUsd and warnings', () => {
     const warnings = [
       { rule: 'V5' as const, severity: 'warning' as const, message: 'Node ohne description', nodeId: 'a' },
     ];
@@ -92,7 +92,7 @@ describe('buildReport', () => {
     expect(report.adapters).toEqual(adapters);
   });
 
-  it('nutzt now für generatedAt (deterministisch testbar)', () => {
+  it('uses now for generatedAt (deterministically testable)', () => {
     const now = new Date('2026-07-08T12:00:00.000Z');
     const report = buildReport({ adapters, warnings: [], now });
     expect(report.generatedAt).toBe('2026-07-08T12:00:00.000Z');
@@ -100,7 +100,7 @@ describe('buildReport', () => {
 });
 
 describe('writeReport', () => {
-  it('schreibt JSON mit 2-Space-Indent, sortierten Schlüsseln und Schluss-Newline', () => {
+  it('writes JSON with 2-space indentation, sorted keys and a trailing newline', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-report-'));
     const filePath = join(dir, 'nested', 'ductus-report.json');
     const report = buildReport({
@@ -117,9 +117,9 @@ describe('writeReport', () => {
 
     const raw = readFileSync(filePath, 'utf8');
     expect(raw.endsWith('\n')).toBe(true);
-    expect(raw).toContain('  "adapters"'); // 2-Space-Indent
+    expect(raw).toContain('  "adapters"'); // 2-space indentation
 
-    // Top-Level-Schlüssel lexikographisch sortiert
+    // Top-level keys sorted lexicographically
     const topKeys = [...raw.matchAll(/^  "([a-zA-Z]+)":/gm)].map((m) => m[1]);
     expect(topKeys).toEqual([...topKeys].sort());
     expect(topKeys).toEqual([
@@ -132,11 +132,11 @@ describe('writeReport', () => {
       'warnings',
     ]);
 
-    // Auch verschachtelte Schlüssel sortiert (hitRate < hits < misses)
+    // Nested keys sorted as well (hitRate < hits < misses)
     expect(raw.indexOf('"hitRate"')).toBeLessThan(raw.indexOf('"hits"'));
     expect(raw.indexOf('"hits"')).toBeLessThan(raw.indexOf('"misses"'));
 
-    // Roundtrip bleibt inhaltsgleich
+    // Roundtrip stays content-equal
     expect(JSON.parse(raw)).toEqual(report);
   });
 });

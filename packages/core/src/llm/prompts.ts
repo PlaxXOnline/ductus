@@ -1,17 +1,19 @@
 /**
- * Prompt-Bau für Generierung und Faithfulness-Judge: Graph-Segment als
- * strukturierte Daten + injizierter Styleguide + Few-Shot-Beispiel.
+ * Prompt construction for generation and the faithfulness judge: graph segment
+ * as structured data + injected style guide + few-shot example.
  *
- * Das Segment wird mit stabiler Serialisierung (sortierte Schlüssel) in den
- * Prompt eingebettet; derselbe String ist die Grundlage des Cache-Keys.
+ * The segment is embedded into the prompt with a stable serialization (sorted
+ * keys); the same string is the basis of the cache key. The prompt texts and
+ * few-shot examples themselves are product data in the target voice's language
+ * — do not translate them.
  */
 
 import type { GraphSegment, LlmMessage, Voice } from '../contracts.js';
 
-/** Bei jeder inhaltlichen Prompt-Änderung erhöhen — invalidiert den Cache. */
-export const PROMPT_VERSION = '2';
+/** Bump on every substantive prompt change — invalidates the cache. */
+export const PROMPT_VERSION = '3';
 
-/** Marker, an dem Provider (insb. mock) einen Judge-Aufruf erkennen. */
+/** Marker by which providers (esp. mock) recognize a judge call. */
 export const JUDGE_MARKER = 'FAITHFULNESS-JUDGE';
 
 export interface PromptParts {
@@ -30,12 +32,12 @@ function sortKeysDeep(value: unknown): unknown {
   return value;
 }
 
-/** Stabile Serialisierung: identisches Segment ⇒ byte-gleicher String (NFR2). */
+/** Stable serialization: identical segment ⇒ byte-identical string (NFR2). */
 export function serializeSegment(segment: GraphSegment): string {
   return JSON.stringify(sortKeysDeep(segment), null, 2);
 }
 
-// ─────────── Few-Shot-Beispiel (minimaler Login→Dashboard-Auth-Flow) ─────────
+// ─────────── Few-shot example (minimal login→dashboard auth flow) ────────────
 
 const EXAMPLE_SEGMENT: GraphSegment = {
   id: 'auth',
@@ -96,7 +98,7 @@ const EXAMPLE_MARKDOWN: Record<Voice, string> = {
   ].join('\n'),
 };
 
-// ───────────────────────── System-Prompt (Styleguide) ────────────────────────
+// ───────────────────────── System prompt (style guide) ───────────────────────
 
 function buildSystem(voice: Voice, locale: string, appName?: string): string {
   if (voice === 'en-you') {
@@ -129,7 +131,7 @@ function buildSystem(voice: Voice, locale: string, appName?: string): string {
   return lines.join('\n');
 }
 
-// ───────────────────────── Öffentliche Prompt-Builder ────────────────────────
+// ───────────────────────── Public prompt builders ────────────────────────────
 
 export function buildGenerationPrompt(
   segment: GraphSegment,
@@ -137,7 +139,7 @@ export function buildGenerationPrompt(
 ): PromptParts {
   const system = buildSystem(opts.voice, opts.locale, opts.appName);
   const en = opts.voice === 'en-you';
-  // Das echte Segment ist bewusst der LETZTE ```json-Block der Nachricht.
+  // The real segment is deliberately the LAST ```json block of the message.
   const user = [
     en ? 'Example:' : 'Beispiel:',
     '',
@@ -161,7 +163,37 @@ export function buildGenerationPrompt(
   return { system, messages: [{ role: 'user', content: user }] };
 }
 
-export function buildJudgePrompt(segment: GraphSegment, markdown: string): PromptParts {
+export function buildJudgePrompt(
+  segment: GraphSegment,
+  markdown: string,
+  voice: Voice,
+): PromptParts {
+  // 'en-you' gets an English judge; the German voices keep the original prompt
+  // byte-identical (German judge reasons flow into German asides and reports).
+  if (voice === 'en-you') {
+    const system = [
+      `${JUDGE_MARKER}: You are checking generated end-user documentation against the underlying graph segment.`,
+      'Check whether the text claims steps, conditions or UI elements that are NOT present in the graph segment.',
+      'Respond ONLY with JSON of the form {"violations":[{"quote":"…","element":"…","reason":"…"}]}.',
+      '"quote": verbatim, unaltered quote of the offending passage from the generated text.',
+      '"element": the claimed UI element, step or condition that is missing from the graph segment.',
+      '"reason": a short justification.',
+      'Your findings are verified mechanically: a quote that does not appear verbatim in the text, or an element that does occur in the segment, is discarded.',
+      'No violations ⇒ {"violations": []}. No further explanations, no Markdown.',
+    ].join('\n');
+    const user = [
+      'Graph segment:',
+      '```json',
+      serializeSegment(segment),
+      '```',
+      '',
+      'Generated text:',
+      '```markdown',
+      markdown,
+      '```',
+    ].join('\n');
+    return { system, messages: [{ role: 'user', content: user }] };
+  }
   const system = [
     `${JUDGE_MARKER}: Du prüfst generierte Endnutzer-Dokumentation gegen das zugrunde liegende Graph-Segment.`,
     'Prüfe, ob der Text Schritte, Bedingungen oder UI-Elemente behauptet, die NICHT im Graph-Segment stehen.',

@@ -1,13 +1,13 @@
 /**
- * Website-Modus: Template in das Ausgabeverzeichnis (output.dir = Wurzel des
- * SSG-Projekts) kopieren und mit Daten befüllen — generatorabhängig:
- * - "starlight": MDX-Seiten nach src/content/docs/ schreiben und
- *   Sidebar-/Site-Konfiguration (ductus.sidebar.json/ductus.site.json) erzeugen.
- * - "journey" (Default): genau eine ductus.data.json in die Site-Wurzel
- *   schreiben — KEINE MDX-Dateien, KEINE sidebar-/site-Dateien; das Template
- *   liest die Daten zur Buildzeit.
- * Der SSG selbst ist Peer-Dependency des Nutzers — installiert/gebaut wird nur auf
- * ausdrücklichen Wunsch via `ductus generate --build` (buildWebsite, unten).
+ * Website mode: copy the template into the output directory (output.dir = root
+ * of the SSG project) and fill it with data — depending on the generator:
+ * - "starlight": write MDX pages to src/content/docs/ and generate the
+ *   sidebar/site configuration (ductus.sidebar.json/ductus.site.json).
+ * - "journey" (default): write exactly one ductus.data.json into the site
+ *   root — NO MDX files, NO sidebar/site files; the template reads the data
+ *   at build time.
+ * The SSG itself is a peer dependency of the user — installing/building only
+ * happens on explicit request via `ductus generate --build` (buildWebsite, below).
  */
 
 import { spawn as nodeSpawn } from 'node:child_process';
@@ -23,16 +23,16 @@ function cmp(a: string, b: string): number {
 }
 
 export interface ScaffoldWebsiteOptions {
-  /** Quellverzeichnis des Templates (Preset oder eigenes via output.website.template). */
+  /** Source directory of the template (preset or custom via output.website.template). */
   templateDir: string;
-  /** Wurzel des SSG-Projekts (output.dir im Website-Modus). */
+  /** Root of the SSG project (output.dir in website mode). */
   outDir: string;
   pages: MdxPage[];
   appName: string;
   locale: string;
-  /** Website-Generator; Default 'starlight' (API-kompatibel zu Phase-1-Aufrufern). */
+  /** Website generator; default 'starlight' (API-compatible with phase-1 callers). */
   generator?: WebsiteGenerator;
-  /** Pflicht im journey-Modus: fertiges Datenobjekt für ductus.data.json. */
+  /** Required in journey mode: complete data object for ductus.data.json. */
   journeyData?: JourneyWebsiteData;
 }
 
@@ -40,8 +40,8 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
   const { templateDir, outDir, pages, appName, locale } = opts;
   const generator = opts.generator ?? 'starlight';
 
-  // Template rekursiv kopieren; Build-Artefakte des Templates auslassen,
-  // vorhandene Dateien im Ziel überschreiben (idempotenter Re-Run).
+  // Copy the template recursively; skip the template's build artifacts,
+  // overwrite existing files in the target (idempotent re-run).
   await cp(templateDir, outDir, {
     recursive: true,
     force: true,
@@ -51,18 +51,18 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
     },
   });
 
-  // npm schließt Dateien namens ".gitignore" beim Publish IMMER aus dem Tarball
-  // aus (das files-Feld kann das nicht überschreiben). Das Template führt die
-  // Datei deshalb als "gitignore" — hier wird sie zurückbenannt.
+  // npm ALWAYS excludes files named ".gitignore" from the published tarball
+  // (the files field cannot override that). The template therefore ships the
+  // file as "gitignore" — it is renamed back here.
   const undottedGitignore = join(outDir, 'gitignore');
   if (existsSync(undottedGitignore)) {
     await rename(undottedGitignore, join(outDir, '.gitignore'));
   }
 
-  // journey-Modus: einzige Daten-Datei ist ductus.data.json — danach fertig.
+  // journey mode: the only data file is ductus.data.json — then we are done.
   if (generator === 'journey') {
     if (opts.journeyData === undefined) {
-      throw new Error('scaffoldWebsite: generator "journey" erfordert journeyData (ductus.data.json).');
+      throw new Error('scaffoldWebsite: generator "journey" requires journeyData (ductus.data.json).');
     }
     await writeFile(join(outDir, 'ductus.data.json'), serializeJourneyData(opts.journeyData), 'utf8');
     return;
@@ -70,7 +70,7 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
 
   await writeMdxPages(pages, join(outDir, 'src', 'content', 'docs'));
 
-  // Sidebar: nach order sortiert (Dateiname als deterministischer Tie-Breaker).
+  // Sidebar: sorted by order (file name as deterministic tie-breaker).
   const sidebar = [...pages]
     .sort((a, b) => a.frontmatter.order - b.frontmatter.order || cmp(a.fileName, b.fileName))
     .map((page) => ({
@@ -90,9 +90,9 @@ export async function scaffoldWebsite(opts: ScaffoldWebsiteOptions): Promise<voi
   );
 }
 
-// ─────────────────────── Website-Build (`generate --build`) ──────────────────
+// ─────────────────────── Website build (`generate --build`) ──────────────────
 
-/** Fehler beim Website-Build (npm fehlt / Schritt gescheitert) ⇒ Exit-Code 3. */
+/** Error during the website build (npm missing / step failed) ⇒ exit code 3. */
 export class WebsiteBuildError extends Error {
   constructor(message: string) {
     super(message);
@@ -101,8 +101,8 @@ export class WebsiteBuildError extends Error {
 }
 
 /**
- * Minimale spawn-Signatur — testbar injizierbar, damit Tests KEIN echtes npm
- * brauchen (Muster wie DartResolutionOptions in adapters/runner.ts).
+ * Minimal spawn signature — injectable for tests so they do NOT need a real
+ * npm (pattern like DartResolutionOptions in adapters/runner.ts).
  */
 export type WebsiteBuildSpawn = (
   command: string,
@@ -114,47 +114,47 @@ export type WebsiteBuildSpawn = (
 };
 
 export interface BuildWebsiteOptions {
-  /** Wurzel des SSG-Projekts (output.dir im Website-Modus), absolut. */
+  /** Root of the SSG project (output.dir in website mode), absolute. */
   siteDir: string;
-  /** Injizierbares spawn für Tests (Default: node:child_process.spawn). */
+  /** Injectable spawn for tests (default: node:child_process.spawn). */
   spawn?: WebsiteBuildSpawn;
-  /** Fortschrittsmeldungen (gehören auf stderr). */
+  /** Progress messages (belong on stderr). */
   log?: (message: string) => void;
 }
 
 /**
- * Führt einen npm-Schritt im Site-Verzeichnis aus. stdout/stderr erben vom
- * Elternprozess — der Nutzer sieht den npm-Fortschritt unverändert (NFR4:
- * Ductus selbst loggt hier nichts, also auch keine Keys).
+ * Runs one npm step in the site directory. stdout/stderr are inherited from
+ * the parent process — the user sees npm's progress unchanged (NFR4: Ductus
+ * itself logs nothing here, hence no keys either).
  */
 function runNpmStep(spawnFn: WebsiteBuildSpawn, args: string[], siteDir: string): Promise<void> {
   return new Promise((resolvePromise, rejectPromise) => {
-    // npm direkt spawnen — kein shell:true nötig; unter win32 wäre "npm.cmd"
-    // erforderlich, Zielplattformen sind aber darwin/linux.
+    // Spawn npm directly — no shell:true needed; on win32 "npm.cmd" would be
+    // required, but the target platforms are darwin/linux.
     const child = spawnFn('npm', args, { cwd: siteDir, stdio: ['ignore', 'inherit', 'inherit'] });
     child.on('error', (error) => {
       if (error.code === 'ENOENT') {
         rejectPromise(
           new WebsiteBuildError(
-            'Website-Build: Befehl "npm" nicht gefunden — bitte Node.js/npm installieren bzw. den PATH prüfen.',
+            'Website build: command "npm" not found — please install Node.js/npm or check your PATH.',
           ),
         );
         return;
       }
       rejectPromise(
-        new WebsiteBuildError(`Website-Build: "npm ${args.join(' ')}" nicht ausführbar (${error.message}).`),
+        new WebsiteBuildError(`Website build: unable to run "npm ${args.join(' ')}" (${error.message}).`),
       );
     });
     child.on('close', (code, signal) => {
       if (signal !== null) {
         rejectPromise(
-          new WebsiteBuildError(`Website-Build: "npm ${args.join(' ')}" abgebrochen (Signal ${signal}).`),
+          new WebsiteBuildError(`Website build: "npm ${args.join(' ')}" aborted (signal ${signal}).`),
         );
         return;
       }
       if (code !== 0) {
         rejectPromise(
-          new WebsiteBuildError(`Website-Build: "npm ${args.join(' ')}" scheiterte mit Exit-Code ${code ?? '?'}.`),
+          new WebsiteBuildError(`Website build: "npm ${args.join(' ')}" failed with exit code ${code ?? '?'}.`),
         );
         return;
       }
@@ -164,15 +164,15 @@ function runNpmStep(spawnFn: WebsiteBuildSpawn, args: string[], siteDir: string)
 }
 
 /**
- * Baut die exportierte Website: `npm ci` bei vorhandener
- * package-lock.json, sonst `npm install`; danach `npm run build` — beides mit
- * cwd = Site-Verzeichnis. Liefert den Pfad des Build-Outputs (<siteDir>/dist).
+ * Builds the exported website: `npm ci` when a package-lock.json is present,
+ * otherwise `npm install`; then `npm run build` — both with cwd = site
+ * directory. Returns the path of the build output (<siteDir>/dist).
  */
 export async function buildWebsite(opts: BuildWebsiteOptions): Promise<string> {
   const spawnFn = opts.spawn ?? nodeSpawn;
   const installArgs = existsSync(join(opts.siteDir, 'package-lock.json')) ? ['ci'] : ['install'];
   for (const args of [installArgs, ['run', 'build']]) {
-    opts.log?.(`Website-Build: npm ${args.join(' ')} (in ${opts.siteDir}) …`);
+    opts.log?.(`Website build: npm ${args.join(' ')} (in ${opts.siteDir}) …`);
     await runNpmStep(spawnFn, args, opts.siteDir);
   }
   return join(opts.siteDir, 'dist');

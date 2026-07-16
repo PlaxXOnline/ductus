@@ -1,18 +1,18 @@
 /**
- * Deterministischer Vokabular-Check: Der Generierungs-Prompt verlangt, dass
- * UI-Elemente in Schrittzeilen fett (**…**) ausgezeichnet werden. Dieses Modul
- * extrahiert alle Bold-Terme aus Schritt-/Aufzählungszeilen und prüft sie ohne
- * LLM gegen das Vokabular des Graph-Segments — ein erfundenes UI-Element fällt
- * damit garantiert auf, unabhängig von der Zuverlässigkeit des Judge.
+ * Deterministic vocabulary check: the generation prompt requires UI elements
+ * in step lines to be marked bold (**…**). This module extracts all bold terms
+ * from step/bullet lines and checks them against the graph segment's vocabulary
+ * without an LLM — an invented UI element is thus guaranteed to be caught,
+ * regardless of how reliable the judge is.
  *
- * Präzision vor Recall: gemeldet wird nur, was sicher ungedeckt ist; lexikalisch
- * grenzwertige Terme (z. B. Flexionsformen, verwandte Komposita) werden als
- * Hinweis geführt statt als Verstoß.
+ * Precision over recall: only what is certainly uncovered gets reported;
+ * lexically borderline terms (e.g. inflected forms, related compounds) are
+ * kept as hints instead of violations.
  */
 
 import type { FaithfulnessViolation, GraphSegment } from '../contracts.js';
 
-/** Strukturwörter des Styleguides (alle Voices), die kein Graph-Element benennen. */
+/** Structural words of the style guide (all voices) that do not name a graph element. */
 const STRUCTURAL_TERMS = new Set([
   'voraussetzung',
   'voraussetzungen',
@@ -22,12 +22,12 @@ const STRUCTURAL_TERMS = new Set([
   'note',
 ]);
 
-/** Volle Wort-Deckung: Vokabelwort ist Präfix des Terms (oder umgekehrt) ab dieser Länge. */
+/** Full word coverage: vocabulary word is a prefix of the term (or vice versa) from this length. */
 const MIN_AFFIX_CHARS = 4;
-/** Lenient-Deckung („near“): gemeinsames Präfix ab dieser Länge, z. B. Fehler-Komposita. */
+/** Lenient (“near”) coverage: shared prefix from this length, e.g. related compounds. */
 const MIN_COMMON_PREFIX_CHARS = 6;
 
-/** Kleinschreibung, Markdown-Auszeichnung raus, Satzzeichen zu Leerraum, Whitespace kollabiert. */
+/** Lowercases, strips Markdown markup, turns punctuation into spaces, collapses whitespace. */
 export function normalizeTerm(text: string): string {
   return text
     .normalize('NFC')
@@ -43,9 +43,9 @@ function toWords(normalized: string): string[] {
 }
 
 export interface SegmentVocabulary {
-  /** Normalisierte vollständige Einträge (Titel, Labels, Conditions, …). */
+  /** Normalized full entries (titles, labels, conditions, …). */
   entries: Set<string>;
-  /** Alle Einzelwörter der Einträge. */
+  /** All individual words of the entries. */
   words: Set<string>;
 }
 
@@ -94,10 +94,10 @@ function wordCoverage(word: string, vocab: SegmentVocabulary): 'covered' | 'near
 }
 
 /**
- * Deckungsgrad eines Terms gegen das Segment-Vokabular:
- * 'covered'   — vollständig belegt (exakter Eintrag oder jedes Wort gedeckt),
- * 'near'      — lexikalisch verwandt (jedes Wort mindestens lenient gedeckt),
- * 'uncovered' — mindestens ein Wort ohne jede Entsprechung im Segment.
+ * Coverage of a term against the segment vocabulary:
+ * 'covered'   — fully backed (exact entry or every word covered),
+ * 'near'      — lexically related (every word covered at least leniently),
+ * 'uncovered' — at least one word without any match in the segment.
  */
 export function termCoverage(term: string, vocab: SegmentVocabulary): 'covered' | 'near' | 'uncovered' {
   const normalized = normalizeTerm(term);
@@ -112,14 +112,14 @@ export function termCoverage(term: string, vocab: SegmentVocabulary): 'covered' 
   return sawNear ? 'near' : 'covered';
 }
 
-/** Schritt- oder Aufzählungszeile — nur dort verlangt der Styleguide Bold für UI-Elemente. */
+/** Step or bullet line — only there does the style guide require bold for UI elements. */
 const STEP_LINE = /^\s*(?:\d+\.|[-*+])\s/;
 const BOLD_SPAN = /\*\*([^*\n]+?)\*\*/g;
 
 export interface LexiconResult {
-  /** Sicher ungedeckte Bold-Terme — deterministisch belegt, zählen gegen den Schwellwert. */
+  /** Certainly uncovered bold terms — deterministically proven, count against the threshold. */
   violations: FaithfulnessViolation[];
-  /** Lexikalisch nur verwandte Terme — zum manuellen Nachprüfen. */
+  /** Only lexically related terms — for manual review. */
   hints: FaithfulnessViolation[];
 }
 
@@ -144,15 +144,15 @@ export function checkLexicon(
         violations.push({
           claim: `**${term}**`,
           reason:
-            'Als UI-Element ausgezeichneter Begriff kommt in keinem Node, Edge, Label oder ' +
-            'keiner Condition des Graph-Segments vor (deterministischer Vokabular-Check).',
+            'Term marked as a UI element does not appear in any node, edge, label or ' +
+            'condition of the graph segment (deterministic vocabulary check).',
         });
       } else if (coverage === 'near') {
         hints.push({
           claim: `**${term}**`,
           reason:
-            'Begriff ist nur lexikalisch verwandt mit dem Graph-Vokabular (z. B. Flexion oder ' +
-            'Kompositum) — bitte prüfen, ob er das gemeinte Graph-Element korrekt wiedergibt.',
+            'Term is only lexically related to the graph vocabulary (e.g. an inflection or ' +
+            'compound) — please check that it accurately reflects the intended graph element.',
         });
       }
     }

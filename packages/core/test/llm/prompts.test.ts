@@ -19,13 +19,15 @@ const segment: GraphSegment = {
 };
 
 describe('PROMPT_VERSION', () => {
-  it('ist exportiert und gesetzt', () => {
-    expect(PROMPT_VERSION).toBe('2');
+  it('is exported and set', () => {
+    // '3': voice-dependent judge prompt (en-you gets an English judge); the
+    // cache key does not hash prompt text, so the version carries the change.
+    expect(PROMPT_VERSION).toBe('3');
   });
 });
 
 describe('serializeSegment', () => {
-  it('serialisiert stabil mit sortierten Schlüsseln, unabhängig von der Einfügereihenfolge', () => {
+  it('serializes stably with sorted keys, regardless of insertion order', () => {
     const reordered = {
       exits: [],
       edges: [],
@@ -42,8 +44,8 @@ describe('serializeSegment', () => {
   });
 });
 
-describe('buildGenerationPrompt — System-Prompt (in den Prompt injizierter Styleguide)', () => {
-  it('enthält die Kernregeln: nichts erfinden, Lücken kennzeichnen, kein Frontmatter/H1', () => {
+describe('buildGenerationPrompt — system prompt (style guide injected into the prompt)', () => {
+  it('contains the core rules: invent nothing, mark gaps, no frontmatter/H1', () => {
     const { system } = buildGenerationPrompt(segment, { voice: 'formal-sie', locale: 'de' });
     expect(system).toContain('Erfinde keine UI-Elemente');
     expect(system).toContain('Lücken');
@@ -53,7 +55,7 @@ describe('buildGenerationPrompt — System-Prompt (in den Prompt injizierter Sty
     expect(system).toContain('Voraussetzungen zuerst');
   });
 
-  it('setzt die Anrede je voice', () => {
+  it('sets the form of address per voice', () => {
     const sie = buildGenerationPrompt(segment, { voice: 'formal-sie', locale: 'de' }).system;
     expect(sie).toContain('mit „Sie“ an');
 
@@ -67,7 +69,7 @@ describe('buildGenerationPrompt — System-Prompt (in den Prompt injizierter Sty
     expect(en).toContain('Target language: en');
   });
 
-  it('erwähnt den App-Namen nur, wenn er übergeben wird', () => {
+  it('mentions the app name only when it is provided', () => {
     const withName = buildGenerationPrompt(segment, {
       voice: 'formal-sie',
       locale: 'de',
@@ -78,21 +80,21 @@ describe('buildGenerationPrompt — System-Prompt (in den Prompt injizierter Sty
     expect(withoutName).not.toContain('MeineApp');
   });
 
-  it('bettet das Segment als letzten ```json-Block in die User-Message ein (Few-Shot davor)', () => {
+  it('embeds the segment as the last ```json block in the user message (few-shot before it)', () => {
     const { messages } = buildGenerationPrompt(segment, { voice: 'formal-sie', locale: 'de' });
     expect(messages).toHaveLength(1);
     expect(messages[0]!.role).toBe('user');
     const content = messages[0]!.content;
     const blocks = [...content.matchAll(/```json\n([\s\S]*?)\n```/g)];
-    // Few-Shot-Beispiel + echtes Segment.
+    // Few-shot example + the real segment.
     expect(blocks.length).toBe(2);
     expect(blocks.at(-1)![1]).toBe(serializeSegment(segment));
   });
 });
 
 describe('buildJudgePrompt', () => {
-  it('enthält den Marker, die Prüf-Anweisung und das reine JSON-Antwortformat', () => {
-    const { system, messages } = buildJudgePrompt(segment, '## Doku\n\nText.');
+  it('contains the marker, the check instruction and the pure-JSON response format', () => {
+    const { system, messages } = buildJudgePrompt(segment, '## Doku\n\nText.', 'formal-sie');
     expect(system).toContain(JUDGE_MARKER);
     expect(system).toContain('FAITHFULNESS-JUDGE');
     expect(system).toContain('NICHT im Graph-Segment');
@@ -100,5 +102,38 @@ describe('buildJudgePrompt', () => {
     expect(system).toContain('maschinell verifiziert');
     expect(messages[0]!.content).toContain(serializeSegment(segment));
     expect(messages[0]!.content).toContain('## Doku');
+  });
+
+  // Regression guard: the German judge prompt must stay byte-identical for the
+  // German voices (cache-friendly for existing German projects).
+  it('keeps the original German judge prompt byte-identical for German voices', () => {
+    const expectedSystem = [
+      'FAITHFULNESS-JUDGE: Du prüfst generierte Endnutzer-Dokumentation gegen das zugrunde liegende Graph-Segment.',
+      'Prüfe, ob der Text Schritte, Bedingungen oder UI-Elemente behauptet, die NICHT im Graph-Segment stehen.',
+      'Antworte AUSSCHLIESSLICH mit JSON der Form {"violations":[{"quote":"…","element":"…","reason":"…"}]}.',
+      '"quote": wörtliches, unverändertes Zitat der beanstandeten Passage aus dem generierten Text.',
+      '"element": das behauptete UI-Element, der Schritt oder die Bedingung, die im Graph-Segment fehlt.',
+      '"reason": kurze Begründung.',
+      'Deine Angaben werden maschinell verifiziert: Ein quote, das nicht wörtlich im Text steht, oder ein element, das doch im Segment vorkommt, wird verworfen.',
+      'Keine Verstöße ⇒ {"violations": []}. Keine weiteren Erklärungen, kein Markdown.',
+    ].join('\n');
+    for (const voice of ['formal-sie', 'informal-du'] as const) {
+      const { system, messages } = buildJudgePrompt(segment, 'Text.', voice);
+      expect(system).toBe(expectedSystem);
+      expect(messages[0]!.content).toContain('Graph-Segment:');
+      expect(messages[0]!.content).toContain('Generierter Text:');
+    }
+  });
+
+  it('produces an English judge prompt for "en-you" (marker retained)', () => {
+    const { system, messages } = buildJudgePrompt(segment, '## Docs\n\nText.', 'en-you');
+    expect(system).toContain(JUDGE_MARKER);
+    expect(system).toContain('NOT present in the graph segment');
+    expect(system).toContain('{"violations":[{"quote":"…","element":"…","reason":"…"}]}');
+    expect(system).toContain('verified mechanically');
+    expect(system).not.toContain('Du prüfst');
+    expect(messages[0]!.content).toContain('Graph segment:');
+    expect(messages[0]!.content).toContain('Generated text:');
+    expect(messages[0]!.content).toContain(serializeSegment(segment));
   });
 });

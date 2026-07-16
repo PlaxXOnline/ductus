@@ -1,10 +1,10 @@
 ---
 /**
- * Journey-Detail (Screen 2 der Design-Referenz): Kopfzeile (Zurück-Button,
- * „JOURNEY NN“, Titel + Beschreibung, Stat-Chips, „Pfad abspielen“),
- * Split-View aus interaktivem Graphen (links) und Schrittliste (rechts).
- * Journeys ohne Hauptpfad (kind screen/misc): gleiche Seite ohne
- * Hauptpfad-Abschnitt; der Graph erscheint nur, wenn Kanten existieren.
+ * Journey detail (screen 2 of the design reference): header row (back button,
+ * “JOURNEY NN”, title + description, stat chips, “Play path”), split view of
+ * the interactive graph (left) and the step list (right). Journeys without a
+ * main path (kind screen/misc): same page without the main-path section; the
+ * graph appears only when edges exist.
  */
 import Base from '../../layouts/Base.astro';
 import Graph from '../../components/Graph.astro';
@@ -14,15 +14,15 @@ import { uiStrings } from '../../lib/strings';
 import { toJsonIsland } from '../../lib/json';
 
 export function getStaticPaths() {
-  // Laut Datenvertrag sind Slugs eindeutig (buildJourneyData dedupliziert) —
-  // bei dennoch doppelten Slugs (z. B. handeditierte Daten) würde Astro nur
-  // eine der Seiten rendern und die andere still verschwinden lassen. Lieber
-  // hart scheitern als eine unerreichbare Journey ausliefern.
+  // Per the data contract, slugs are unique (buildJourneyData deduplicates) —
+  // with duplicate slugs anyway (e.g. hand-edited data), Astro would render
+  // only one of the pages and let the other silently vanish. Better to fail
+  // hard than to ship an unreachable journey.
   const seen = new Set<string>();
   for (const journey of data.journeys) {
     if (seen.has(journey.slug)) {
       throw new Error(
-        `ductus.data.json: doppelter Journey-Slug "${journey.slug}" — die Detailseiten wären mehrdeutig.`,
+        `ductus.data.json: duplicate journey slug "${journey.slug}" — the detail pages would be ambiguous.`,
       );
     }
     seen.add(journey.slug);
@@ -45,7 +45,7 @@ const warnings = journey.violations.length;
 const hasMainPath = journey.mainPath.length > 0;
 const hasGraph = journey.edges.length > 0;
 
-/** Zustandsdaten für das Seiten-Skript (Hauptpfad + fertige Badge-Texte). */
+/** State data for the page script (main path + pre-built badge texts). */
 const pageData = {
   mainPath: journey.mainPath,
   badges: journey.mainPath.map((_, i) => t.stepBadge(i + 1, journey.mainPath.length)),
@@ -84,12 +84,12 @@ const pageData = {
   </div>
 </Base>
 
-{/* toJsonIsland escaped </script>-Ausbrüche — Node-ids sind untrusted. */}
+{/* toJsonIsland escapes </script> breakouts — node ids are untrusted. */}
 <script type="application/json" id="dj-journey-data" set:html={toJsonIsland(pageData)} />
 
 <script>
-  // Interaktionslogik der Detailseite — Referenz-Implementierung: die
-  // Component-Klasse der Design-Datei (edgeSvg/nodeVals/chipVals/aPlay).
+  // Interaction logic of the detail page — reference implementation: the
+  // component class of the design file (edgeSvg/nodeVals/chipVals/aPlay).
   interface PageData {
     mainPath: string[];
     badges: string[];
@@ -121,8 +121,8 @@ const pageData = {
   const badge = document.getElementById('dj-step-badge');
   const playBtn = document.getElementById('dj-play-btn');
   const split = document.querySelector<HTMLElement>('.dj-journey-split');
-  // Gestapelter Modus (Design: stacked = vw < 1080) — Query identisch zum CSS,
-  // damit Scroll-Logik und Layout nie auseinanderlaufen.
+  // Stacked mode (design: stacked = vw < 1080) — query identical to the CSS
+  // so that scroll logic and layout never drift apart.
   const stackedMq = window.matchMedia('(max-width: 1079.98px)');
 
   let sel: string | null = null;
@@ -213,9 +213,9 @@ const pageData = {
       if (active) stepActive = true;
       card.classList.toggle('is-active', active);
     }
-    // Aktionskarten nur, wenn keine Schrittkarte aktiv wurde — bei Selektion
-    // eines Hauptpfad-Nodes leuchtet ausschließlich dessen Schrittkarte
-    // (Design: aX1 bleibt für sel='note-editor' hart inaktiv).
+    // Action cards only when no step card became active — when a main-path
+    // node is selected, exclusively its step card lights up
+    // (design: aX1 stays hard-inactive for sel='note-editor').
     for (const card of actionCards) {
       card.classList.toggle('is-active', play < 0 && sel !== null && !stepActive && card.dataset.to === sel);
     }
@@ -233,7 +233,7 @@ const pageData = {
     playBtn?.classList.toggle('is-playing', play >= 0);
   }
 
-  /** Aktiver Scroll-Container: gestapelt scrollt der Split, sonst die Schrittliste. */
+  /** Active scroll container: stacked, the split scrolls; otherwise the step list. */
   function activeScroller(): HTMLElement | null {
     return stackedMq.matches ? (split ?? scroller) : (scroller ?? split);
   }
@@ -245,7 +245,7 @@ const pageData = {
     container.scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' });
   }
 
-  /** Ziel-Karte eines Nodes: Hauptpfad-Schritt vor Aktionskarte (Design: AMAP). */
+  /** Target card of a node: main-path step before action card (design: AMAP). */
   function cardForNode(id: string): HTMLElement | null {
     return (
       stepCards.find((c) => c.dataset.nodeId === id && c.dataset.done !== '1') ??
@@ -276,7 +276,7 @@ const pageData = {
     }
   }
 
-  // ── Play: Hauptpfad mit Puls + wanderndem Punkt (SVG animateMotion) ──────
+  // ── Play: main path with pulse + traveling dot (SVG animateMotion) ───────
   let dot: SVGCircleElement | null = null;
 
   function removeDot(): void {
@@ -317,8 +317,8 @@ const pageData = {
     }
     if (MAIN.length === 0) return;
     const ms = reduced ? 350 : PLAY_MS;
-    // Gestapelt: einmal zum Graphen hochscrollen, statt jedem Schritt zu
-    // folgen — der Pfad spielt im sichtbaren Graphen ab (Design: aPlay).
+    // Stacked: scroll up to the graph once instead of following every step —
+    // the path plays inside the visible graph (design: aPlay).
     const stacked = stackedMq.matches;
     if (stacked) split?.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
     const step = (i: number): void => {
@@ -340,9 +340,9 @@ const pageData = {
     step(0);
   });
 
-  // ── Interaktion: Node-/Karten-Aktivierung (Klick + Enter/Space), Deep-Link ─
-  // Nodes und Karten sind role="button"-Divs (tabindex 0) — Enter/Space muss
-  // wie ein Klick wirken, sonst wäre die Auswahl nur mit der Maus bedienbar.
+  // ── Interaction: node/card activation (click + Enter/Space), deep link ────
+  // Nodes and cards are role="button" divs (tabindex 0) — Enter/Space must
+  // act like a click, otherwise selection would be mouse-only.
   function onActivate(el: HTMLElement, handler: () => void): void {
     el.addEventListener('click', handler);
     el.addEventListener('keydown', (event) => {
@@ -368,8 +368,8 @@ const pageData = {
   }
   window.addEventListener('hashchange', applyHash);
 
-  // ── Intro: Kanten zeichnen sich gestaffelt ein, Nodes blenden gestaffelt
-  //    auf (Design: st.intro — Node-Delays .02s/.08s/.14s/… pro Node) ───────
+  // ── Intro: edges draw in staggered, nodes fade in staggered
+  //    (design: st.intro — node delays .02s/.08s/.14s/… per node) ───────────
   function intro(): void {
     if (reduced || edgePaths.length === 0) return;
     edgePaths.forEach((p) => {
@@ -406,7 +406,7 @@ const pageData = {
           node.style.transition = `opacity .5s ease ${(0.02 + i * 0.06).toFixed(2)}s`;
           node.classList.remove('is-intro');
         });
-        // Danach wieder die Basis-Transitions aus dem Stylesheet.
+        // Afterwards, back to the base transitions from the stylesheet.
         window.setTimeout(() => {
           edgePaths.forEach((p) => {
             p.style.transition = '';
@@ -423,9 +423,9 @@ const pageData = {
     });
   }
 
-  // ── Responsiv: Graph-Skalierung im gestapelten Modus (Design: mGScale —
-  //    g = min(1, max(0.8, (Breite − 24) / Canvas-Breite))). Das CSS rechnet
-  //    Fit-Box und transform aus der Custom Property --dj-graph-scale. ───────
+  // ── Responsive: graph scaling in stacked mode (design: mGScale —
+  //    g = min(1, max(0.8, (width − 24) / canvas width))). The CSS derives the
+  //    fit box and transform from the custom property --dj-graph-scale. ──────
   const graphFit = document.getElementById('dj-graph-fit');
   const graphScroll = graphFit?.parentElement ?? null;
 
@@ -442,8 +442,8 @@ const pageData = {
   }
   window.addEventListener('resize', updateGraphScale);
 
-  /** Gestapelt: aktiven Node während des Plays horizontal ins Bild holen —
-      bei breiten Graphen liefe die Animation sonst außerhalb des Ausschnitts. */
+  /** Stacked: bring the active node horizontally into view during play — with
+      wide graphs the animation would otherwise run outside the viewport. */
   function scrollGraphToNode(id: string): void {
     if (!graphScroll || !stackedMq.matches) return;
     const node = nodes.find((n) => n.dataset.nodeId === id);
@@ -577,8 +577,8 @@ const pageData = {
     min-height: 0;
   }
 
-  /* Gestapelt (Design: stacked = vw < 1080): Graph über der Schrittliste,
-     der Split wird zum gemeinsamen Scroll-Container. */
+  /* Stacked (design: stacked = vw < 1080): graph above the step list, the
+     split becomes the shared scroll container. */
   @media (max-width: 1079.98px) {
     .dj-journey-split {
       flex-direction: column;
@@ -586,8 +586,8 @@ const pageData = {
     }
   }
 
-  /* Mobil (Design: mob = vw < 760): kompakte Kopfzeile — Beschreibung und
-     Stat-Chips entfallen, der Play-Button rückt näher an den Titel. */
+  /* Mobile (design: mob = vw < 760): compact header row — description and
+     stat chips are dropped, the play button moves closer to the title. */
   @media (max-width: 759.98px) {
     .dj-journey-head {
       gap: 10px;

@@ -1,8 +1,8 @@
 /**
- * `ductus graph [--open] [--out <pfad>] [--journey]`: Extract im Speicher,
- * Mermaid auf stdout bzw. eigenständiges HTML unter .ductus/graph.html.
- * --journey gibt statt des Flowcharts die journey-Diagramme der Flow-Hauptpfade aus;
- * das --open-HTML zeigt immer beides.
+ * `ductus graph [--open] [--out <path>] [--journey]`: extract in memory,
+ * Mermaid on stdout or a standalone HTML page under .ductus/graph.html.
+ * --journey prints the journey diagrams of the flow main paths instead of the
+ * flowchart; the --open HTML always shows both.
  */
 
 import { spawn } from 'node:child_process';
@@ -11,10 +11,11 @@ import { dirname, join, resolve } from 'node:path';
 import type { Command } from 'commander';
 import { segmentGraph } from '../llm/segment.js';
 import { graphToMermaid, segmentToJourney } from '../output/mermaid.js';
+import { outputStrings } from '../output/strings.js';
 import { runExtract } from '../pipeline.js';
 import { globalOptions, loadConfigWithWarnings, printIssues, runAction, stderrLog } from './shared.js';
 
-/** Journey-Diagramm eines Flows samt Titel für die HTML-Überschrift. */
+/** Journey diagram of a flow plus its title for the HTML heading. */
 interface FlowJourney {
   title: string;
   journey: string;
@@ -25,8 +26,8 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Eigenständige HTML-Seite; Mermaid kommt zur Laufzeit vom CDN.
- * Zeigt immer beides: das Flowchart plus je Flow den Hauptpfad als journey.
+ * Standalone HTML page; Mermaid is loaded from the CDN at runtime.
+ * Always shows both: the flowchart plus each flow's main path as a journey.
  */
 function buildGraphHtml(mermaid: string, journeys: FlowJourney[], title: string): string {
   const journeyBlocks = journeys.flatMap((entry) => [
@@ -35,7 +36,7 @@ function buildGraphHtml(mermaid: string, journeys: FlowJourney[], title: string)
   ]);
   return [
     '<!doctype html>',
-    '<html lang="de">',
+    '<html lang="en">',
     '<head>',
     '  <meta charset="utf-8">',
     '  <meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -62,15 +63,15 @@ function buildGraphHtml(mermaid: string, journeys: FlowJourney[], title: string)
 export function registerGraph(program: Command): void {
   program
     .command('graph')
-    .description('Gibt den Graphen als Mermaid aus; --open rendert ihn als HTML im Browser.')
-    .option('--open', 'HTML nach .ductus/graph.html schreiben und im Browser öffnen')
-    .option('--out <pfad>', 'Mermaid-Text in diese Datei schreiben statt auf stdout')
-    .option('--journey', 'journey-Diagramme der Flow-Hauptpfade statt des Flowcharts ausgeben')
+    .description('Prints the graph as Mermaid; --open renders it as HTML in the browser.')
+    .option('--open', 'Write HTML to .ductus/graph.html and open it in the browser')
+    .option('--out <path>', 'Write the Mermaid text to this file instead of stdout')
+    .option('--journey', 'Print journey diagrams of the flow main paths instead of the flowchart')
     .action(async (options: { open?: boolean; out?: string; journey?: boolean }, command: Command) => {
       await runAction(async () => {
         const globals = globalOptions(command);
         const config = loadConfigWithWarnings(globals.config);
-        // Nur Inspektion: nichts auf die Platte schreiben (write: false).
+        // Inspection only: write nothing to disk (write: false).
         const result = await runExtract(config, {
           ...(globals.offline !== undefined ? { offline: globals.offline } : {}),
           log: stderrLog,
@@ -84,39 +85,42 @@ export function registerGraph(program: Command): void {
 
         const mermaid = graphToMermaid(result.graph);
 
-        // Flow-Segmente über die bestehende Segmentierung bilden (keine Logik-Kopie);
-        // die Reihenfolge ist bereits deterministisch nach flow.id sortiert (NFR2).
+        // Build flow segments via the existing segmentation (no logic copy);
+        // the order is already deterministic, sorted by flow.id (NFR2).
         const journeys: FlowJourney[] = [];
-        for (const segment of segmentGraph(result.graph, 'flow')) {
+        const strings = outputStrings(config.app.locale);
+        for (const segment of segmentGraph(result.graph, 'flow', {
+          miscTitle: strings.miscSegmentTitle,
+        })) {
           if (segment.kind !== 'flow') continue;
-          const journey = segmentToJourney(segment);
+          const journey = segmentToJourney(segment, strings.mainPathHeading);
           if (journey !== undefined) journeys.push({ title: segment.title, journey });
         }
 
         if (options.journey === true && journeys.length === 0) {
           process.stderr.write(
-            'Hinweis: kein journey-Diagramm — kein Flow mit einem Hauptpfad aus mindestens zwei Knoten.\n',
+            'Note: no journey diagram — no flow with a main path of at least two nodes.\n',
           );
         }
-        // stdout/--out: bei --journey alle journey-Diagramme (Leerzeile als Trenner), sonst das Flowchart.
+        // stdout/--out: with --journey all journey diagrams (blank line as separator), otherwise the flowchart.
         const text = options.journey === true ? journeys.map((entry) => entry.journey).join('\n\n') : mermaid;
 
         if (options.out !== undefined && text !== '') {
           const outPath = resolve(options.out);
           mkdirSync(dirname(outPath), { recursive: true });
           writeFileSync(outPath, `${text}\n`, 'utf8');
-          process.stdout.write(`Geschrieben: ${outPath}\n`);
+          process.stdout.write(`Wrote: ${outPath}\n`);
         }
 
         if (options.open === true) {
           const htmlPath = join(config.rootDir, '.ductus', 'graph.html');
           mkdirSync(dirname(htmlPath), { recursive: true });
           writeFileSync(htmlPath, buildGraphHtml(mermaid, journeys, config.app.name), 'utf8');
-          process.stdout.write(`Geschrieben: ${htmlPath}\n`);
+          process.stdout.write(`Wrote: ${htmlPath}\n`);
           const opener = process.platform === 'darwin' ? 'open' : 'xdg-open';
           const child = spawn(opener, [htmlPath], { detached: true, stdio: 'ignore' });
           child.on('error', (error) => {
-            process.stderr.write(`Browser konnte nicht geöffnet werden (${error.message}).\n`);
+            process.stderr.write(`Could not open the browser (${error.message}).\n`);
           });
           child.unref();
         } else if (options.out === undefined && text !== '') {

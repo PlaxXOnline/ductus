@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Adapter-CLI des Ductus-TypeScript-Adapters:
+ * Adapter CLI of the Ductus TypeScript adapter:
  *
- *     ductus-adapter-typescript --project <dir> [--config <json-datei>]
+ *     ductus-adapter-typescript --project <dir> [--config <json-file>]
  *         [--no-debug-file]
  *
- * stdout: genau ein kanonisches Graph-JSON; Diagnostik auf stderr;
- * Exit 0 Erfolg / 64 Usage-Fehler / 1 Adapterfehler.
+ * stdout: exactly one canonical graph JSON; diagnostics on stderr;
+ * exit 0 success / 64 usage error / 1 adapter error.
  */
 
 import { writeFileSync } from 'node:fs';
@@ -16,11 +16,11 @@ import { AdapterException } from './graph-model.js';
 import { runAdapter } from './runner.js';
 
 const USAGE = [
-  'Verwendung: ductus-adapter-typescript --project <dir> [--config <json-datei>] [--no-debug-file]',
-  '  --project <dir>          Projektverzeichnis (Pflicht).',
-  '  --config <json-datei>    Pfad zu einer JSON-Konfigurationsdatei.',
-  '  --debug-file             Schreibt ductus_graph.g.json ins Projektverzeichnis',
-  '                           (Default; --no-debug-file schaltet ab).',
+  'Usage: ductus-adapter-typescript --project <dir> [--config <json-file>] [--no-debug-file]',
+  '  --project <dir>          Project directory (required).',
+  '  --config <json-file>     Path to a JSON configuration file.',
+  '  --debug-file             Writes ductus_graph.g.json into the project directory',
+  '                           (default; --no-debug-file disables it).',
 ].join('\n');
 
 interface CliArgs {
@@ -38,7 +38,7 @@ function parseArgs(argv: string[]): CliArgs {
       case '--config': {
         const value = argv[i + 1];
         if (value === undefined || value.startsWith('--')) {
-          throw new UsageError(`Fehler: ${arg} erwartet einen Wert.`);
+          throw new UsageError(`Error: ${arg} expects a value.`);
         }
         if (arg === '--project') args.project = value;
         else args.config = value;
@@ -52,7 +52,7 @@ function parseArgs(argv: string[]): CliArgs {
         args.debugFile = false;
         break;
       default:
-        throw new UsageError(`Fehler: unbekannte Option "${arg}".`);
+        throw new UsageError(`Error: unknown option "${arg}".`);
     }
   }
   return args;
@@ -72,12 +72,12 @@ function main(argv: string[]): void {
   }
 
   if (args.project === undefined || args.project === '') {
-    process.stderr.write('Fehler: --project <dir> ist erforderlich.\n');
+    process.stderr.write('Error: --project <dir> is required.\n');
     process.stderr.write(`${USAGE}\n`);
     process.exitCode = 64;
     return;
   }
-  // Absolut auflösen, damit der Aufruf aus beliebigem cwd funktioniert.
+  // Resolve to an absolute path so the invocation works from any cwd.
   const projectDir = resolve(args.project);
 
   try {
@@ -96,7 +96,7 @@ function main(argv: string[]): void {
       for (const message of error.messages) process.stderr.write(`${message}\n`);
     } else {
       const detail = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`Fehler: ${detail}\n`);
+      process.stderr.write(`Error: ${detail}\n`);
     }
     process.exitCode = 1;
   }

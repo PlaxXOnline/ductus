@@ -1,7 +1,7 @@
 ---
 /**
- * Journey-Karte der Übersicht: Stationen-Miniatur, Titel, Beschreibung,
- * „N Schritte · M Aktionen“ und „Journey öffnen →“.
+ * Journey card on the overview page: station miniature, title, description,
+ * “N steps · M actions” and “Open journey →”.
  */
 import type { Journey } from '../lib/types';
 import { data } from '../lib/data';
@@ -15,7 +15,7 @@ const { journey } = Astro.props;
 const t = uiStrings(data.site.locale);
 const base = import.meta.env.BASE_URL;
 
-/** Miniatur: eine Station je Node (max. 6) — Raute für Entscheidungen. */
+/** Miniature: one station per node (max. 6) — diamond for decisions. */
 const MAX_STATIONS = 6;
 const stations = journey.nodes.slice(0, MAX_STATIONS).map((node, i) => ({
   decision: node.type === 'decision',

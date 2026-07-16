@@ -1,10 +1,10 @@
 /**
- * Interne Merge- & Präzedenzregeln des Adapters — 1:1-Port von
+ * Internal merge & precedence rules of the adapter — 1:1 port of
  * dart/ductus/lib/src/adapter/merger.dart.
  *
- * `annotation` überschreibt `derived` feldweise; zwei manuelle Quellen mit
- * unterschiedlichen Werten für dasselbe Feld sind ein Fehler (fail-fast) mit
- * beiden Quellenangaben.
+ * `annotation` overrides `derived` field by field; two manual sources with
+ * different values for the same field are an error (fail fast) that cites
+ * both sources.
  */
 
 import {
@@ -28,7 +28,7 @@ function byRef(a: SourceRef, b: SourceRef): number {
   return byFile !== 0 ? byFile : a.line - b.line;
 }
 
-/** Stabil nach (Datei, Zeile) sortieren (Array.prototype.sort ist stabil). */
+/** Stable sort by (file, line) (Array.prototype.sort is stable). */
 function sortedByRef<T>(items: readonly T[], ref: (item: T) => SourceRef): T[] {
   return [...items].sort((a, b) => byRef(ref(a), ref(b)));
 }
@@ -40,14 +40,14 @@ function equalValues(a: unknown, b: unknown): boolean {
   return a === b;
 }
 
-/** Konfliktwert-Format wie im Dart-Adapter: Listen als `[a, b]`. */
+/** Conflict value format as in the Dart adapter: lists as `[a, b]`. */
 function formatValue(value: unknown): string {
   return Array.isArray(value) ? `[${value.join(', ')}]` : String(value);
 }
 
 /**
- * Feldweiser Merge einer Kandidatenliste: erster manueller Wert gewinnt,
- * sonst erster abgeleiteter; zwei verschiedene manuelle Werte ⇒ Konflikt.
+ * Field-wise merge of a candidate list: the first manual value wins,
+ * otherwise the first derived one; two different manual values ⇒ conflict.
  */
 class FieldMerger<T> {
   readonly manual: T[];
@@ -79,7 +79,7 @@ class FieldMerger<T> {
         valueSource = candidate;
       } else if (!equalValues(value, v)) {
         this.conflicts.push(
-          `Konflikt: ${this.kind} "${this.id}", Feld "${field}": ` +
+          `Conflict: ${this.kind} "${this.id}", field "${field}": ` +
             `"${formatValue(value)}" (${refToString(ref(valueSource as T))}) vs. "${formatValue(v)}" (${refToString(ref(candidate))}).`,
         );
       }
@@ -170,7 +170,7 @@ function mergeEdges(edges: readonly GraphEdge[], conflicts: string[]): GraphEdge
   const manual = sorted.filter((e) => e.source === SourceKind.annotation);
   const derived = sorted.filter((e) => e.source !== SourceKind.annotation);
 
-  // Manuelle Edges mit expliziter Id: Identität über id, feldweiser Merge.
+  // Manual edges with an explicit id: identity via id, field-wise merge.
   const result: GraphEdge[] = [];
   const manualById = new Map<string, GraphEdge[]>();
   for (const edge of manual) {
@@ -208,9 +208,9 @@ function mergeEdges(edges: readonly GraphEdge[], conflicts: string[]): GraphEdge
     });
   }
 
-  // Abgeleitete Edges: manuelle Edge mit gleichem (from, to) gewinnt feldweise
-  // (die abgeleitete füllt nur fehlende Felder der ersten manuellen auf);
-  // exakte Duplikate unter abgeleiteten Edges werden dedupliziert.
+  // Derived edges: a manual edge with the same (from, to) wins field-wise
+  // (the derived one only fills missing fields of the first manual one);
+  // exact duplicates among derived edges are deduplicated.
   const keptDerived: GraphEdge[] = [];
   for (const edge of derived) {
     const manualIndex = result.findIndex((m) => m.from === edge.from && m.to === edge.to);
@@ -243,9 +243,9 @@ function mergeEdges(edges: readonly GraphEdge[], conflicts: string[]): GraphEdge
   }
   result.push(...keptDerived);
 
-  // Id-Generierung: `e_<from>_<to>`, Kollisionen mit Suffix _2/_3 in
-  // (Datei, Zeile)-Reihenfolge. result ist bereits so geordnet, dass
-  // manuelle vor abgeleiteten kommen, jeweils nach (Datei, Zeile).
+  // Id generation: `e_<from>_<to>`, collisions get suffix _2/_3 in
+  // (file, line) order. result is already ordered so that manual edges come
+  // before derived ones, each sorted by (file, line).
   const usedIds = new Set<string>();
   for (const edge of result) {
     if (edge.id !== undefined) usedIds.add(edge.id);
@@ -270,8 +270,8 @@ function mergeEdges(edges: readonly GraphEdge[], conflicts: string[]): GraphEdge
 }
 
 /**
- * Merged Nodes/Edges/Flows aller Quellen. Konflikte zwischen manuellen
- * Quellen führen zu einer [AdapterException] mit allen Fundstellen.
+ * Merges nodes/edges/flows from all sources. Conflicts between manual
+ * sources lead to an [AdapterException] that lists every occurrence.
  */
 export function mergeGraph(input: {
   nodes: readonly GraphNode[];

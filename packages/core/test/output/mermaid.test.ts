@@ -33,27 +33,27 @@ function makeSegment(overrides: Partial<GraphSegment> = {}): GraphSegment {
 }
 
 describe('segmentToMermaid', () => {
-  it('rendert Shapes je Node-Typ und beginnt mit flowchart TD', () => {
+  it('renders shapes per node type and starts with flowchart TD', () => {
     const out = segmentToMermaid(makeSegment());
     const lines = out.split('\n');
     expect(lines[0]).toBe('flowchart TD');
-    expect(out).toContain('login["Anmeldung #quot;Start#quot;"]'); // screen + Escaping
+    expect(out).toContain('login["Anmeldung #quot;Start#quot;"]'); // screen + escaping
     expect(out).toContain('auth_check{"Eingeloggt?"}'); // decision
     expect(out).toContain('do_login(["Anmelden"])'); // action
   });
 
-  it('beschriftet Kanten mit label bzw. trigger und hängt condition an', () => {
+  it('labels edges with label or trigger and appends the condition', () => {
     const out = segmentToMermaid(makeSegment());
-    expect(out).toContain('login -->|submit| auth_check'); // trigger als Fallback
+    expect(out).toContain('login -->|submit| auth_check'); // trigger as fallback
     expect(out).toContain('auth_check -->|Ja / Sitzung aktiv| do_login'); // label + condition
   });
 
-  it('rendert exits als gestrichelte Kanten zum Ziel-Titel', () => {
+  it('renders exits as dashed edges to the target title', () => {
     const out = segmentToMermaid(makeSegment());
     expect(out).toContain('do_login -.->|auto| dashboard["Dashboard"]');
   });
 
-  it('rendert Kanten ohne label/trigger/condition ohne Beschriftung', () => {
+  it('renders edges without label/trigger/condition unlabeled', () => {
     const segment = makeSegment({
       edges: [{ id: 'e3', from: 'login', to: 'auth-check', source: 'derived' }],
       exits: [],
@@ -61,7 +61,7 @@ describe('segmentToMermaid', () => {
     expect(segmentToMermaid(segment)).toContain('login --> auth_check');
   });
 
-  it('löst Kollisionen sanitisierter Ids deterministisch per Suffix auf', () => {
+  it('resolves collisions of sanitized ids deterministically via a suffix', () => {
     const segment = makeSegment({
       nodes: [
         { id: 'a-b', type: 'screen', title: 'A', source: 'derived' },
@@ -71,12 +71,12 @@ describe('segmentToMermaid', () => {
       exits: [],
     });
     const out = segmentToMermaid(segment);
-    expect(out).toContain('a_b["A"]'); // 'a-b' kommt in Sortierung zuerst
+    expect(out).toContain('a_b["A"]'); // 'a-b' comes first in sort order
     expect(out).toContain('a_b_2["B"]');
     expect(out).toContain('a_b -->|tap| a_b_2');
   });
 
-  it('ist deterministisch unabhängig von der Eingabereihenfolge', () => {
+  it('is deterministic regardless of input order', () => {
     const a = segmentToMermaid(makeSegment());
     const b = segmentToMermaid(
       makeSegment({ nodes: [...nodes].reverse(), edges: [...edges].reverse() }),
@@ -114,13 +114,13 @@ describe('segmentToJourney', () => {
     { id: 'e2', from: 'submit', to: 'dashboard', trigger: 'auto', source: 'derived' },
   ];
 
-  it('rendert einen linearen Pfad als journey mit title, section und Score 3', () => {
+  it('renders a linear path as a journey with title, section and score 3', () => {
     const out = segmentToJourney(flowSegment(linearNodes, linearEdges));
     expect(out).toBe(
       [
         'journey',
         '  title Anmeldung',
-        '  section Hauptpfad',
+        '  section Main path',
         '    Login: 3',
         '    Absenden: 3',
         '    Dashboard: 3',
@@ -128,14 +128,19 @@ describe('segmentToJourney', () => {
     );
   });
 
-  it('wählt an einer decision die Kante ohne condition vor der mit condition', () => {
+  it('uses the provided section title (locale-dependent)', () => {
+    const out = segmentToJourney(flowSegment(linearNodes, linearEdges), 'Hauptpfad');
+    expect(out).toContain('  section Hauptpfad');
+  });
+
+  it('picks the edge without a condition over the one with a condition at a decision', () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'check', type: 'decision', title: 'Eingeloggt?', source: 'derived' },
       { id: 'happy', type: 'screen', title: 'Happy', source: 'derived' },
       { id: 'sad', type: 'screen', title: 'Sad', source: 'derived' },
     ];
-    // 'a0' hätte die kleinste id, trägt aber eine condition — 'z9' gewinnt (Regel 2 vor 3).
+    // 'a0' would have the smallest id but carries a condition — 'z9' wins (rule 2 over 3).
     const edges: JourneyEdge[] = [
       { id: 'e1', from: 'login', to: 'check', trigger: 'submit', source: 'derived' },
       { id: 'a0', from: 'check', to: 'sad', condition: 'Fehler', source: 'derived' },
@@ -146,7 +151,7 @@ describe('segmentToJourney', () => {
     expect(out).not.toContain('Sad: 3');
   });
 
-  it('wählt bei sonst gleicher Priorität die Kante mit der kleinsten id', () => {
+  it('picks the edge with the smallest id when priority is otherwise equal', () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'a', type: 'screen', title: 'A', source: 'derived' },
@@ -161,13 +166,13 @@ describe('segmentToJourney', () => {
     expect(out).not.toContain('B: 3');
   });
 
-  it('meidet back-Kanten, solange eine andere Kante existiert (Regel 1 vor 2 und 3)', () => {
+  it('avoids back edges as long as another edge exists (rule 1 over 2 and 3)', () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'zurueck', type: 'screen', title: 'Zurück', source: 'derived' },
       { id: 'vor', type: 'screen', title: 'Vorwärts', source: 'derived' },
     ];
-    // back-Kante mit kleinster id und ohne condition — trotzdem gewinnt die Nicht-back-Kante.
+    // Back edge with the smallest id and without a condition — the non-back edge still wins.
     const edges: JourneyEdge[] = [
       { id: 'a0', from: 'login', to: 'zurueck', trigger: 'back', source: 'derived' },
       { id: 'z9', from: 'login', to: 'vor', condition: 'nur wenn', source: 'derived' },
@@ -177,7 +182,7 @@ describe('segmentToJourney', () => {
     expect(out).not.toContain('Zurück: 3');
   });
 
-  it('terminiert bei Zyklen — besuchte Knoten werden nie wiederholt', () => {
+  it('terminates on cycles — visited nodes are never repeated', () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'a', type: 'screen', title: 'A', source: 'derived' },
@@ -186,7 +191,7 @@ describe('segmentToJourney', () => {
     const edges: JourneyEdge[] = [
       { id: 'e1', from: 'login', to: 'a', source: 'derived' },
       { id: 'e2', from: 'a', to: 'b', source: 'derived' },
-      { id: 'e3', from: 'b', to: 'login', source: 'derived' }, // Zyklus zurück zum Start
+      { id: 'e3', from: 'b', to: 'login', source: 'derived' }, // cycle back to the start
     ];
     const out = segmentToJourney(flowSegment(nodes, edges));
     expect(out?.split('\n').filter((line) => line.endsWith(': 3'))).toEqual([
@@ -196,7 +201,7 @@ describe('segmentToJourney', () => {
     ]);
   });
 
-  it("escapet '#', ':' und ';' als Entities und ersetzt Zeilenumbrüche durch ein Leerzeichen", () => {
+  it("escapes '#', ':' and ';' as entities and replaces line breaks with a space", () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Start: #1', source: 'derived' },
       { id: 'next', type: 'screen', title: 'A;B\nC', source: 'derived' },
@@ -210,9 +215,9 @@ describe('segmentToJourney', () => {
     expect(out).toContain('    A#59;B C: 3');
   });
 
-  it("entschärft Task-Labels, die mit 'journey', 'section' oder 'title' beginnen, per Entity fürs erste Zeichen", () => {
-    // Am Zeilenanfang würde Mermaids Lexer diese Wörter als Statement lesen:
-    // 'journey'/'section ' → Parse-Fehler, 'title ' überschreibt still den Diagramm-Titel.
+  it("defuses task labels starting with 'journey', 'section' or 'title' via an entity for the first character", () => {
+    // At the start of a line, Mermaid's lexer would read these words as a statement:
+    // 'journey'/'section ' → parse error, 'title ' silently overrides the diagram title.
     const nodes: JourneyNode[] = [
       { id: 'n1', type: 'screen', title: 'Journey starten', source: 'derived' },
       { id: 'n2', type: 'screen', title: 'section öffnen', source: 'derived' },
@@ -230,7 +235,7 @@ describe('segmentToJourney', () => {
     expect(out).toContain('    #84;itle prüfen: 3');
   });
 
-  it("entschärft Task-Labels, die mit '%%' (Mermaid-Kommentar) beginnen", () => {
+  it("defuses task labels starting with '%%' (Mermaid comment)", () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'n2', type: 'screen', title: '%% Hinweis', source: 'derived' },
@@ -240,8 +245,8 @@ describe('segmentToJourney', () => {
     expect(out).toContain('    #37;% Hinweis: 3');
   });
 
-  it('fällt bei leerem oder nur aus Whitespace bestehendem Titel auf die Node-id zurück', () => {
-    // title: '' erfüllt das Schema (V4 fordert nur Präsenz) — '    : 3' wäre aber invalide.
+  it('falls back to the node id for an empty or whitespace-only title', () => {
+    // title: '' satisfies the schema (V4 only requires presence) — but '    : 3' would be invalid.
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'leer', type: 'screen', title: '', source: 'derived' },
@@ -257,15 +262,15 @@ describe('segmentToJourney', () => {
     expect(out).not.toContain('    : 3');
   });
 
-  it("behandelt condition: '' wie keine condition (konsistent zu edgeText und V5c)", () => {
+  it("treats condition: '' like no condition (consistent with edgeText and V5c)", () => {
     const nodes: JourneyNode[] = [
       { id: 'login', type: 'screen', title: 'Login', source: 'derived' },
       { id: 'check', type: 'decision', title: 'Eingeloggt?', source: 'derived' },
       { id: 'happy', type: 'screen', title: 'Happy', source: 'derived' },
       { id: 'sad', type: 'screen', title: 'Sad', source: 'derived' },
     ];
-    // 'a0' hat die kleinste id, aber eine echte condition — 'z9' mit condition ''
-    // ist effektiv bedingungslos und gewinnt (Regel 2 vor 3).
+    // 'a0' has the smallest id but a real condition — 'z9' with condition ''
+    // is effectively unconditional and wins (rule 2 over 3).
     const edges: JourneyEdge[] = [
       { id: 'e1', from: 'login', to: 'check', trigger: 'submit', source: 'derived' },
       { id: 'a0', from: 'check', to: 'sad', condition: 'nur im Fehlerfall', source: 'derived' },
@@ -276,7 +281,7 @@ describe('segmentToJourney', () => {
     expect(out).not.toContain('Sad: 3');
   });
 
-  it('liefert für screen- und misc-Segmente undefined', () => {
+  it('returns undefined for screen and misc segments', () => {
     const base = flowSegment(linearNodes, linearEdges);
     const screenSegment: GraphSegment = { ...base, kind: 'screen' };
     const { flow: _flow, ...withoutFlow } = base;
@@ -285,8 +290,8 @@ describe('segmentToJourney', () => {
     expect(segmentToJourney(miscSegment)).toBeUndefined();
   });
 
-  it('liefert undefined, wenn der Hauptpfad weniger als 2 Knoten hat', () => {
-    // Einzige ausgehende Kante zeigt aus dem Segment hinaus → Pfad = nur der Start.
+  it('returns undefined when the main path has fewer than 2 nodes', () => {
+    // The only outgoing edge points out of the segment → path = just the start.
     const segment = flowSegment(
       [{ id: 'login', type: 'screen', title: 'Login', source: 'derived' }],
       [{ id: 'e1', from: 'login', to: 'outside', source: 'derived' }],
@@ -294,7 +299,7 @@ describe('segmentToJourney', () => {
     expect(segmentToJourney(segment)).toBeUndefined();
   });
 
-  it('ist bei Doppellauf byte-identisch und unabhängig von der Eingabereihenfolge (NFR2)', () => {
+  it('is byte-identical on a double run and independent of the input order (NFR2)', () => {
     const a = segmentToJourney(flowSegment(linearNodes, linearEdges));
     const b = segmentToJourney(
       flowSegment([...linearNodes].reverse(), [...linearEdges].reverse()),
@@ -312,7 +317,7 @@ describe('graphToMermaid', () => {
     edges,
   };
 
-  it('rendert alle Nodes und Edges sortiert', () => {
+  it('renders all nodes and edges sorted', () => {
     const out = graphToMermaid(graph);
     const lines = out.split('\n');
     expect(lines).toEqual([
@@ -325,7 +330,7 @@ describe('graphToMermaid', () => {
     ]);
   });
 
-  it('ist deterministisch unabhängig von der Eingabereihenfolge', () => {
+  it('is deterministic regardless of input order', () => {
     const shuffled: JourneyGraph = {
       ...graph,
       nodes: [...nodes].reverse(),

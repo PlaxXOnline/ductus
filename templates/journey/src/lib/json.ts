@@ -1,12 +1,12 @@
 /**
- * JSON sicher in eine <script type="application/json">-Insel einbetten.
+ * Safely embed JSON into a <script type="application/json"> island.
  *
- * Sicherheit: `set:html` escaped nichts und JSON.stringify lässt "</script>"
- * wörtlich stehen — eine solche Sequenz in Titeln/Labels (LLM- bzw.
- * Quellcode-abgeleitete Strings, angreifergesteuert) würde die Insel vorzeitig
- * schließen und injizierte Tags ausführen (stored XSS). Deshalb werden < > &
- * sowie die JS-Zeilenumbrüche U+2028/U+2029 als \uXXXX-Escapes kodiert — das
- * bleibt gültiges JSON, JSON.parse liefert exakt den ursprünglichen Wert.
+ * Security: `set:html` escapes nothing and JSON.stringify leaves "</script>"
+ * verbatim — such a sequence in titles/labels (LLM- or source-code-derived
+ * strings, attacker-controlled) would close the island prematurely and execute
+ * injected tags (stored XSS). Therefore < > & as well as the JS line breaks
+ * U+2028/U+2029 are encoded as \uXXXX escapes — this remains valid JSON, and
+ * JSON.parse yields exactly the original value.
  */
 
 export function toJsonIsland(value: unknown): string {

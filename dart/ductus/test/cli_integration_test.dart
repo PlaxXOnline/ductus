@@ -5,7 +5,7 @@ import 'package:ductus/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// Integrationstests gegen das echte CLI:
+/// Integration tests against the real CLI:
 /// `dart run ductus:adapter --project <dir>`.
 void main() {
   final packageDir = Directory.current.path;
@@ -21,7 +21,7 @@ void main() {
     if (debugFile.existsSync()) debugFile.deleteSync();
   });
 
-  test('Erfolg: Exit 0, parsebares JSON, erwartete Nodes/Edges, Debug-Datei',
+  test('success: exit 0, parseable JSON, expected nodes/edges, debug file',
       () async {
     final result = await runAdapterCli(['--project', fullApp]);
 
@@ -47,11 +47,11 @@ void main() {
       ]),
     );
 
-    // Manuelle Annotation überschreibt abgeleiteten Screen.
+    // Manual annotation overrides the derived screen.
     final login = nodes.firstWhere((n) => n['id'] == 'login');
     expect(login['title'], 'Anmeldung');
     expect(login['source'], 'annotation');
-    expect(login['tags'], ['auth', 'entry']); // sortiert
+    expect(login['tags'], ['auth', 'entry']); // sorted
 
     final edges = (graph['edges'] as List).cast<Map<String, dynamic>>();
     final edgeIds = edges.map((e) => e['id']).toList();
@@ -69,15 +69,15 @@ void main() {
     final flows = (graph['flows'] as List).cast<Map<String, dynamic>>();
     expect(flows.map((f) => f['id']), containsAll(['auth', 'shell-0']));
 
-    // Nicht zuordenbare Navigation landet als Hinweis auf stderr.
+    // Unmappable navigation ends up as a note on stderr.
     expect(result.stderr as String, contains('/unbekannt'));
 
-    // Debug-Datei mit identischem Inhalt.
+    // Debug file with identical content.
     expect(debugFile.existsSync(), isTrue);
     expect(debugFile.readAsStringSync(), result.stdout);
   });
 
-  test('Determinismus: zwei Läufe liefern byte-identisches stdout', () async {
+  test('determinism: two runs produce byte-identical stdout', () async {
     final first = await runAdapterCli(['--project', fullApp, '--no-debug-file']);
     final second = await runAdapterCli(['--project', fullApp, '--no-debug-file']);
 
@@ -86,38 +86,38 @@ void main() {
     expect(second.stdout, first.stdout);
     expect(utf8.encode(second.stdout as String),
         utf8.encode(first.stdout as String));
-    // Kanonische Form: LF + abschließender Zeilenumbruch.
+    // Canonical form: LF + trailing newline.
     expect((first.stdout as String).endsWith('}\n'), isTrue);
     expect(first.stdout as String, isNot(contains('\r')));
     expect(first.stdout as String, isNot(contains('generatedAt')));
   });
 
-  test('--no-debug-file unterdrückt die Debug-Datei', () async {
+  test('--no-debug-file suppresses the debug file', () async {
     final result = await runAdapterCli(['--project', fullApp, '--no-debug-file']);
 
     expect(result.exitCode, 0);
     expect(debugFile.existsSync(), isFalse);
   });
 
-  test('Konflikt: Exit ungleich 0, stderr nennt beide Quellen', () async {
+  test('conflict: non-zero exit, stderr cites both sources', () async {
     final result = await runAdapterCli(['--project', conflict]);
 
     expect(result.exitCode, isNot(0));
     final stderrText = result.stderr as String;
     expect(stderrText, contains('lib/a.dart:2'));
     expect(stderrText, contains('lib/b.dart:2'));
-    // Kein Graph auf stdout im Fehlerfall.
+    // No graph on stdout in the error case.
     expect(result.stdout, isEmpty);
   });
 
-  test('fehlendes --project: Exit ungleich 0 mit Usage auf stderr', () async {
+  test('missing --project: non-zero exit with usage on stderr', () async {
     final result = await runAdapterCli([]);
 
     expect(result.exitCode, isNot(0));
     expect(result.stderr as String, contains('--project'));
   });
 
-  test('--config schaltet Ableitungen ab', () async {
+  test('--config disables derivations', () async {
     final configFile = File(p.join(
         Directory.systemTemp.createTempSync('ductus_test_').path,
         'config.json'));
@@ -134,21 +134,21 @@ void main() {
     final graph = jsonDecode(result.stdout as String) as Map<String, dynamic>;
     final nodeIds =
         (graph['nodes'] as List).map((n) => (n as Map)['id']).toList();
-    // Nur manuell annotierte Nodes, keine abgeleiteten Routen.
+    // Only manually annotated nodes, no derived routes.
     expect(nodeIds, unorderedEquals(['login', 'dashboard']));
   });
 
-  test('adapterVersion stimmt mit version: in pubspec.yaml überein',
+  test('adapterVersion matches version: in pubspec.yaml',
       () {
     final pubspec =
         File(p.join(packageDir, 'pubspec.yaml')).readAsStringSync();
     final match =
         RegExp(r'^version:\s*(\S+)\s*$', multiLine: true).firstMatch(pubspec);
     expect(match, isNotNull,
-        reason: 'pubspec.yaml enthält keine version:-Zeile.');
-    // Die Konstante ist hartkodiert — beim Release-Bump beide nachziehen,
-    // sonst meldet meta.adapters.version nicht mehr die tatsächliche
-    // Paketversion (zugesagt ist "version: <Paketversion>").
+        reason: 'pubspec.yaml contains no version: line.');
+    // The constant is hard-coded — bump both on a release, otherwise
+    // meta.adapters.version no longer reports the actual package version
+    // (the contract is "version: <package version>").
     expect(adapterVersion, match!.group(1));
   });
 }

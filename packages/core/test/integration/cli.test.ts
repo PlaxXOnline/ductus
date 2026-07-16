@@ -1,6 +1,6 @@
 /**
- * Ende-zu-Ende-Tests des ductus-CLI gegen den gebauten dist-Output.
- * Der Build läuft einmal pro Testdatei im beforeAll (großzügiger Timeout).
+ * End-to-end tests of the ductus CLI against the built dist output.
+ * The build runs once per test file in beforeAll (generous timeout).
  */
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -64,7 +64,7 @@ function runCli(args: string[], cwd: string): CliResult {
 }
 
 beforeAll(() => {
-  // Einmal pro Testdatei bauen — die CLI-Tests laufen gegen dist/ (bin-Vertrag).
+  // Build once per test file — the CLI tests run against dist/ (bin contract).
   execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
   expect(existsSync(CLI)).toBe(true);
 }, 360_000);
@@ -74,7 +74,7 @@ afterAll(() => {
 });
 
 describe('ductus extract', () => {
-  it('schreibt journey-graph.json byte-identisch bei zwei Läufen (NFR2)', () => {
+  it('writes journey-graph.json byte-identically across two runs (NFR2)', () => {
     const dir = makeProject();
 
     const first = runCli(['extract'], dir);
@@ -87,49 +87,49 @@ describe('ductus extract', () => {
     const bytes2 = readFileSync(graphPath);
 
     expect(bytes1.equals(bytes2)).toBe(true);
-    expect(first.stdout).toContain('2 Nodes');
-    expect(first.stdout).toContain('1 Edges');
-    expect(first.stdout).toContain('1 Flows');
+    expect(first.stdout).toContain('2 nodes');
+    expect(first.stdout).toContain('1 edges');
+    expect(first.stdout).toContain('1 flows');
     expect(existsSync(join(dir, 'ductus-report.json'))).toBe(true);
   });
 
-  it('meldet Validierungsfehler zeilenweise auf stderr und beendet mit Exit 1', () => {
+  it('reports validation errors line by line on stderr and exits with 1', () => {
     const dir = makeProject('dangling');
     const result = runCli(['extract'], dir);
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/V1 .*"missing"/);
-    // Bei Fehlern wird kein Graph geschrieben.
+    // No graph is written on errors.
     expect(existsSync(join(dir, 'journey-graph.json'))).toBe(false);
   });
 
-  it('lehnt inkompatible Adapter-schemaVersion als V6 mit Exit 1 ab (NFR7)', () => {
+  it('rejects an incompatible adapter schemaVersion as V6 with exit 1 (NFR7)', () => {
     const dir = makeProject('futureversion');
     const result = runCli(['extract'], dir);
-    // Klassifiziert als Validierungsfehler (Exit 1), NICHT als AdapterError (Exit 3).
+    // Classified as a validation error (exit 1), NOT as an AdapterError (exit 3).
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/V6 Adapter "fake": schemaVersion "2\.0" wird nicht unterstützt/);
+    expect(result.stderr).toMatch(/V6 Adapter "fake": schemaVersion "2\.0" is not supported/);
     expect(existsSync(join(dir, 'journey-graph.json'))).toBe(false);
   });
 
-  it('beendet mit Exit 3 bei fehlender Config bzw. Adapterfehler', () => {
+  it('exits with 3 on a missing config or an adapter failure', () => {
     const noConfig = runCli(['-c', 'gibt-es-nicht.yaml', 'extract'], makeProject());
     expect(noConfig.status).toBe(3);
-    expect(noConfig.stderr).toContain('Konfigurationsdatei nicht lesbar');
+    expect(noConfig.stderr).toContain('Cannot read config file');
 
     const broken = runCli(['extract'], makeProject('fail'));
     expect(broken.status).toBe(3);
-    expect(broken.stderr).toContain('Exit-Code 1');
+    expect(broken.stderr).toContain('exit code 1');
   });
 });
 
 describe('ductus generate / check / graph', () => {
-  it('generate --offline mit mock schreibt MDX mit Frontmatter und Report (Exit 0)', () => {
+  it('generate --offline with mock writes MDX with frontmatter and a report (exit 0)', () => {
     const dir = makeProject();
     const result = runCli(['--offline', 'generate'], dir);
     expect(result.status, result.stderr).toBe(0);
 
-    // Vorab-Kostenschätzung (NFR3) erscheint vor der Generierung auf stderr.
-    expect(result.stderr).toMatch(/Kostenschätzung \(vorab\).*Segment/);
+    // The upfront cost estimate (NFR3) appears on stderr before generation.
+    expect(result.stderr).toMatch(/Cost estimate \(upfront\).*segment/);
 
     const docsDir = join(dir, 'docs');
     const files = readdirSync(docsDir).sort();
@@ -149,9 +149,9 @@ describe('ductus generate / check / graph', () => {
     expect(report.faithfulness).toEqual([]);
   });
 
-  it('generate --offline mit echtem Provider beendet mit Exit 3 (nur mock ist netzfrei)', () => {
+  it('generate --offline with a real provider exits with 3 (only mock is network-free)', () => {
     const dir = makeProject();
-    // provider anthropic statt mock:
+    // provider anthropic instead of mock:
     const config = readFileSync(join(dir, 'ductus.config.yaml'), 'utf8');
     writeFileSync(join(dir, 'ductus.config.yaml'), config.replace('provider: mock', 'provider: anthropic'));
     const result = runCli(['--offline', 'generate'], dir);
@@ -159,7 +159,7 @@ describe('ductus generate / check / graph', () => {
     expect(result.stderr).toContain('--offline');
   });
 
-  it('check nach generate beendet mit Exit 0 und schreibt nichts neu', () => {
+  it('check after generate exits with 0 and rewrites nothing', () => {
     const dir = makeProject();
     expect(runCli(['--offline', 'generate'], dir).status).toBe(0);
 
@@ -172,22 +172,22 @@ describe('ductus generate / check / graph', () => {
 
     const result = runCli(['--offline', 'check'], dir);
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout).toContain('check: OK (0 Warnung(en), 0 Segment(e) noch nicht generiert)');
-    // Alle Segmente sind generiert — kein Segment-Hinweis "noch nicht generiert".
-    expect(result.stdout).not.toMatch(/Segment ".*": noch nicht generiert/);
+    expect(result.stdout).toContain('check: OK (0 warning(s), 0 segment(s) not generated yet)');
+    // All segments are generated — no "not generated yet" segment line.
+    expect(result.stdout).not.toMatch(/Segment ".*": not generated yet/);
 
     const after = watched.map((path) => statSync(path).mtimeMs);
     expect(after).toEqual(before);
   });
 
-  it('check vor generate meldet Segmente als noch nicht generiert (Exit 0)', () => {
+  it('check before generate reports segments as not generated yet (exit 0)', () => {
     const dir = makeProject();
     const result = runCli(['--offline', 'check'], dir);
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout).toContain('noch nicht generiert');
+    expect(result.stdout).toContain('not generated yet');
   });
 
-  it('graph liefert "flowchart TD" auf stdout und schreibt keine Artefakte', () => {
+  it('graph prints "flowchart TD" on stdout and writes no artifacts', () => {
     const dir = makeProject();
     const result = runCli(['graph'], dir);
     expect(result.status, result.stderr).toBe(0);
@@ -196,7 +196,7 @@ describe('ductus generate / check / graph', () => {
     expect(existsSync(join(dir, 'journey-graph.json'))).toBe(false);
   });
 
-  it('graph --journey liefert das journey-Diagramm des Flow-Hauptpfads statt des Flowcharts', () => {
+  it('graph --journey prints the journey diagram of the flow main path instead of the flowchart', () => {
     const dir = makeProject('flowfull');
     const result = runCli(['graph', '--journey'], dir);
     expect(result.status, result.stderr).toBe(0);
@@ -205,18 +205,18 @@ describe('ductus generate / check / graph', () => {
     );
   });
 
-  it('graph --journey ohne Hauptpfad ≥ 2 Knoten gibt nur einen Hinweis auf stderr (Exit 0)', () => {
-    // Im Standard-Graphen gehört nur "login" zum Flow — der Hauptpfad hat 1 Knoten.
+  it('graph --journey without a main path of ≥ 2 nodes prints only a note on stderr (exit 0)', () => {
+    // In the standard graph only "login" belongs to the flow — the main path has 1 node.
     const dir = makeProject();
     const result = runCli(['graph', '--journey'], dir);
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain('Hinweis: kein journey-Diagramm');
+    expect(result.stderr).toContain('Note: no journey diagram');
     expect(result.stdout).toBe('');
   });
 });
 
 describe('ductus init', () => {
-  it('legt eine Config an, erkennt pubspec.yaml und verweigert Überschreiben', () => {
+  it('creates a config, detects pubspec.yaml and refuses to overwrite', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-init-test-'));
     tmpRoots.push(dir);
     writeFileSync(
@@ -233,18 +233,18 @@ describe('ductus init', () => {
     expect(written).toContain('deriveFrom: [go_router]');
     expect(first.stdout).toContain('ductus extract');
 
-    // Zweiter Lauf ohne --force: Exit ≠ 0, Datei bleibt unverändert.
+    // Second run without --force: exit ≠ 0, file stays unchanged.
     const second = runCli(['init'], dir);
     expect(second.status).toBe(3);
-    expect(second.stderr).toContain('existiert bereits');
+    expect(second.stderr).toContain('already exists');
     expect(readFileSync(configPath, 'utf8')).toBe(written);
 
-    // Mit --force wird überschrieben.
+    // With --force it is overwritten.
     const forced = runCli(['init', '--force'], dir);
     expect(forced.status, forced.stderr).toBe(0);
   });
 
-  it('erkennt package.json (TypeScript-Projekt) und leitet deriveFrom aus den Dependencies ab', () => {
+  it('detects package.json (TypeScript project) and derives deriveFrom from the dependencies', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-init-ts-test-'));
     tmpRoots.push(dir);
     writeFileSync(
@@ -262,10 +262,10 @@ describe('ductus init', () => {
     expect(written).toContain('name: web-demo-app');
     expect(written).toContain('- typescript:');
     expect(written).toContain('deriveFrom: [react-router]');
-    expect(result.stdout).toContain('Erkannt aus package.json');
+    expect(result.stdout).toContain('Detected from package.json');
   });
 
-  it('bevorzugt pubspec.yaml, wenn beide Manifeste existieren', () => {
+  it('prefers pubspec.yaml when both manifests exist', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-init-both-test-'));
     tmpRoots.push(dir);
     writeFileSync(join(dir, 'pubspec.yaml'), 'name: flutter_app\n', 'utf8');
@@ -279,11 +279,11 @@ describe('ductus init', () => {
   });
 });
 
-describe('ductus generate (Website-Modus, generator journey — Default)', () => {
+describe('ductus generate (website mode, generator journey — default)', () => {
   /**
-   * Projekt mit output.format website; ohne generator-Zeile greift der
-   * Default 'journey'. Das Template wird über den Repo-Fallback
-   * templates/journey aufgelöst (resolveTemplateDir).
+   * Project with output.format website; without a generator line the default
+   * 'journey' applies. The template is resolved via the repo fallback
+   * templates/journey (resolveTemplateDir).
    */
   function makeJourneyProject(adapterMode?: string, generator?: string): string {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-cli-journey-'));
@@ -312,19 +312,19 @@ describe('ductus generate (Website-Modus, generator journey — Default)', () =>
     return dir;
   }
 
-  it('schreibt das journey-Scaffold mit ductus.data.json gemäß Datenvertrag — keine MDX/Sidebar/Site-Dateien', () => {
-    // 'flowfull': beide Screens im Flow "auth" ⇒ Hauptpfad login → dashboard.
+  it('writes the journey scaffold with ductus.data.json per the data contract — no MDX/sidebar/site files', () => {
+    // 'flowfull': both screens in the flow "auth" ⇒ main path login → dashboard.
     const dir = makeJourneyProject('flowfull');
     const result = runCli(['--offline', 'generate'], dir);
     expect(result.status, result.stderr).toBe(0);
 
     const siteDir = join(dir, 'site');
-    // Template kopiert; gitignore → .gitignore umbenannt.
+    // Template copied; gitignore → .gitignore renamed.
     for (const file of ['package.json', 'astro.config.mjs', '.gitignore']) {
-      expect(existsSync(join(siteDir, file)), `${file} fehlt`).toBe(true);
+      expect(existsSync(join(siteDir, file)), `${file} missing`).toBe(true);
     }
     expect(existsSync(join(siteDir, 'gitignore'))).toBe(false);
-    // Einzige Daten-Datei ist ductus.data.json — keine Starlight-Artefakte.
+    // The only data file is ductus.data.json — no Starlight artifacts.
     expect(existsSync(join(siteDir, 'src', 'content', 'docs'))).toBe(false);
     expect(existsSync(join(siteDir, 'ductus.sidebar.json'))).toBe(false);
     expect(existsSync(join(siteDir, 'ductus.site.json'))).toBe(false);
@@ -357,7 +357,7 @@ describe('ductus generate (Website-Modus, generator journey — Default)', () =>
     expect(data.site.locale).toBe('de');
     expect(data.site.adapters).toEqual([{ name: 'fake', version: '1.0.0' }]);
     expect(data.site.violationsTotal).toBe(0);
-    // ductusVersion zur Laufzeit aus der package.json von @ductus/core (kein Hardcoding).
+    // ductusVersion comes from @ductus/core's package.json at runtime (no hardcoding).
     const corePkg = JSON.parse(
       readFileSync(join(ROOT, 'packages', 'core', 'package.json'), 'utf8'),
     ) as { version: string };
@@ -370,7 +370,7 @@ describe('ductus generate (Website-Modus, generator journey — Default)', () =>
     expect(auth?.startNodeId).toBe('login');
     expect(auth?.mainPath).toEqual(['login', 'dashboard']);
     expect(auth?.markdown.length).toBeGreaterThan(0);
-    // Hauptpfad-Kante trägt den 0-basierten Index; start-Flag nur am Start-Node.
+    // The main-path edge carries the 0-based index; the start flag only on the start node.
     expect(auth?.edges.find((edge) => edge.id === 'e_login_dashboard')?.main).toBe(0);
     const login = auth?.nodes.find((node) => node.id === 'login');
     expect(login?.start).toBe(true);
@@ -382,7 +382,7 @@ describe('ductus generate (Website-Modus, generator journey — Default)', () =>
     expect(auth?.nodes.find((node) => node.id === 'dashboard')?.sourceRef).toBeNull();
   });
 
-  it('schreibt ductus.data.json byte-identisch bei zwei Läufen (NFR2)', () => {
+  it('writes ductus.data.json byte-identically across two runs (NFR2)', () => {
     const dir = makeJourneyProject('flowfull');
     expect(runCli(['--offline', 'generate'], dir).status).toBe(0);
     const dataPath = join(dir, 'site', 'ductus.data.json');
@@ -393,13 +393,13 @@ describe('ductus generate (Website-Modus, generator journey — Default)', () =>
     expect(readFileSync(dataPath).equals(bytes1)).toBe(true);
   });
 
-  it('lehnt generator docusaurus in Phase 1 mit Exit 3 ab (Guard in runGenerate)', () => {
+  it('rejects generator docusaurus in phase 1 with exit 3 (guard in runGenerate)', () => {
     const dir = makeJourneyProject(undefined, 'docusaurus');
     const result = runCli(['--offline', 'generate'], dir);
     expect(result.status).toBe(3);
     expect(result.stderr).toContain('docusaurus');
     expect(result.stderr).toMatch(/journey.*starlight/);
-    // Vor dem Guard wurde kein Site-Scaffold erzeugt.
+    // No site scaffold was created before the guard.
     expect(existsSync(join(dir, 'site'))).toBe(false);
   });
 });
@@ -407,7 +407,7 @@ describe('ductus generate (Website-Modus, generator journey — Default)', () =>
 describe('ductus generate --build', () => {
   const FAKE_NPM = join(ROOT, 'packages', 'core', 'test', 'fixtures', 'fake-npm.mjs');
 
-  /** Projekt mit output.format website (Site-Wurzel: <dir>/site). */
+  /** Project with output.format website (site root: <dir>/site). */
   function makeWebsiteProject(): string {
     const dir = mkdtempSync(join(tmpdir(), 'ductus-cli-build-'));
     tmpRoots.push(dir);
@@ -427,8 +427,8 @@ describe('ductus generate --build', () => {
         '  format: website',
         '  dir: site/',
         '  website:',
-        // Explizit 'starlight' (Default wäre 'journey') — diese Tests
-        // prüfen die Build-Kette gegen das Starlight-Preset.
+        // Explicitly 'starlight' (the default would be 'journey') — these
+        // tests exercise the build chain against the Starlight preset.
         '    generator: starlight',
         '',
       ].join('\n'),
@@ -443,8 +443,8 @@ describe('ductus generate --build', () => {
   }
 
   /**
-   * Fake-npm via PATH-Prepend (kein echtes npm, offline): protokolliert jeden
-   * Aufruf als "<cwd>\t<argumente>" und scheitert optional bei einem Schritt.
+   * Fake npm via PATH prepend (no real npm, offline): logs every call as
+   * "<cwd>\t<arguments>" and optionally fails at one step.
    */
   function fakeNpm(dir: string, failStep?: string): FakeNpm {
     const binDir = join(dir, 'fake-bin');
@@ -464,26 +464,26 @@ describe('ductus generate --build', () => {
     return { env, logFile };
   }
 
-  /** Wie runCli, aber mit eigener Umgebung (PATH mit Fake-npm). */
+  /** Like runCli, but with a custom environment (PATH with fake npm). */
   function runCliWithEnv(args: string[], cwd: string, env: NodeJS.ProcessEnv): CliResult {
     const result = spawnSync(process.execPath, [CLI, ...args], { cwd, encoding: 'utf8', env });
     return { status: result.status, stdout: result.stdout, stderr: result.stderr };
   }
 
-  it('ruft npm install und npm run build in dieser Reihenfolge im Site-Verzeichnis auf', () => {
+  it('calls npm install and npm run build in this order in the site directory', () => {
     const dir = makeWebsiteProject();
     const { env, logFile } = fakeNpm(dir);
     const result = runCliWithEnv(['generate', '--build'], dir, env);
     expect(result.status, result.stderr).toBe(0);
 
-    // macOS: /var → /private/var — cwd des Kindprozesses ist der reale Pfad.
+    // macOS: /var → /private/var — the child process cwd is the real path.
     const siteDir = join(realpathSync(dir), 'site');
     const calls = readFileSync(logFile, 'utf8').trim().split('\n');
     expect(calls).toEqual([`${siteDir}\tinstall`, `${siteDir}\trun build`]);
-    expect(result.stdout).toContain(`Website gebaut: ${join(siteDir, 'dist')}`);
+    expect(result.stdout).toContain(`Website built: ${join(siteDir, 'dist')}`);
   });
 
-  it('nutzt npm ci statt install, wenn das Site-Verzeichnis eine package-lock.json enthält', () => {
+  it('uses npm ci instead of install when the site directory contains a package-lock.json', () => {
     const dir = makeWebsiteProject();
     mkdirSync(join(dir, 'site'), { recursive: true });
     writeFileSync(join(dir, 'site', 'package-lock.json'), '{}\n', 'utf8');
@@ -498,41 +498,41 @@ describe('ductus generate --build', () => {
     expect(steps).toEqual(['ci', 'run build']);
   });
 
-  it('meldet den gescheiterten npm-Schritt und beendet mit Exit 3', () => {
+  it('reports the failed npm step and exits with 3', () => {
     const dir = makeWebsiteProject();
     const { env, logFile } = fakeNpm(dir, 'install');
     const result = runCliWithEnv(['generate', '--build'], dir, env);
     expect(result.status).toBe(3);
-    expect(result.stderr).toContain('"npm install" scheiterte mit Exit-Code 1');
-    expect(result.stdout).not.toContain('Website gebaut');
-    // Nach dem gescheiterten install folgt kein run build mehr.
+    expect(result.stderr).toContain('"npm install" failed with exit code 1');
+    expect(result.stdout).not.toContain('Website built');
+    // No run build follows the failed install.
     expect(readFileSync(logFile, 'utf8')).not.toContain('run build');
   });
 
-  it('--build bei output.format mdx ist ein Usage-Fehler (Exit 3, kein stiller Fallback)', () => {
+  it('--build with output.format mdx is a usage error (exit 3, no silent fallback)', () => {
     const dir = makeProject();
     const result = runCli(['generate', '--build'], dir);
     expect(result.status).toBe(3);
-    expect(result.stderr).toContain('--build erfordert output.format: website');
-    // Der Fehler kommt VOR der Pipeline — es wurde nichts generiert.
+    expect(result.stderr).toContain('--build requires output.format: website');
+    // The error occurs BEFORE the pipeline — nothing was generated.
     expect(existsSync(join(dir, 'docs'))).toBe(false);
   });
 
-  it('--build zusammen mit --offline ist ein Usage-Fehler (Exit 3) mit Begründung', () => {
+  it('--build together with --offline is a usage error (exit 3) with an explanation', () => {
     const dir = makeWebsiteProject();
     const result = runCli(['--offline', 'generate', '--build'], dir);
     expect(result.status).toBe(3);
-    expect(result.stderr).toContain('--build kann nicht mit --offline kombiniert werden');
-    expect(result.stderr).toContain('kein Netzzugriff');
+    expect(result.stderr).toContain('--build cannot be combined with --offline');
+    expect(result.stderr).toContain('no network access');
   });
 
-  it('Exit 2 (Faithfulness) wird durch einen erfolgreichen Build nicht auf 0 maskiert', () => {
+  it('exit 2 (faithfulness) is not masked to 0 by a successful build', () => {
     const dir = makeWebsiteProject();
-    // Erster Lauf füllt den Segment-Cache (mock-Judge: keine Verstöße, Exit 0) …
+    // The first run fills the segment cache (mock judge: no violations, exit 0) …
     const first = runCli(['generate'], dir);
     expect(first.status, first.stderr).toBe(0);
 
-    // … dann einen Cache-Eintrag vergiften: 1 Violation > Schwellwert 0.
+    // … then poison one cache entry: 1 violation > threshold 0.
     const cacheDir = join(dir, '.ductus', 'cache');
     const entryFile = join(cacheDir, readdirSync(cacheDir).sort()[0]!);
     const entry = JSON.parse(readFileSync(entryFile, 'utf8')) as { violations: unknown[] };
@@ -543,8 +543,8 @@ describe('ductus generate --build', () => {
     const result = runCliWithEnv(['generate', '--build'], dir, env);
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('Faithfulness');
-    // Der Build lief trotzdem vollständig und erfolgreich durch.
+    // The build still ran to completion successfully.
     expect(readFileSync(logFile, 'utf8')).toContain('run build');
-    expect(result.stdout).toContain('Website gebaut:');
+    expect(result.stdout).toContain('Website built:');
   });
 });

@@ -1,7 +1,7 @@
 /**
- * Typen des Datenvertrags ductus.data.json (dataVersion "1").
- * Die Datei wird von `scaffoldWebsite` (Modus generator="journey") deterministisch
- * in die Site-Wurzel geschrieben (NFR2: stabile Sortierung, LF, keine Zeitstempel).
+ * Types of the ductus.data.json data contract (dataVersion "1").
+ * The file is written deterministically into the site root by `scaffoldWebsite`
+ * (mode generator="journey") (NFR2: stable sorting, LF, no timestamps).
  */
 
 export interface DuctusData {
@@ -13,11 +13,11 @@ export interface DuctusData {
 export interface SiteInfo {
   /** config.app.name */
   title: string;
-  /** config.app.locale, z. B. "de" */
+  /** config.app.locale, e.g. "en" */
   locale: string;
-  /** Version von @ductus/core */
+  /** version of @ductus/core */
   ductusVersion: string;
-  /** extract.adapterInfos, nach name sortiert */
+  /** extract.adapterInfos, sorted by name */
   adapters: AdapterInfo[];
   violationsTotal: number;
 }
@@ -30,21 +30,21 @@ export interface AdapterInfo {
 export interface Journey {
   /** segment.id */
   id: string;
-  /** toSlug(segment.id) — URL-Segment */
+  /** toSlug(segment.id) — URL segment */
   slug: string;
   kind: 'flow' | 'screen' | 'misc';
   order: number;
   title: string;
   description: string;
-  /** flow.start (nur flows) */
+  /** flow.start (flows only) */
   startNodeId: string | null;
-  /** nach id sortiert */
+  /** sorted by id */
   nodes: JourneyNode[];
-  /** nach id sortiert */
+  /** sorted by id */
   edges: JourneyEdge[];
-  /** Node-IDs des Hauptpfads; leer wenn kein flow-Segment oder Pfad < 2 Nodes */
+  /** node ids of the main path; empty when not a flow segment or path < 2 nodes */
   mainPath: string[];
-  /** generiertes LLM-Markdown pur (ohne Mermaid-Anhänge, ohne Aside) */
+  /** generated LLM markdown, plain (no Mermaid appendices, no aside) */
   markdown: string;
   violations: Violation[];
 }
@@ -52,7 +52,7 @@ export interface Journey {
 export interface JourneyNode {
   id: string;
   type: 'screen' | 'action' | 'decision';
-  /** für type=action label ?? title ?? id, sonst title ?? id */
+  /** for type=action label ?? title ?? id, otherwise title ?? id */
   title: string;
   description: string;
   start: boolean;
@@ -72,7 +72,7 @@ export interface JourneyEdge {
   label: string;
   trigger: string | null;
   condition: string | null;
-  /** 0-basierter Index der Hauptpfad-Kante, sonst null */
+  /** 0-based index of the main-path edge, otherwise null */
   main: number | null;
 }
 
@@ -81,7 +81,7 @@ export interface Violation {
   reason: string;
 }
 
-/** sourceRef als Mono-Zeile ("file:line" bzw. "file · symbol"). */
+/** sourceRef as a mono line ("file:line" or "file · symbol"). */
 export function formatSourceRef(ref: SourceRef | null): string | null {
   if (!ref) return null;
   let text = ref.file;

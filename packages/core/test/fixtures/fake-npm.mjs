@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Fake-npm für Integrationstests von `ductus generate --build`:
- * protokolliert jeden Aufruf als "<cwd>\t<argumente>" in die Datei aus
- * $DUCTUS_FAKE_NPM_LOG und scheitert mit Exit 1, wenn $DUCTUS_FAKE_NPM_FAIL
- * dem ersten Argument entspricht (z. B. "ci", "install" oder "run").
- * Kein Netzzugriff, kein echtes npm — die Tests bleiben offline.
+ * Fake npm for integration tests of `ductus generate --build`: logs every
+ * call as "<cwd>\t<arguments>" to the file given in $DUCTUS_FAKE_NPM_LOG and
+ * fails with exit 1 when $DUCTUS_FAKE_NPM_FAIL matches the first argument
+ * (e.g. "ci", "install" or "run"). No network access, no real npm — the
+ * tests stay offline.
  */
 
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -18,11 +18,11 @@ if (logFile !== undefined && logFile !== '') {
 }
 
 if (process.env.DUCTUS_FAKE_NPM_FAIL === args[0]) {
-  process.stderr.write(`fake-npm: absichtlicher Fehler für "npm ${args.join(' ')}"\n`);
+  process.stderr.write(`fake-npm: intentional failure for "npm ${args.join(' ')}"\n`);
   process.exit(1);
 }
 
-// `npm run build` hinterlässt wie ein echter SSG-Build ein dist/-Verzeichnis.
+// `npm run build` leaves a dist/ directory behind, like a real SSG build.
 if (args[0] === 'run' && args[1] === 'build') {
   mkdirSync(join(process.cwd(), 'dist'), { recursive: true });
   writeFileSync(join(process.cwd(), 'dist', 'index.html'), '<!doctype html>\n', 'utf8');

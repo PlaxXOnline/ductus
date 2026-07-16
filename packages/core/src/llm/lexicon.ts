@@ -114,7 +114,10 @@ export function termCoverage(term: string, vocab: SegmentVocabulary): 'covered' 
 
 /** Step or bullet line — only there does the style guide require bold for UI elements. */
 const STEP_LINE = /^\s*(?:\d+\.|[-*+])\s/;
-const BOLD_SPAN = /\*\*([^*\n]+?)\*\*/g;
+// Content may contain single asterisks (italic inside bold, e.g. **Tap *Edit note***) —
+// only a `**` run closes the span. A naive [^*]+ would close at the wrong delimiter of a
+// nested ***…*** and report the prose BETWEEN two real spans as a bold term.
+const BOLD_SPAN = /\*\*((?:[^*\n]|\*(?!\*))+?)\*\*/g;
 
 export interface LexiconResult {
   /** Certainly uncovered bold terms — deterministically proven, count against the threshold. */

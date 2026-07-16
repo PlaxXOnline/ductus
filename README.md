@@ -48,18 +48,17 @@ The **[demo site](https://plaxxonline.github.io/ductus/)** was generated
 entirely by Ductus — from the `@journey:` comments of the sample app
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), with no
 manual touch-ups. Interactive journey graph, step list from the main path,
-⌘K search — note that the deployed demo still shows the previous
-German-language run; the sample app itself is English now (German remains a
-fully supported output language):
+⌘K search:
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Journey page of the demo: interactive graph on the left, main-path steps on the right — “Play path” animates the route through the app" src="docs/assets/path-play.gif" width="100%">
 </a>
 
 The warning badge in the top-right corner is part of the demo, too: the
-faithfulness check transparently reports that the judge response of the
-(deliberately tiny) demo model could not be parsed — Ductus never lets that
-happen silently.
+faithfulness judge of the (deliberately tiny) demo model raises three
+over-strict findings — it flags perfectly valid steps such as “Tap
+**New note**…” because it does not recognize them as buttons in the graph.
+Ductus reports such verdicts transparently instead of hiding them.
 
 ## Quick start
 
@@ -177,23 +176,36 @@ gate.
 ### With an LLM: `ductus generate` — the same graph becomes prose
 
 Generated verbatim (deliberately with a very small model,
-`ministral-3b-2512`; excerpt — German output from the previous
-German-language run of the demo app):
+`ministral-3b-2512`; an excerpt from the current run of the demo app):
 
-> Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
-> erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.
+> This section guides you through creating, editing, and managing notes in
+> **comment_demo**. You’ll start from the note list, explore note details,
+> and adjust app settings as needed.
 >
-> **Notiz bearbeiten**
+> …
 >
-> 1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.
->    *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*
-> 2. Bearbeiten Sie den Titel und den Inhalt der Notiz.
-> 3. Tippen Sie auf **Speichern**.
+> **Creating a New Note**
+>
+> 1. Tap **New note** on the **Note list** screen.
+> 2. You’re taken to the **Note editor** screen.
+>
+> …
+>
+> **Editing the Note**
+>
+> 1. Tap **Edit note** on the **Note detail** screen.
+> 2. You’re redirected to the **Note editor** screen.
+>
+> **Saving with a Title**
+>
+> 1. In the **Note editor**, ensure the note has a title.
+> 2. Submit the form to proceed to the **Input valid?** decision node.
+> 3. The app confirms the title is present and takes you back to the
+>    **Note list**.
 
-The edge labels (**Speichern**, **Notiz bearbeiten**) are the real button
-captions from the graph — the generation prompt forbids the LLM from
-inventing UI elements that do not appear as a node, edge, or `label` in the
-segment.
+The edge labels (**New note**, **Edit note**) are the real button captions
+from the graph — the generation prompt forbids the LLM from inventing UI
+elements that do not appear as a node, edge, or `label` in the segment.
 
 ### The difference at a glance
 

@@ -2,15 +2,15 @@
   "dataVersion": "1",
   "site": {
     "title": "comment_demo",
-    "locale": "de",
-    "ductusVersion": "0.2.0",
+    "locale": "en",
+    "ductusVersion": "0.3.0",
     "adapters": [
       {
         "name": "dart",
-        "version": "0.2.0"
+        "version": "0.3.0"
       }
     ],
-    "violationsTotal": 1
+    "violationsTotal": 3
   },
   "journeys": [
     {
@@ -18,15 +18,15 @@
       "slug": "notes",
       "kind": "flow",
       "order": 1,
-      "title": "Notizen verwalten",
-      "description": "Notizen anlegen, lesen, bearbeiten und die App einstellen.",
+      "title": "Manage notes",
+      "description": "Create, read and edit notes, and adjust the app settings.",
       "startNodeId": "note-list",
       "nodes": [
         {
           "id": "note-detail",
           "type": "screen",
-          "title": "Notiz-Detail",
-          "description": "Zeigt den vollständigen Inhalt einer einzelnen Notiz an.",
+          "title": "Note detail",
+          "description": "Shows the full content of a single note.",
           "start": false,
           "sourceRef": {
             "file": "lib/screens/note_detail_screen.dart",
@@ -37,8 +37,8 @@
         {
           "id": "note-editor",
           "type": "screen",
-          "title": "Notiz-Editor",
-          "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+          "title": "Note editor",
+          "description": "Form for creating or editing a note with a title and content.",
           "start": false,
           "sourceRef": {
             "file": "lib/screens/note_editor_screen.dart",
@@ -49,8 +49,8 @@
         {
           "id": "note-list",
           "type": "screen",
-          "title": "Notizliste",
-          "description": "Startbildschirm mit allen gespeicherten Notizen in einer Liste.",
+          "title": "Note list",
+          "description": "Home screen showing all saved notes in a list.",
           "start": true,
           "sourceRef": {
             "file": "lib/screens/note_list_screen.dart",
@@ -61,8 +61,8 @@
         {
           "id": "save-check",
           "type": "decision",
-          "title": "Eingaben gültig?",
-          "description": "Beim Speichern wird geprüft, ob die Notiz einen Titel hat.",
+          "title": "Input valid?",
+          "description": "On save, the app checks whether the note has a title.",
           "start": false,
           "sourceRef": {
             "file": "lib/screens/note_editor_screen.dart",
@@ -73,8 +73,8 @@
         {
           "id": "settings",
           "type": "screen",
-          "title": "Einstellungen",
-          "description": "Einstellungen der App, z. B. das Farbschema.",
+          "title": "Settings",
+          "description": "App settings, e.g. the color scheme.",
           "start": false,
           "sourceRef": {
             "file": "lib/screens/settings_screen.dart",
@@ -88,7 +88,7 @@
           "id": "e_note-detail_note-editor",
           "from": "note-detail",
           "to": "note-editor",
-          "label": "Notiz bearbeiten",
+          "label": "Edit note",
           "trigger": "tap",
           "condition": null,
           "main": 1
@@ -97,7 +97,7 @@
           "id": "e_note-editor_save-check",
           "from": "note-editor",
           "to": "save-check",
-          "label": "Speichern",
+          "label": "Save",
           "trigger": "submit",
           "condition": null,
           "main": 2
@@ -106,7 +106,7 @@
           "id": "e_note-list_note-detail",
           "from": "note-list",
           "to": "note-detail",
-          "label": "Notiz öffnen",
+          "label": "Open note",
           "trigger": "tap",
           "condition": null,
           "main": 0
@@ -115,7 +115,7 @@
           "id": "e_note-list_note-editor",
           "from": "note-list",
           "to": "note-editor",
-          "label": "Neue Notiz",
+          "label": "New note",
           "trigger": "tap",
           "condition": null,
           "main": null
@@ -124,7 +124,7 @@
           "id": "e_note-list_settings",
           "from": "note-list",
           "to": "settings",
-          "label": "Einstellungen öffnen",
+          "label": "Open settings",
           "trigger": "tap",
           "condition": null,
           "main": null
@@ -133,25 +133,25 @@
           "id": "e_save-check_note-editor",
           "from": "save-check",
           "to": "note-editor",
-          "label": "Fehlerhinweis anzeigen",
+          "label": "Show error message",
           "trigger": "auto",
-          "condition": "Titel fehlt",
+          "condition": "Title missing",
           "main": null
         },
         {
           "id": "e_save-check_note-list",
           "from": "save-check",
           "to": "note-list",
-          "label": "Zurück zur Liste",
+          "label": "Back to the list",
           "trigger": "auto",
-          "condition": "Titel vorhanden",
+          "condition": "Title present",
           "main": null
         },
         {
           "id": "e_settings_note-list",
           "from": "settings",
           "to": "note-list",
-          "label": "Zurück",
+          "label": "Back",
           "trigger": "back",
           "condition": null,
           "main": null
@@ -163,11 +163,19 @@
         "note-editor",
         "save-check"
       ],
-      "markdown": "Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.\n\n---\n\n## Notizliste öffnen\n1. Starten Sie die **comment_demo**-App.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Neue Notiz erstellen\n1. Tippen Sie auf **Notizliste**.\n   *Voraussetzung: Sie befinden sich auf der Notizliste.*\n2. Tippen Sie auf **Neue Notiz**.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Notiz öffnen\n1. Tippen Sie auf **Notizliste**.\n   *Voraussetzung: Sie befinden sich auf der Notizliste.*\n2. Wählen Sie eine Notiz aus und tippen Sie auf **Notiz öffnen**.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Notiz bearbeiten\n1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.\n   *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*\n2. Bearbeiten Sie den Titel und den Inhalt der Notiz.\n   *Hierzu liegen keine weiteren Informationen vor.*\n3. Tippen Sie auf **Speichern**.\n   *Voraussetzung: Titel vorhanden.*\n\n---\n\n## Speichern prüfen\n1. Nach dem Tippen auf **Speichern** wird geprüft, ob der Titel der Notiz vorhanden ist.\n   *Voraussetzung: Titel fehlt.*\n   - Hier erscheint eine **Fehlerhinweis**, dass der Titel fehlt.\n     *Hierzu liegen keine weiteren Anleitungen vor.*\n\n2. Nach erfolgreicher Titelprüfung gelangen Sie zur **Notizliste**.\n   *Voraussetzung: Titel vorhanden.*\n\n---\n\n## Einstellungen öffnen\n1. Tippen Sie auf **Notizliste**.\n   *Voraussetzung: Sie befinden sich auf der Notizliste.*\n2. Tippen Sie auf **Einstellungen öffnen**.\n   *Hierzu liegen keine weiteren Informationen vor.*\n\n---\n\n## Zurück zur Notizliste\n1. Öffnen Sie die **Einstellungen**.\n   *Voraussetzung: Sie befinden sich auf der Einstellungen-Seite.*\n2. Tippen Sie auf **Zurück**.\n   *Hierzu liegen keine weiteren Informationen vor.*",
+      "markdown": "This section guides you through creating, editing, and managing notes in **comment_demo**. You’ll start from the note list, explore note details, and adjust app settings as needed.\n\n---\n\n## Starting with Notes\n\n### Viewing Your Notes\n1. Open the **Note list** screen, where all your saved notes appear in a list.\n   *(No further information is available.)*\n\n### Creating a New Note\n1. Tap **New note** on the **Note list** screen.\n2. You’re taken to the **Note editor** screen.\n\n---\n\n## Editing a Note\n\n### Opening an Existing Note\n1. Tap the note you want to edit in the **Note list**.\n2. You’re taken to the **Note detail** screen, displaying the note’s full content.\n   *(No further information is available.)*\n\n### Editing the Note\n1. Tap **Edit note** on the **Note detail** screen.\n2. You’re redirected to the **Note editor** screen.\n\n---\n\n## Saving Your Note\n\n### Saving with a Title\n1. In the **Note editor**, ensure the note has a title.\n2. Submit the form to proceed to the **Input valid?** decision node.\n3. The app confirms the title is present and takes you back to the **Note list**.\n   *(No further information is available.)*\n\n### Saving Without a Title\n1. In the **Note editor**, attempt to save the note without a title.\n2. The app displays an error message and returns you to the **Note editor** screen.\n   *(No further information is available.)*\n\n---\n\n## Navigating Settings\n\n### Accessing App Settings\n1. Tap **Open settings** on the **Note list** screen.\n2. You’re taken to the **Settings** screen, where you can adjust app preferences like the color scheme.\n3. Tap **Back** to return to the **Note list**.\n   *(No further information is available.)*",
       "violations": [
         {
-          "claim": "(Judge-Antwort unparsebar)",
-          "reason": "Die Judge-Antwort war kein gültiges JSON mit \"violations\"-Array."
+          "claim": "Tap **New note** on the **Note list** screen.",
+          "reason": "Claims “New note button”, which is not backed by the graph segment — No explicit button labeled 'New note' is shown in the graph segment; the edge labeled 'New note' connects from 'note-list' to 'note-editor' via a 'tap' trigger, but no UI element is explicitly named in the generated text."
+        },
+        {
+          "claim": "Tap **Edit note** on the **Note detail** screen.",
+          "reason": "Claims “Edit note button”, which is not backed by the graph segment — The graph segment does not explicitly show an 'Edit note' button on the 'note-detail' screen; the edge labeled 'Edit note' connects from 'note-detail' to 'note-editor' via a 'tap' trigger, but no UI element is named."
+        },
+        {
+          "claim": "Tap **Open settings** on the **Note list** screen.",
+          "reason": "Claims “Open settings button”, which is not backed by the graph segment — The graph segment shows a 'settings' node connected to 'note-list' via 'tap', but no explicit button labeled 'Open settings' is described in the generated text."
         }
       ]
     }

@@ -50,17 +50,17 @@ Die **[Demo-Site](https://plaxxonline.github.io/ductus/)** wurde vollständig
 von Ductus generiert — aus den `@journey:`-Kommentaren der Beispiel-App
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), ohne
 manuelle Nacharbeit. Interaktiver Journey-Graph, Schrittliste aus dem
-Hauptpfad, ⌘K-Suche — die veröffentlichte Demo zeigt noch den früheren
-deutschsprachigen Lauf; die Beispiel-App selbst ist inzwischen
-englischsprachig (Deutsch bleibt eine voll unterstützte Ausgabesprache):
+Hauptpfad, ⌘K-Suche:
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Journey-Seite der Demo: interaktiver Graph links, Hauptpfad-Schritte rechts — „Pfad abspielen“ animiert den Weg durch die App" src="docs/assets/path-play.gif" width="100%">
 </a>
 
-Auch der Warnhinweis oben rechts ist Teil der Demo: Der Faithfulness-Check
-meldet hier transparent, dass die Judge-Antwort des (bewusst winzigen)
-Demo-Modells nicht auswertbar war — Ductus lässt so etwas nie still passieren.
+Auch der Warnhinweis oben rechts ist Teil der Demo: Der Faithfulness-Judge
+des (bewusst winzigen) Demo-Modells meldet drei übervorsichtige Funde — er
+beanstandet völlig valide Schritte wie „Tap **New note**…“, weil er sie
+nicht als Buttons im Graphen erkennt. Ductus weist solche Urteile
+transparent aus, statt sie zu verbergen.
 
 ## Schnellstart
 
@@ -177,20 +177,34 @@ ohne `condition`, …) und `ductus-report.json` als maschinenlesbares CI-Gate.
 ### Mit LLM: `ductus generate` — aus demselben Graphen wird Prosa
 
 Wörtlich so generiert (hier bewusst mit einem sehr kleinen Modell,
-`ministral-3b-2512`; Auszug — deutsche Ausgabe aus dem früheren
-deutschsprachigen Lauf der Demo-App):
+`ministral-3b-2512`; Auszug aus dem aktuellen Lauf der Demo-App):
 
-> Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
-> erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.
+> This section guides you through creating, editing, and managing notes in
+> **comment_demo**. You’ll start from the note list, explore note details,
+> and adjust app settings as needed.
 >
-> **Notiz bearbeiten**
+> …
 >
-> 1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.
->    *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*
-> 2. Bearbeiten Sie den Titel und den Inhalt der Notiz.
-> 3. Tippen Sie auf **Speichern**.
+> **Creating a New Note**
+>
+> 1. Tap **New note** on the **Note list** screen.
+> 2. You’re taken to the **Note editor** screen.
+>
+> …
+>
+> **Editing the Note**
+>
+> 1. Tap **Edit note** on the **Note detail** screen.
+> 2. You’re redirected to the **Note editor** screen.
+>
+> **Saving with a Title**
+>
+> 1. In the **Note editor**, ensure the note has a title.
+> 2. Submit the form to proceed to the **Input valid?** decision node.
+> 3. The app confirms the title is present and takes you back to the
+>    **Note list**.
 
-Die Kanten-Labels (**Speichern**, **Notiz bearbeiten**) sind die echten
+Die Kanten-Labels (**New note**, **Edit note**) sind die echten
 Button-Beschriftungen aus dem Graphen — der Generierungs-Prompt verbietet dem
 LLM, UI-Elemente zu erfinden, die nicht als Node, Edge oder `label` im Segment
 stehen.

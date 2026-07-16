@@ -42,15 +42,15 @@ API 密钥（BYOK）——将其转写为维护良好的最终用户文档，输
 **[演示站点](https://plaxxonline.github.io/ductus/)**完全由 Ductus 生成——
 来自示例应用 [`examples/flutter_comment_demo`](examples/flutter_comment_demo)
 中的 `@journey:` 注释，未经任何手工修饰。交互式 journey graph、来自主路径的步骤列表、
-⌘K 搜索——请注意，已部署的演示仍展示此前的德语运行结果；示例应用本身现已是英文
-（德语仍是完全受支持的输出语言）：
+⌘K 搜索：
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="演示站点的 journey 页面：左侧是交互式图，右侧是主路径步骤——“Play path”会以动画方式展示穿过应用的路线" src="docs/assets/path-play.gif" width="100%">
 </a>
 
-右上角的警告徽章同样是演示的一部分：faithfulness 检查透明地报告了
-（刻意选用的极小）演示模型的 judge 响应无法被解析——Ductus 绝不会让这种情况悄然发生。
+右上角的警告徽章同样是演示的一部分：（刻意选用的极小）演示模型的 faithfulness judge
+给出了三条过于严苛的判定——它把“Tap **New note**…”这类完全有效的步骤也标记出来，
+因为它没有把它们识别为图中的按钮。Ductus 会透明地展示这类判定，而不是把它们藏起来。
 
 ## 快速上手
 
@@ -165,19 +165,34 @@ flowchart TD
 ### 有 LLM：`ductus generate`——同一张图变成文档正文
 
 逐字生成的结果（刻意选用了一个非常小的模型 `ministral-3b-2512`；
-节选——来自演示应用此前德语运行的德语输出）：
+节选自演示应用当前的运行结果）：
 
-> Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
-> erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.
+> This section guides you through creating, editing, and managing notes in
+> **comment_demo**. You’ll start from the note list, explore note details,
+> and adjust app settings as needed.
 >
-> **Notiz bearbeiten**
+> …
 >
-> 1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.
->    *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*
-> 2. Bearbeiten Sie den Titel und den Inhalt der Notiz.
-> 3. Tippen Sie auf **Speichern**.
+> **Creating a New Note**
+>
+> 1. Tap **New note** on the **Note list** screen.
+> 2. You’re taken to the **Note editor** screen.
+>
+> …
+>
+> **Editing the Note**
+>
+> 1. Tap **Edit note** on the **Note detail** screen.
+> 2. You’re redirected to the **Note editor** screen.
+>
+> **Saving with a Title**
+>
+> 1. In the **Note editor**, ensure the note has a title.
+> 2. Submit the form to proceed to the **Input valid?** decision node.
+> 3. The app confirms the title is present and takes you back to the
+>    **Note list**.
 
-边上的标签（**Speichern**、**Notiz bearbeiten**）正是图中真实的按钮文字——
+边上的标签（**New note**、**Edit note**）正是图中真实的按钮文字——
 生成提示词禁止 LLM 编造未以节点、边或 `label` 形式出现在该分段中的 UI 元素。
 
 ### 差异一览

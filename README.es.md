@@ -53,19 +53,18 @@ generado íntegramente por Ductus — a partir de los comentarios `@journey:`
 de la app de ejemplo
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), sin
 retoques manuales. Grafo del journey interactivo, lista de pasos del camino
-principal, búsqueda ⌘K — ten en cuenta que la demo desplegada aún muestra
-la ejecución anterior en alemán; la propia app de ejemplo ya está en inglés
-(el alemán sigue siendo un idioma de salida totalmente soportado):
+principal, búsqueda ⌘K:
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Página de journey de la demo: grafo interactivo a la izquierda, pasos del camino principal a la derecha — «Play path» anima la ruta a través de la app" src="docs/assets/path-play.gif" width="100%">
 </a>
 
 La insignia de advertencia en la esquina superior derecha también forma
-parte de la demo: la comprobación de faithfulness informa de forma
-transparente de que la respuesta del judge del modelo de demostración
-(deliberadamente diminuto) no se pudo parsear — Ductus nunca deja que eso
-ocurra en silencio.
+parte de la demo: el judge de faithfulness del modelo de demostración
+(deliberadamente diminuto) plantea tres hallazgos excesivamente estrictos —
+señala pasos perfectamente válidos como «Tap **New note**…» porque no los
+reconoce como botones del grafo. Ductus muestra esos veredictos de forma
+transparente en lugar de ocultarlos.
 
 ## Inicio rápido
 
@@ -185,23 +184,38 @@ por máquina.
 ### Con LLM: `ductus generate` — el mismo grafo se convierte en prosa
 
 Generado literalmente (a propósito con un modelo muy pequeño,
-`ministral-3b-2512`; extracto — salida en alemán de la ejecución anterior
-en alemán de la app de demostración):
+`ministral-3b-2512`; extracto de la ejecución actual de la app de
+demostración):
 
-> Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
-> erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.
+> This section guides you through creating, editing, and managing notes in
+> **comment_demo**. You’ll start from the note list, explore note details,
+> and adjust app settings as needed.
 >
-> **Notiz bearbeiten**
+> …
 >
-> 1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.
->    *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*
-> 2. Bearbeiten Sie den Titel und den Inhalt der Notiz.
-> 3. Tippen Sie auf **Speichern**.
+> **Creating a New Note**
+>
+> 1. Tap **New note** on the **Note list** screen.
+> 2. You’re taken to the **Note editor** screen.
+>
+> …
+>
+> **Editing the Note**
+>
+> 1. Tap **Edit note** on the **Note detail** screen.
+> 2. You’re redirected to the **Note editor** screen.
+>
+> **Saving with a Title**
+>
+> 1. In the **Note editor**, ensure the note has a title.
+> 2. Submit the form to proceed to the **Input valid?** decision node.
+> 3. The app confirms the title is present and takes you back to the
+>    **Note list**.
 
-Las etiquetas de las aristas (**Speichern**, **Notiz bearbeiten**) son los
-rótulos reales de los botones tal como están en el grafo — el prompt de
-generación prohíbe al LLM inventar elementos de UI que no aparezcan como
-nodo, arista o `label` en el segmento.
+Las etiquetas de las aristas (**New note**, **Edit note**) son los rótulos
+reales de los botones tal como están en el grafo — el prompt de generación
+prohíbe al LLM inventar elementos de UI que no aparezcan como nodo, arista o
+`label` en el segmento.
 
 ### La diferencia de un vistazo
 

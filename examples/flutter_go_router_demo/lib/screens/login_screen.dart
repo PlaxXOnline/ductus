@@ -4,24 +4,23 @@ import 'package:go_router/go_router.dart';
 
 import '../main.dart' show isLoggedIn;
 
-/// Der Screen ist bereits aus der go_router-Tabelle abgeleitet (Weg C);
-/// die Annotationen reichern ihn um Titel, Flow und Beschreibung an (Weg B).
-@JourneyFlow(id: 'auth', title: 'Anmeldung & Registrierung', start: 'login')
+/// The screen is already derived from the go_router table (path C);
+/// the annotations enrich it with a title, flow and description (path B).
+@JourneyFlow(id: 'auth', title: 'Sign-in & registration', start: 'login')
 @JourneyScreen(
   id: 'login',
-  title: 'Anmeldung',
+  title: 'Sign in',
   flow: 'auth',
-  description:
-      'Bildschirm, auf dem sich der Nutzer mit E-Mail und Passwort anmeldet.',
+  description: 'Screen where the user signs in with email and password.',
 )
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @JourneyAction(
-    label: 'Anmelden',
+    label: 'Sign in',
     to: 'dashboard',
     trigger: JourneyTrigger.submit,
-    condition: 'Zugangsdaten gültig',
+    condition: 'Credentials valid',
   )
   void _onSubmit(BuildContext context) {
     isLoggedIn = true;
@@ -31,24 +30,24 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Anmeldung')),
+      appBar: AppBar(title: const Text('Sign in')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const TextField(decoration: InputDecoration(labelText: 'E-Mail')),
+            const TextField(decoration: InputDecoration(labelText: 'Email')),
             const TextField(
-              decoration: InputDecoration(labelText: 'Passwort'),
+              decoration: InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => _onSubmit(context),
-              child: const Text('Anmelden'),
+              child: const Text('Sign in'),
             ),
             TextButton(
               onPressed: () => context.goNamed('register'),
-              child: const Text('Noch kein Konto? Registrieren'),
+              child: const Text('No account yet? Register'),
             ),
           ],
         ),

@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
-// @journey:screen id="note-editor" title="Notiz-Editor" flow="notes"
-//   description="Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt."
+// @journey:screen id="note-editor" title="Note editor" flow="notes"
+//   description="Form for creating or editing a note with a title and content."
 class NoteEditorScreen extends StatelessWidget {
   const NoteEditorScreen({super.key});
 
-  // @journey:decision id="save-check" title="Eingaben gültig?" flow="notes"
-  //   description="Beim Speichern wird geprüft, ob die Notiz einen Titel hat."
-  // @journey:action label="Zurück zur Liste"
+  // @journey:decision id="save-check" title="Input valid?" flow="notes"
+  //   description="On save, the app checks whether the note has a title."
+  // @journey:action label="Back to the list"
   //   from="save-check" to="note-list" trigger="auto"
-  //   condition="Titel vorhanden"
-  // @journey:action label="Fehlerhinweis anzeigen"
+  //   condition="Title present"
+  // @journey:action label="Show error message"
   //   from="save-check" to="note-editor" trigger="auto"
-  //   condition="Titel fehlt"
+  //   condition="Title missing"
   void _save(BuildContext context, String title) {
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte einen Titel eingeben.')),
+        const SnackBar(content: Text('Please enter a title.')),
       );
       return;
     }
@@ -27,25 +27,25 @@ class NoteEditorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final titleController = TextEditingController();
     return Scaffold(
-      appBar: AppBar(title: const Text('Notiz bearbeiten')),
+      appBar: AppBar(title: const Text('Edit note')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Titel'),
+              decoration: const InputDecoration(labelText: 'Title'),
             ),
             const TextField(
-              decoration: InputDecoration(labelText: 'Inhalt'),
+              decoration: InputDecoration(labelText: 'Content'),
               maxLines: 5,
             ),
             const SizedBox(height: 16),
-            // @journey:action label="Speichern"
+            // @journey:action label="Save"
             //   from="note-editor" to="save-check" trigger="submit"
             FilledButton(
               onPressed: () => _save(context, titleController.text),
-              child: const Text('Speichern'),
+              child: const Text('Save'),
             ),
           ],
         ),

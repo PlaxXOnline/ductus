@@ -1,10 +1,10 @@
-/** Simulierter Anmeldezustand (echte Apps nutzen hier z. B. einen AuthContext). */
-export let angemeldet = false;
+/** Simulated sign-in state (real apps would use e.g. an AuthContext here). */
+export let isLoggedIn = false;
 
-export function anmelden(): void {
-  angemeldet = true;
+export function signIn(): void {
+  isLoggedIn = true;
 }
 
-export function abmelden(): void {
-  angemeldet = false;
+export function signOut(): void {
+  isLoggedIn = false;
 }

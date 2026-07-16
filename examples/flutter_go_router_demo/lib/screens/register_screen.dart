@@ -4,18 +4,18 @@ import 'package:go_router/go_router.dart';
 
 @JourneyScreen(
   id: 'register',
-  title: 'Registrierung',
+  title: 'Registration',
   flow: 'auth',
-  description: 'Bildschirm, auf dem der Nutzer ein neues Konto anlegt.',
+  description: 'Screen where the user creates a new account.',
 )
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
 
   @JourneyAction(
-    label: 'Konto erstellen',
+    label: 'Create account',
     to: 'login',
     trigger: JourneyTrigger.submit,
-    condition: 'Registrierung erfolgreich',
+    condition: 'Registration successful',
   )
   void _onRegister(BuildContext context) {
     context.goNamed('login');
@@ -24,20 +24,20 @@ class RegisterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrierung')),
+      appBar: AppBar(title: const Text('Registration')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const TextField(decoration: InputDecoration(labelText: 'E-Mail')),
+            const TextField(decoration: InputDecoration(labelText: 'Email')),
             const TextField(
-              decoration: InputDecoration(labelText: 'Passwort'),
+              decoration: InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => _onRegister(context),
-              child: const Text('Konto erstellen'),
+              child: const Text('Create account'),
             ),
           ],
         ),

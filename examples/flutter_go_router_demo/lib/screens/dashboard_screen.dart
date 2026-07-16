@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-// Bewusst NICHT annotiert: Dieser Screen entsteht ausschließlich
-// aus der go_router-Ableitung (Weg C).
+// Deliberately NOT annotated: this screen exists solely through
+// the go_router derivation (path C).
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Willkommen auf dem Dashboard'));
+    return const Center(child: Text('Welcome to the dashboard'));
   }
 }

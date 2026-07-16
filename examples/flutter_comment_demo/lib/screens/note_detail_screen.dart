@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'note_editor_screen.dart';
 
-// @journey:screen id="note-detail" title="Notiz-Detail" flow="notes"
-//   description="Zeigt den vollständigen Inhalt einer einzelnen Notiz an."
+// @journey:screen id="note-detail" title="Note detail" flow="notes"
+//   description="Shows the full content of a single note."
 class NoteDetailScreen extends StatelessWidget {
   const NoteDetailScreen({super.key, required this.title});
 
@@ -15,7 +15,7 @@ class NoteDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(title),
         actions: [
-          // @journey:action label="Notiz bearbeiten"
+          // @journey:action label="Edit note"
           //   from="note-detail" to="note-editor" trigger="tap"
           IconButton(
             icon: const Icon(Icons.edit),
@@ -28,7 +28,7 @@ class NoteDetailScreen extends StatelessWidget {
       ),
       body: const Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Milch, Brot, Eier'),
+        child: Text('Milk, bread, eggs'),
       ),
     );
   }

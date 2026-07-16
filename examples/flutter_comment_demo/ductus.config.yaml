@@ -1,7 +1,7 @@
-# Ductus-Konfiguration
+# Ductus configuration
 app:
   name: comment_demo
-  locale: de
+  locale: en
 
 adapters:
   - dart:
@@ -16,7 +16,7 @@ llm:
   faithfulnessCheck: true
 
 style:
-  voice: formal-sie          # formal-sie | informal-du | en-you
+  voice: en-you              # formal-sie | informal-du | en-you
   granularity: flow          # flow | screen
 
 output:

@@ -1,10 +1,11 @@
 /**
  * End-to-end tests of the adapter CLI against the built dist output —
  * semantic mirror of dart/ductus/test/cli_integration_test.dart.
- * The build runs once per test file in beforeAll (generous timeout).
+ * dist/ is built once for the whole run by the vitest global setup
+ * (vitest.global-setup.ts).
  */
 
-import { execSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -132,14 +133,10 @@ interface GraphJson {
 }
 
 beforeAll(() => {
-  // Build once per test file — the CLI tests run against dist/ (bin contract).
-  execSync('npm run build', {
-    cwd: REPO_ROOT,
-    stdio: 'pipe',
-    timeout: 300_000,
-  });
-  expect(existsSync(CLI)).toBe(true);
-}, 360_000);
+  // The build runs once for all test files in the vitest global setup —
+  // here only a cheap guard that the dist output is actually present.
+  expect(existsSync(CLI), `${CLI} missing — global setup did not build?`).toBe(true);
+});
 
 afterAll(() => {
   for (const dir of tmpRoots) rmSync(dir, { recursive: true, force: true });

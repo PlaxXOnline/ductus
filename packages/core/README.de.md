@@ -2,7 +2,7 @@
 
 [English](./README.md) | **Deutsch** | [Español](./README.es.md) | [简体中文](./README.zh-CN.md)
 
-**Endnutzer-Dokumentation direkt aus dem App-Code — automatisch, geprüft, versionierbar.**
+**Endnutzer-Dokumentation direkt aus deinem App-Code — automatisch, geprüft, versionierbar.**
 
 Ductus extrahiert aus annotiertem Quellcode (Dart/Flutter und
 TypeScript/JavaScript) einen User-Journey-Graphen und übersetzt ihn per
@@ -36,7 +36,7 @@ Für Dart/Flutter-Projekte zusätzlich den Adapter installieren:
 npm install -g @ductus/adapter-dart
 ```
 
-sowie im Flutter-Projekt das Dart-Paket [`ductus`](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) (Annotationen + Extraktor) als Dependency aufnehmen.
+sowie in deinem Flutter-Projekt das Dart-Paket [`ductus`](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus) (Annotationen + Extraktor) als Dependency aufnehmen.
 
 Für TypeScript/JavaScript-Projekte (z. B. React mit react-router oder Next.js) genügt:
 

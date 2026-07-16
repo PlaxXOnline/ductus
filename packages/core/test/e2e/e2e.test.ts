@@ -9,7 +9,7 @@
  * directories — the repository stays clean.
  */
 
-import { execSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
@@ -145,9 +145,9 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: example apps → pipeline (M9)', 
   let tmpComment: string;
 
   beforeAll(() => {
-    // Build once — the CLI chain runs against dist/ (bin contract).
-    execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
-    expect(existsSync(CLI)).toBe(true);
+    // dist/ is built once for the whole run by the vitest global setup —
+    // the CLI chain runs against dist/ (bin contract).
+    expect(existsSync(CLI), `${CLI} missing — global setup did not build?`).toBe(true);
 
     // Temp copy of the go_router demo: the path dependency on dart/ductus is
     // rewritten to an absolute path so the copy resolves on its own.
@@ -205,7 +205,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: example apps → pipeline (M9)', 
         expect(byId.get('dashboard')?.source).toBe('derived');
         expect(byId.get('settings')?.source).toBe('derived');
         expect(byId.get('login')?.source).toBe('annotation');
-        expect(byId.get('login')?.title).toBe('Anmeldung');
+        expect(byId.get('login')?.title).toBe('Sign in');
         expect(byId.get('register')?.source).toBe('annotation');
 
         // Flow "auth" from @JourneyFlow; edge login→dashboard from @JourneyAction.
@@ -214,7 +214,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: example apps → pipeline (M9)', 
           (edge) => edge.from === 'login' && edge.to === 'dashboard',
         );
         expect(loginToDashboard).toBeDefined();
-        expect(loginToDashboard?.condition).toBe('Zugangsdaten gültig');
+        expect(loginToDashboard?.condition).toBe('Credentials valid');
         expect(loginToDashboard?.source).toBe('annotation');
 
         // meta.adapters filled (A5).
@@ -256,7 +256,7 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: example apps → pipeline (M9)', 
         const ok = graph.edges.find(
           (edge) => edge.from === 'save-check' && edge.to === 'note-list',
         );
-        expect(ok?.condition).toBe('Titel vorhanden');
+        expect(ok?.condition).toBe('Title present');
       },
       120_000,
     );
@@ -430,8 +430,8 @@ describe.skipIf(!hasDart || !hasFlutter)('E2E: example apps → pipeline (M9)', 
         const conditionByPair = new Map(
           graph.edges.map((edge) => [`${edge.from}→${edge.to}`, edge.condition]),
         );
-        expect(conditionByPair.get('save-check→note-list')).toBe('Titel vorhanden');
-        expect(conditionByPair.get('save-check→note-editor')).toBe('Titel fehlt');
+        expect(conditionByPair.get('save-check→note-list')).toBe('Title present');
+        expect(conditionByPair.get('save-check→note-editor')).toBe('Title missing');
         expect(conditionByPair.has('note-editor→save-check')).toBe(true);
       },
       240_000,
@@ -651,12 +651,10 @@ describe('E2E: TypeScript adapter → pipeline', () => {
   let tmpTs: string;
 
   beforeAll(() => {
-    // Build once — the CLI chain runs against dist/ (bin contract). The
-    // beforeAll of the Dart suite is skipped without the SDKs, hence the
-    // standalone build here.
-    execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
-    expect(existsSync(CLI)).toBe(true);
-    expect(existsSync(TS_CLI)).toBe(true);
+    // dist/ is built once for the whole run by the vitest global setup —
+    // the CLI chain runs against dist/ (bin contract).
+    expect(existsSync(CLI), `${CLI} missing — global setup did not build?`).toBe(true);
+    expect(existsSync(TS_CLI), `${TS_CLI} missing — global setup did not build?`).toBe(true);
 
     // Own PATH shim instead of node_modules/.bin: in CI, npm ci runs BEFORE
     // the build, dist/cli.js is missing at install time and npm then does not

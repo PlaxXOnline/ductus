@@ -99,4 +99,22 @@ describe('checkLexicon', () => {
     const dupes = '1. **Exportieren**\n2. **Exportieren**';
     expect(checkLexicon(dupes, segment).violations).toHaveLength(1);
   });
+
+  it('handles italic nested in bold (***…***) without reporting the prose between spans', () => {
+    // A naive [^*]+ regex closed the span at the wrong "***" delimiter and reported
+    // "** und dann **" (the prose BETWEEN two real spans) as a bold term.
+    const markdown = '1. **Tap: *Notiz öffnen*** und dann **Exportieren**.';
+    const result = checkLexicon(markdown, segment);
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]!.claim).toBe('**Exportieren**');
+    expect(result.hints).toEqual([]);
+  });
+
+  it('captures a span with inner single asterisks as one term', () => {
+    const markdown = '1. **Notiz *bearbeiten* öffnen**.';
+    const result = checkLexicon(markdown, segment);
+    expect(result.violations).toHaveLength(1);
+    // One span including the inner italics — not split at the single asterisks.
+    expect(result.violations[0]!.claim).toBe('**Notiz *bearbeiten* öffnen**');
+  });
 });

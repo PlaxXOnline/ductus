@@ -4,8 +4,9 @@
 [live demo](https://plaxxonline.github.io/ductus/). It was produced with
 `ductus generate` from [`examples/flutter_comment_demo`](../examples/flutter_comment_demo)
 (provider `mistral`, model `ministral-3b-2512` — deliberately a very small
-model; the judge failure transparently reported there is part of the demo,
-too).
+model; the three over-strict judge findings transparently reported on the
+site are part of the demo, too: the faithfulness judge of a tiny model
+flags valid steps, and Ductus shows its verdicts instead of hiding them).
 
 The workflow [.github/workflows/pages.yml](../.github/workflows/pages.yml)
 builds the site from it on every push to `main`: [templates/journey](../templates/journey)

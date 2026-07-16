@@ -1,5 +1,5 @@
 name: go_router_demo
-description: Ductus-Beispiel - go_router-Ableitung (Weg C) plus Dart-Annotationen (Weg B).
+description: Ductus example - go_router derivation (path C) plus Dart annotations (path B).
 publish_to: none
 version: 0.1.0
 
@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   go_router: ^16.0.0
-  # Reguläre Abhängigkeit (kein dev): die Annotationen werden in lib/ importiert.
+  # Regular dependency (not dev): the annotations are imported in lib/.
   ductus:
     path: ../../dart/ductus
 

@@ -14,5 +14,8 @@ export default defineConfig({
   test: {
     include: ['packages/*/test/**/*.test.ts'],
     testTimeout: 30_000,
+    // Builds all workspaces exactly once before any test file runs — the
+    // per-file `npm run build` in beforeAll raced across parallel workers.
+    globalSetup: './vitest.global-setup.ts',
   },
 });

@@ -19,7 +19,7 @@ semantics are missing.
 
 **Manually enriched (path B, `source: "annotation"`):**
 
-- `LoginScreen` and `RegisterScreen` carry `@JourneyScreen` with a German
+- `LoginScreen` and `RegisterScreen` carry `@JourneyScreen` with an explicit
   title and `description` (better LLM prose).
 - `@JourneyAction` on the submit handlers provides the label, trigger and
   condition of the transitions (`login → dashboard`, `register → login`).

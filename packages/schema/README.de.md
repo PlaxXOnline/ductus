@@ -4,9 +4,9 @@
 
 Der Vertrag hinter [ductus](https://github.com/PlaxXOnline/ductus): TypeScript-Typen und JSON Schema (Draft 2020-12) für den Journey-Graphen (`journey-graph.json`) — die einzige Vertragsfläche zwischen Sprachadaptern und dem Ductus-Core.
 
-Sprachadapter (z. B. der [Dart-Adapter](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)) extrahieren aus annotiertem App-Code einen Graphen in diesem Format; der Core validiert, merged und übersetzt ihn in Endnutzer-Dokumentation. Wer einen eigenen Adapter schreibt oder `journey-graph.json` programmatisch verarbeitet, braucht genau dieses Paket — sonst nichts.
+Sprachadapter (z. B. der [Dart-Adapter](https://github.com/PlaxXOnline/ductus/tree/main/dart/ductus)) extrahieren aus annotiertem App-Code einen Graphen in diesem Format; der Core validiert, merged und übersetzt ihn in Endnutzer-Dokumentation. Wenn du einen eigenen Adapter schreibst oder `journey-graph.json` programmatisch verarbeitest, brauchst du genau dieses Paket — sonst nichts.
 
-**Für wen?** Autoren eigener Adapter und Tooling-Entwickler, die den Graphen lesen, erzeugen oder validieren wollen. Zum reinen Benutzen von ductus ist dieses Paket nicht nötig — es kommt als Dependency von [`@ductus/core`](https://github.com/PlaxXOnline/ductus/tree/main/packages/core) mit.
+**Für wen?** Autoren eigener Adapter und Tooling-Entwickler, die den Graphen lesen, erzeugen oder validieren wollen. Zum reinen Benutzen von ductus brauchst du dieses Paket nicht — es kommt als Dependency von [`@ductus/core`](https://github.com/PlaxXOnline/ductus/tree/main/packages/core) mit.
 
 ## Installation
 

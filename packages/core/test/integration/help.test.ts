@@ -1,9 +1,10 @@
 /**
  * End-to-end tests for `ductus help` against the built dist output.
- * The build runs once per test file in beforeAll (generous timeout).
+ * dist/ is built once for the whole run by the vitest global setup
+ * (vitest.global-setup.ts).
  */
 
-import { execSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -34,10 +35,10 @@ function runCli(args: string[], cwd: string): CliResult {
 }
 
 beforeAll(() => {
-  // Build once per test file — the CLI tests run against dist/ (bin contract).
-  execSync('npm run build', { cwd: ROOT, stdio: 'pipe', timeout: 300_000 });
-  expect(existsSync(CLI)).toBe(true);
-}, 360_000);
+  // The build runs once for all test files in the vitest global setup —
+  // here only a cheap guard that the dist output is actually present.
+  expect(existsSync(CLI), `${CLI} missing — global setup did not build?`).toBe(true);
+});
 
 afterAll(() => {
   for (const dir of tmpRoots) rmSync(dir, { recursive: true, force: true });

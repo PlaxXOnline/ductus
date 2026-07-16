@@ -4,7 +4,7 @@
 
 [English](./README.md) | **Deutsch** | [Español](./README.es.md) | [简体中文](./README.zh-CN.md)
 
-**Endnutzer-Dokumentation, die nicht lügen kann — extrahiert aus dem Code, geerdet im Journey-Graphen, übersetzt per LLM mit eigenem API-Key.**
+**Endnutzer-Dokumentation, die nicht lügen kann — extrahiert aus deinem Code, geerdet im Journey-Graphen, übersetzt per LLM mit deinem eigenen API-Key.**
 
 [![CI](https://github.com/PlaxXOnline/ductus/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PlaxXOnline/ductus/actions/workflows/ci.yml?query=branch%3Amain)
 [![npm: @ductus/core](https://img.shields.io/npm/v/%40ductus%2Fcore?label=%40ductus%2Fcore)](https://www.npmjs.com/package/@ductus/core)
@@ -27,7 +27,7 @@ Endnutzer-Dokumentation veraltet schneller, als sie geschrieben wird: Jede neue
 Route, jeder umbenannte Button macht Anleitungen still und leise falsch. Ductus
 extrahiert deshalb direkt aus dem annotierten Quellcode (Dart/Flutter und
 TypeScript/JavaScript) einen gerichteten Graphen der User-Journey und übersetzt
-ihn per LLM — mit dem eigenen API-Key (BYOK) — in gepflegte Endnutzer-Doku als
+ihn per LLM — mit deinem eigenen API-Key (BYOK) — in gepflegte Endnutzer-Doku als
 MDX-Dateien oder statische Website. Graph und Doku werden mit dem Code
 versioniert; ein **Faithfulness-Judge** stellt sicher, dass der generierte Text
 nichts behauptet, was nicht im Graphen steht.
@@ -50,17 +50,17 @@ Die **[Demo-Site](https://plaxxonline.github.io/ductus/)** wurde vollständig
 von Ductus generiert — aus den `@journey:`-Kommentaren der Beispiel-App
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), ohne
 manuelle Nacharbeit. Interaktiver Journey-Graph, Schrittliste aus dem
-Hauptpfad, ⌘K-Suche — die Beispiel-App ist deutschsprachig, der Demo-Inhalt
-ist daher aktuell deutsche Beispielausgabe (Deutsch bleibt eine voll
-unterstützte Ausgabesprache):
+Hauptpfad, ⌘K-Suche:
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Journey-Seite der Demo: interaktiver Graph links, Hauptpfad-Schritte rechts — „Pfad abspielen“ animiert den Weg durch die App" src="docs/assets/path-play.gif" width="100%">
 </a>
 
-Auch der Warnhinweis oben rechts ist Teil der Demo: Der Faithfulness-Check
-meldet hier transparent, dass die Judge-Antwort des (bewusst winzigen)
-Demo-Modells nicht auswertbar war — Ductus lässt so etwas nie still passieren.
+Auch der Warnhinweis oben rechts ist Teil der Demo: Der Faithfulness-Judge
+des (bewusst winzigen) Demo-Modells meldet drei übervorsichtige Funde — er
+beanstandet völlig valide Schritte wie „Tap **New note**…“, weil er sie
+nicht als Buttons im Graphen erkennt. Ductus weist solche Urteile
+transparent aus, statt sie zu verbergen.
 
 ## Schnellstart
 
@@ -94,21 +94,20 @@ So sieht ein kompletter Lauf aus — `extract` und `check` brauchen kein LLM,
 Ductus ist **ohne LLM voll benutzbar** — das LLM ist die letzte Meile, die aus
 dem validierten Graphen lesbare Prosa macht. Der direkte Vergleich, mit echten
 (wörtlichen) Artefakten aus
-[`examples/flutter_comment_demo`](examples/flutter_comment_demo)
-(deutschsprachige Beispielinhalte):
+[`examples/flutter_comment_demo`](examples/flutter_comment_demo):
 
 ### Ausgangspunkt: ein Kommentar im Code
 
 ```dart
-// @journey:screen id="note-editor" title="Notiz-Editor" flow="notes"
-//   description="Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt."
+// @journey:screen id="note-editor" title="Note editor" flow="notes"
+//   description="Form for creating or editing a note with a title and content."
 class NoteEditorScreen extends StatelessWidget {
   // …
-            // @journey:action label="Speichern"
+            // @journey:action label="Save"
             //   from="note-editor" to="save-check" trigger="submit"
             FilledButton(
               onPressed: () => _save(context, titleController.text),
-              child: const Text('Speichern'),
+              child: const Text('Save'),
             ),
 ```
 
@@ -123,7 +122,7 @@ Auszug aus `journey-graph.json`, gekürzt auf einen Node und eine Edge:
     {
       "from": "note-editor",
       "id": "e_note-editor_save-check",
-      "label": "Speichern",
+      "label": "Save",
       "source": "annotation",
       "sourceRef": {
         "file": "lib/screens/note_editor_screen.dart",
@@ -136,7 +135,7 @@ Auszug aus `journey-graph.json`, gekürzt auf einen Node und eine Edge:
   ],
   "nodes": [
     {
-      "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+      "description": "Form for creating or editing a note with a title and content.",
       "flow": "notes",
       "id": "note-editor",
       "source": "annotation",
@@ -145,7 +144,7 @@ Auszug aus `journey-graph.json`, gekürzt auf einen Node und eine Edge:
         "line": 3,
         "symbol": "NoteEditorScreen"
       },
-      "title": "Notiz-Editor",
+      "title": "Note editor",
       "type": "screen"
     }
   ]
@@ -157,41 +156,55 @@ für die Demo-App:
 
 ```mermaid
 flowchart TD
-  note_detail["Notiz-Detail"]
-  note_editor["Notiz-Editor"]
-  note_list["Notizliste"]
-  save_check{"Eingaben gültig?"}
-  settings["Einstellungen"]
-  note_detail -->|Notiz bearbeiten| note_editor
-  note_editor -->|Speichern| save_check
-  note_list -->|Notiz öffnen| note_detail
-  note_list -->|Neue Notiz| note_editor
-  note_list -->|Einstellungen öffnen| settings
-  save_check -->|Fehlerhinweis anzeigen / Titel fehlt| note_editor
-  save_check -->|Zurück zur Liste / Titel vorhanden| note_list
-  settings -->|Zurück| note_list
+  note_detail["Note detail"]
+  note_editor["Note editor"]
+  note_list["Note list"]
+  save_check{"Input valid?"}
+  settings["Settings"]
+  note_detail -->|Edit note| note_editor
+  note_editor -->|Save| save_check
+  note_list -->|Open note| note_detail
+  note_list -->|New note| note_editor
+  note_list -->|Open settings| settings
+  save_check -->|Show error message / Title missing| note_editor
+  save_check -->|Back to the list / Title present| note_list
+  settings -->|Back| note_list
 ```
 
-Dazu kommen Validierung (Start-Screens, unerreichbare Nodes, Zyklen ohne
-`condition`, …) und `ductus-report.json` als maschinenlesbares CI-Gate.
+Dazu bekommst du Validierung (Start-Screens, unerreichbare Nodes, Zyklen
+ohne `condition`, …) und `ductus-report.json` als maschinenlesbares CI-Gate.
 
 ### Mit LLM: `ductus generate` — aus demselben Graphen wird Prosa
 
 Wörtlich so generiert (hier bewusst mit einem sehr kleinen Modell,
-`ministral-3b-2512`; Auszug — deutsche Ausgabe für die deutschsprachige
-Demo-App):
+`ministral-3b-2512`; Auszug aus dem aktuellen Lauf der Demo-App):
 
-> Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
-> erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.
+> This section guides you through creating, editing, and managing notes in
+> **comment_demo**. You’ll start from the note list, explore note details,
+> and adjust app settings as needed.
 >
-> **Notiz bearbeiten**
+> …
 >
-> 1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.
->    *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*
-> 2. Bearbeiten Sie den Titel und den Inhalt der Notiz.
-> 3. Tippen Sie auf **Speichern**.
+> **Creating a New Note**
+>
+> 1. Tap **New note** on the **Note list** screen.
+> 2. You’re taken to the **Note editor** screen.
+>
+> …
+>
+> **Editing the Note**
+>
+> 1. Tap **Edit note** on the **Note detail** screen.
+> 2. You’re redirected to the **Note editor** screen.
+>
+> **Saving with a Title**
+>
+> 1. In the **Note editor**, ensure the note has a title.
+> 2. Submit the form to proceed to the **Input valid?** decision node.
+> 3. The app confirms the title is present and takes you back to the
+>    **Note list**.
 
-Die Kanten-Labels (**Speichern**, **Notiz bearbeiten**) sind die echten
+Die Kanten-Labels (**New note**, **Edit note**) sind die echten
 Button-Beschriftungen aus dem Graphen — der Generierungs-Prompt verbietet dem
 LLM, UI-Elemente zu erfinden, die nicht als Node, Edge oder `label` im Segment
 stehen.
@@ -200,7 +213,7 @@ stehen.
 
 |  | `extract` / `graph` / `check` | `generate` |
 |---|---|---|
-| **LLM / API-Key** | nicht nötig | eigener Key (BYOK) oder `mock` |
+| **LLM / API-Key** | nicht nötig | dein eigener Key (BYOK) oder `mock` |
 | **Kosten** | keine | Schätzung vorab; der Segment-Cache vermeidet erneute Kosten |
 | **Netz** | keins | nur der Provider-Aufruf |
 | **Ergebnis** | `journey-graph.json`, Mermaid-Diagramme, Validierung, Report | Endnutzer-Prosa als MDX oder Website |
@@ -336,7 +349,7 @@ Astro-Projekt nach `output.dir`. Default-Generator ist
 [`journey`](templates/journey): ein journey-zentriertes, pures Astro-Template,
 das seine Daten aus genau einer `ductus.data.json` liest (deterministischer
 Datenvertrag — keine MDX-Dateien). Mit `output.website.generator: starlight`
-entsteht stattdessen ein [Starlight-Projekt](templates/starlight)
+bekommst du stattdessen ein [Starlight-Projekt](templates/starlight)
 (MDX + Sidebar-/Site-Konfig), in dem die Mermaid-Diagramme client-seitig
 gerendert werden.
 
@@ -375,8 +388,8 @@ Es rendert den Graphen nativ als interaktive Ansicht direkt aus
 
 ## Konfiguration
 
-`ductus init` liest die `pubspec.yaml` (App-Name, go_router/auto_route) —
-bzw. ohne pubspec die `package.json` (App-Name, react-router/Next.js) — und
+`ductus init` liest deine `pubspec.yaml` (App-Name, go_router/auto_route) —
+bzw. ohne pubspec deine `package.json` (App-Name, react-router/Next.js) — und
 legt eine kommentierte `ductus.config.yaml` an:
 
 ```yaml
@@ -426,7 +439,7 @@ Erwähnenswerte Details:
 
 ## Best Practices
 
-So holt man aus Ductus präzise, graphentreue und günstige Endnutzer-Doku heraus.
+So holst du aus Ductus präzise, graphentreue und günstige Endnutzer-Doku heraus.
 
 ### Graph-Qualität
 
@@ -460,9 +473,9 @@ So holt man aus Ductus präzise, graphentreue und günstige Endnutzer-Doku herau
 - **Nie zwei manuelle Quellen für dasselbe Feld.** Widersprechen sich zwei
   manuelle Quellen, bricht der Merge fail-fast mit beiden Quellenangaben ab.
   Jedes Element genau einmal manuell beschreiben.
-- **Weg D für build_runner-Projekte:** Wer ohnehin `build_runner` fährt, lässt
-  den Builder `journey_builder` den Graphen als `ductus_builder.g.json`
-  miterzeugen und speist ihn per `fromBuilder: true` ein — mit Resolution
+- **Weg D für build_runner-Projekte:** Wenn du ohnehin `build_runner` fährst,
+  lass den Builder `journey_builder` den Graphen als `ductus_builder.g.json`
+  miterzeugen und speise ihn per `fromBuilder: true` ein — mit Resolution
   nicht-literaler konstanter Annotation-Argumente, die ein rein parsender
   Adapter ablehnen müsste (Setup in [dart/ductus](dart/ductus)).
 

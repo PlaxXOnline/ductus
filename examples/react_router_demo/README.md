@@ -21,16 +21,16 @@ project is needed: the adapter parses the sources without installation.
   `'/login'` yields a conditional edge towards `login`.
 - `<Link to="…">` with visible text (a label!) and `navigate('/…')` calls
   with a literal argument become transitions, e.g. `dashboard → settings`
-  (“Einstellungen”) and `settings → login` (sign out).
+  (“Settings”) and `settings → login` (sign out).
 
 **Manually enriched (path A, `source: "annotation"`):**
 
 - `LoginScreen` and `RegisterScreen` carry `@journey:screen` comments with a
-  German title, `flow` and `description` (better LLM prose) — with the
+  `title`, `flow` and `description` (better LLM prose) — with the
   **same ids** (`login`, `register`) that the derivation builds from the
   paths.
 - A `@journey:action` with `trigger="submit"` leads from `login` into the
-  `@journey:decision` `login-check` (“Zugangsdaten gültig?”), which branches
+  `@journey:decision` `login-check` (“Credentials valid?”), which branches
   with **two conditional auto actions** to `dashboard` or back to `login`.
 - A `@journey:flow` (`auth`, start `login`) bundles the sign-in flow.
 - The edge `register → login` derived from `navigate('/login')` merges with

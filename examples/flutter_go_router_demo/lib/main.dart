@@ -6,13 +6,13 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/settings_screen.dart';
 
-/// Simulierter Anmeldezustand (echte Apps nutzen hier z. B. einen AuthService).
+/// Simulated sign-in state (real apps would use e.g. an AuthService here).
 bool isLoggedIn = false;
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
-  // Ductus leitet aus diesem redirect einen Decision-Node ab; das
-  // String-Literal '/login' wird als bedingte Kante erkannt (best effort).
+  // Ductus derives a decision node from this redirect; the string literal
+  // '/login' is picked up as a conditional edge (best effort).
   redirect: (BuildContext context, GoRouterState state) {
     final bool goingToAuth =
         state.matchedLocation == '/login' ||
@@ -59,13 +59,13 @@ class GoRouterDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Ductus go_router-Demo',
+      title: 'Ductus go_router demo',
       routerConfig: router,
     );
   }
 }
 
-/// Gemeinsame Navigationshülle für den eingeloggten Bereich.
+/// Shared navigation shell for the signed-in area.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
@@ -82,10 +82,10 @@ class AppShell extends StatelessWidget {
         onTap: (index) =>
             context.goNamed(index == 0 ? 'dashboard' : 'settings'),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Übersicht'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
-            label: 'Einstellungen',
+            label: 'Settings',
           ),
         ],
       ),

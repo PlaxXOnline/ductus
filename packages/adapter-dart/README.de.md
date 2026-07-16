@@ -24,7 +24,7 @@ dart pub add dev:ductus
 dart pub global activate ductus
 ```
 
-Wer die Dart-Annotationen (Weg B, siehe unten) in `lib/` importiert, nimmt `ductus` stattdessen als reguläre Dependency auf: `dart pub add ductus`.
+Wenn du die Dart-Annotationen (Weg B, siehe unten) in `lib/` importierst, nimm `ductus` stattdessen als reguläre Dependency auf: `dart pub add ductus`.
 
 ## Quickstart mit @ductus/core
 

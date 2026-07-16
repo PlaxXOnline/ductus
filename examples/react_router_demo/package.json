@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Ductus-Beispiel - react-router-Ableitung (Weg C) plus Kommentar-Konvention (Weg A).",
+  "description": "Ductus example - react-router derivation (path C) plus comment convention (path A).",
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

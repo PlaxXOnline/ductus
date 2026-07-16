@@ -1,28 +1,29 @@
 import { Link, useNavigate } from 'react-router-dom';
 
-import { abmelden } from '../auth';
+import { signOut } from '../auth';
 
 /**
- * Bewusst ohne Annotationen (Weg C): Neben dem <Link> wird auch der
- * navigate('/login')-Aufruf mit Literal-Argument zur abgeleiteten Kante.
+ * Deliberately without annotations (path C): besides the <Link>, the
+ * navigate('/login') call with a literal argument also becomes a derived
+ * edge.
  */
 export function SettingsScreen() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    abmelden();
+    signOut();
     navigate('/login');
   };
 
   return (
     <section>
-      <h1>Einstellungen</h1>
+      <h1>Settings</h1>
       <label>
-        <input type="checkbox" defaultChecked /> Benachrichtigungen aktivieren
+        <input type="checkbox" defaultChecked /> Enable notifications
       </label>
-      <Link to="/dashboard">Zur Übersicht</Link>
+      <Link to="/dashboard">Go to dashboard</Link>
       <button type="button" onClick={handleLogout}>
-        Abmelden
+        Sign out
       </button>
     </section>
   );

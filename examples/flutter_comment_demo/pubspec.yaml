@@ -1,5 +1,5 @@
 name: comment_demo
-description: Ductus-Beispiel - Kommentar-Konvention (Weg A), ganz ohne Build-Abhängigkeit.
+description: Ductus example - comment convention (path A), with no build dependency at all.
 publish_to: none
 version: 0.1.0
 

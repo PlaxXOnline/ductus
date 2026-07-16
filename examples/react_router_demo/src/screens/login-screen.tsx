@@ -1,64 +1,64 @@
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { anmelden } from '../auth';
+import { signIn } from '../auth';
 
 /**
- * Ziel nach erfolgreicher Anmeldung. Bewusst kein String-Literal direkt am
- * navigate()-Aufruf unten: Die Transition login → dashboard beschreibt hier
- * bereits die @journey:decision — eine zusätzlich abgeleitete Kante wäre
- * redundant.
+ * Destination after a successful sign-in. Deliberately no string literal
+ * directly at the navigate() call below: the transition login → dashboard is
+ * already described by the @journey:decision — an additionally derived edge
+ * would be redundant.
  */
-const ZIEL_NACH_ANMELDUNG = '/dashboard';
+const AFTER_SIGN_IN_TARGET = '/dashboard';
 
-// Der Screen ist bereits aus der Routen-Tabelle abgeleitet (Weg C); der
-// Kommentarblock reichert ihn um Titel, Flow und Beschreibung an (Weg A).
-// @journey:screen id="login" title="Anmeldung" flow="auth"
-//   description="Bildschirm, auf dem sich der Nutzer mit E-Mail-Adresse und Passwort anmeldet."
+// The screen is already derived from the route table (path C); the comment
+// block enriches it with a title, flow and description (path A).
+// @journey:screen id="login" title="Sign in" flow="auth"
+//   description="Screen where the user signs in with email and password."
 export function LoginScreen() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [passwort, setPasswort] = useState('');
-  const [fehler, setFehler] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  // @journey:action label="Anmelden" to="login-check" trigger="submit"
+  // @journey:action label="Sign in" to="login-check" trigger="submit"
   //
-  // @journey:decision id="login-check" title="Zugangsdaten gültig?" flow="auth"
-  //   description="Beim Absenden wird geprüft, ob E-Mail-Adresse und Passwort ausgefüllt sind."
-  // @journey:action label="Zur Übersicht"
+  // @journey:decision id="login-check" title="Credentials valid?" flow="auth"
+  //   description="On submit, the app checks whether email and password are filled in."
+  // @journey:action label="Go to dashboard"
   //   from="login-check" to="dashboard" trigger="auto"
-  //   condition="Zugangsdaten gültig"
-  // @journey:action label="Fehlerhinweis anzeigen"
+  //   condition="Credentials valid"
+  // @journey:action label="Show error message"
   //   from="login-check" to="login" trigger="auto"
-  //   condition="Zugangsdaten ungültig"
+  //   condition="Credentials invalid"
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (email === '' || passwort === '') {
-      setFehler('Bitte E-Mail-Adresse und Passwort eingeben.');
+    if (email === '' || password === '') {
+      setError('Please enter your email address and password.');
       return;
     }
-    anmelden();
-    navigate(ZIEL_NACH_ANMELDUNG);
+    signIn();
+    navigate(AFTER_SIGN_IN_TARGET);
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <h1>Anmeldung</h1>
+      <h1>Sign in</h1>
       <input
         type="email"
-        placeholder="E-Mail-Adresse"
+        placeholder="Email address"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
       />
       <input
         type="password"
-        placeholder="Passwort"
-        value={passwort}
-        onChange={(event) => setPasswort(event.target.value)}
+        placeholder="Password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
       />
-      {fehler !== '' && <p role="alert">{fehler}</p>}
-      <button type="submit">Anmelden</button>
-      <Link to="/register">Konto erstellen</Link>
+      {error !== '' && <p role="alert">{error}</p>}
+      <button type="submit">Sign in</button>
+      <Link to="/register">Create account</Link>
     </form>
   );
 }

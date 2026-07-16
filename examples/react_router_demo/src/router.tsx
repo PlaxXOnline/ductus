@@ -1,18 +1,18 @@
 import { createBrowserRouter, Outlet, redirect } from 'react-router-dom';
 
-import { angemeldet } from './auth';
+import { isLoggedIn } from './auth';
 import { DashboardScreen } from './screens/dashboard-screen';
 import { LoginScreen } from './screens/login-screen';
 import { RegisterScreen } from './screens/register-screen';
 import { SettingsScreen } from './screens/settings-screen';
 
 /**
- * Zugangsschutz für den eingeloggten Bereich: Ductus leitet aus diesem
- * redirect(...) einen Decision-Node ab; das String-Literal '/login' ergibt
- * eine bedingte Kante Richtung login (best effort).
+ * Access guard for the signed-in area: Ductus derives a decision node from
+ * this redirect(...); the string literal '/login' yields a conditional edge
+ * towards login (best effort).
  */
 function requireAuth(): Response | null {
-  if (!angemeldet) {
+  if (!isLoggedIn) {
     return redirect('/login');
   }
   return null;
@@ -28,8 +28,8 @@ export const router = createBrowserRouter([
     element: <RegisterScreen />,
   },
   {
-    // Pfadlose Layout-Route mit Kindern (das react-router-Gegenstück zur
-    // ShellRoute): Ductus gruppiert dashboard und settings zu einem Flow.
+    // Pathless layout route with children (the react-router counterpart to
+    // the ShellRoute): Ductus groups dashboard and settings into a flow.
     element: <AppShell />,
     children: [
       {
@@ -45,7 +45,7 @@ export const router = createBrowserRouter([
   },
 ]);
 
-/** Gemeinsame Navigationshülle für den eingeloggten Bereich. */
+/** Shared navigation shell for the signed-in area. */
 function AppShell() {
   return (
     <div className="app-shell">

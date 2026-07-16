@@ -53,19 +53,18 @@ generado íntegramente por Ductus — a partir de los comentarios `@journey:`
 de la app de ejemplo
 [`examples/flutter_comment_demo`](examples/flutter_comment_demo), sin
 retoques manuales. Grafo del journey interactivo, lista de pasos del camino
-principal, búsqueda ⌘K — ten en cuenta que la app de ejemplo está en alemán,
-por lo que el contenido de la demo es actualmente salida de ejemplo en
-alemán (el alemán sigue siendo un idioma de salida totalmente soportado):
+principal, búsqueda ⌘K:
 
 <a href="https://plaxxonline.github.io/ductus/journeys/notes/">
   <img alt="Página de journey de la demo: grafo interactivo a la izquierda, pasos del camino principal a la derecha — «Play path» anima la ruta a través de la app" src="docs/assets/path-play.gif" width="100%">
 </a>
 
 La insignia de advertencia en la esquina superior derecha también forma
-parte de la demo: la comprobación de faithfulness informa de forma
-transparente de que la respuesta del judge del modelo de demostración
-(deliberadamente diminuto) no se pudo parsear — Ductus nunca deja que eso
-ocurra en silencio.
+parte de la demo: el judge de faithfulness del modelo de demostración
+(deliberadamente diminuto) plantea tres hallazgos excesivamente estrictos —
+señala pasos perfectamente válidos como «Tap **New note**…» porque no los
+reconoce como botones del grafo. Ductus muestra esos veredictos de forma
+transparente en lugar de ocultarlos.
 
 ## Inicio rápido
 
@@ -100,21 +99,20 @@ proveedor:
 Ductus es **totalmente utilizable sin LLM** — el LLM es la última milla que
 convierte el grafo validado en prosa legible. Una comparación directa, con
 artefactos reales (literales) de
-[`examples/flutter_comment_demo`](examples/flutter_comment_demo)
-(contenido de ejemplo en alemán):
+[`examples/flutter_comment_demo`](examples/flutter_comment_demo):
 
 ### Punto de partida: un comentario en el código
 
 ```dart
-// @journey:screen id="note-editor" title="Notiz-Editor" flow="notes"
-//   description="Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt."
+// @journey:screen id="note-editor" title="Note editor" flow="notes"
+//   description="Form for creating or editing a note with a title and content."
 class NoteEditorScreen extends StatelessWidget {
   // …
-            // @journey:action label="Speichern"
+            // @journey:action label="Save"
             //   from="note-editor" to="save-check" trigger="submit"
             FilledButton(
               onPressed: () => _save(context, titleController.text),
-              child: const Text('Speichern'),
+              child: const Text('Save'),
             ),
 ```
 
@@ -130,7 +128,7 @@ arista:
     {
       "from": "note-editor",
       "id": "e_note-editor_save-check",
-      "label": "Speichern",
+      "label": "Save",
       "source": "annotation",
       "sourceRef": {
         "file": "lib/screens/note_editor_screen.dart",
@@ -143,7 +141,7 @@ arista:
   ],
   "nodes": [
     {
-      "description": "Formular zum Anlegen oder Bearbeiten einer Notiz mit Titel und Inhalt.",
+      "description": "Form for creating or editing a note with a title and content.",
       "flow": "notes",
       "id": "note-editor",
       "source": "annotation",
@@ -152,7 +150,7 @@ arista:
         "line": 3,
         "symbol": "NoteEditorScreen"
       },
-      "title": "Notiz-Editor",
+      "title": "Note editor",
       "type": "screen"
     }
   ]
@@ -164,19 +162,19 @@ para la app de demostración:
 
 ```mermaid
 flowchart TD
-  note_detail["Notiz-Detail"]
-  note_editor["Notiz-Editor"]
-  note_list["Notizliste"]
-  save_check{"Eingaben gültig?"}
-  settings["Einstellungen"]
-  note_detail -->|Notiz bearbeiten| note_editor
-  note_editor -->|Speichern| save_check
-  note_list -->|Notiz öffnen| note_detail
-  note_list -->|Neue Notiz| note_editor
-  note_list -->|Einstellungen öffnen| settings
-  save_check -->|Fehlerhinweis anzeigen / Titel fehlt| note_editor
-  save_check -->|Zurück zur Liste / Titel vorhanden| note_list
-  settings -->|Zurück| note_list
+  note_detail["Note detail"]
+  note_editor["Note editor"]
+  note_list["Note list"]
+  save_check{"Input valid?"}
+  settings["Settings"]
+  note_detail -->|Edit note| note_editor
+  note_editor -->|Save| save_check
+  note_list -->|Open note| note_detail
+  note_list -->|New note| note_editor
+  note_list -->|Open settings| settings
+  save_check -->|Show error message / Title missing| note_editor
+  save_check -->|Back to the list / Title present| note_list
+  settings -->|Back| note_list
 ```
 
 A eso se suman la validación (pantallas de inicio, nodos inalcanzables,
@@ -186,23 +184,38 @@ por máquina.
 ### Con LLM: `ductus generate` — el mismo grafo se convierte en prosa
 
 Generado literalmente (a propósito con un modelo muy pequeño,
-`ministral-3b-2512`; extracto — salida en alemán para la app de
-demostración en alemán):
+`ministral-3b-2512`; extracto de la ejecución actual de la app de
+demostración):
 
-> Dieser Abschnitt zeigt Ihnen, wie Sie in der **comment_demo**-App Notizen
-> erstellen, bearbeiten oder anzeigen sowie die App-Einstellungen verwalten.
+> This section guides you through creating, editing, and managing notes in
+> **comment_demo**. You’ll start from the note list, explore note details,
+> and adjust app settings as needed.
 >
-> **Notiz bearbeiten**
+> …
 >
-> 1. Öffnen Sie eine Notiz und tippen Sie auf **Notiz bearbeiten**.
->    *Voraussetzung: Sie befinden sich auf der Notiz-Detailseite.*
-> 2. Bearbeiten Sie den Titel und den Inhalt der Notiz.
-> 3. Tippen Sie auf **Speichern**.
+> **Creating a New Note**
+>
+> 1. Tap **New note** on the **Note list** screen.
+> 2. You’re taken to the **Note editor** screen.
+>
+> …
+>
+> **Editing the Note**
+>
+> 1. Tap **Edit note** on the **Note detail** screen.
+> 2. You’re redirected to the **Note editor** screen.
+>
+> **Saving with a Title**
+>
+> 1. In the **Note editor**, ensure the note has a title.
+> 2. Submit the form to proceed to the **Input valid?** decision node.
+> 3. The app confirms the title is present and takes you back to the
+>    **Note list**.
 
-Las etiquetas de las aristas (**Speichern**, **Notiz bearbeiten**) son los
-rótulos reales de los botones tal como están en el grafo — el prompt de
-generación prohíbe al LLM inventar elementos de UI que no aparezcan como
-nodo, arista o `label` en el segmento.
+Las etiquetas de las aristas (**New note**, **Edit note**) son los rótulos
+reales de los botones tal como están en el grafo — el prompt de generación
+prohíbe al LLM inventar elementos de UI que no aparezcan como nodo, arista o
+`label` en el segmento.
 
 ### La diferencia de un vistazo
 

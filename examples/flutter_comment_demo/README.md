@@ -22,8 +22,8 @@ Annotated via comments are:
 - one `@journey:screen` with a `description` per screen,
 - several `@journey:action` with `from`/`to`/`trigger` (tap, submit, back),
 - one `@journey:decision` (`save-check`) in the editor with **two conditional
-  actions**: “Titel vorhanden” (title present) → back to the list,
-  “Titel fehlt” (title missing) → back to the editor.
+  actions**: “Title present” → back to the list,
+  “Title missing” → back to the editor.
 
 Since no router package is involved, there is nothing to derive — the entire
 graph comes from the comments (`source: "annotation"`).

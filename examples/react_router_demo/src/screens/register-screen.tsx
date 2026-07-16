@@ -1,17 +1,17 @@
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// @journey:screen id="register" title="Registrierung" flow="auth"
-//   description="Bildschirm, auf dem der Nutzer ein neues Konto anlegt."
+// @journey:screen id="register" title="Registration" flow="auth"
+//   description="Screen where the user creates a new account."
 export function RegisterScreen() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [passwort, setPasswort] = useState('');
+  const [password, setPassword] = useState('');
 
-  // Die aus navigate('/login') abgeleitete Kante register → login verschmilzt
-  // mit dieser Action (gleiches from/to) — manuelle Felder gewinnen feldweise.
-  // @journey:action label="Konto erstellen" to="login" trigger="submit"
-  //   condition="Registrierung erfolgreich"
+  // The edge register → login derived from navigate('/login') merges with
+  // this action (same from/to) — manual fields win field by field.
+  // @journey:action label="Create account" to="login" trigger="submit"
+  //   condition="Registration successful"
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     navigate('/login');
@@ -19,20 +19,20 @@ export function RegisterScreen() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h1>Registrierung</h1>
+      <h1>Registration</h1>
       <input
         type="email"
-        placeholder="E-Mail-Adresse"
+        placeholder="Email address"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
       />
       <input
         type="password"
-        placeholder="Passwort"
-        value={passwort}
-        onChange={(event) => setPasswort(event.target.value)}
+        placeholder="Password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
       />
-      <button type="submit">Konto erstellen</button>
+      <button type="submit">Create account</button>
     </form>
   );
 }

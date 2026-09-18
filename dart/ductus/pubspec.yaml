@@ -19,7 +19,7 @@ dependencies:
   # pinned by Flutter stable (analyzer 13 requires meta ^1.18.0) remain
   # resolvable. Once source_gen/build allow analyzer 14, the range can grow
   # back to `<15.0.0`.
-  analyzer: '>=13.0.0 <14.0.0'
+  analyzer: ">=13.0.0 <15.0.0"
   args: ^2.7.0
   # Regular (not dev) dependencies: lib/builder.dart is imported by the
   # generated build_runner script of consumers (auto_apply: dependents).
